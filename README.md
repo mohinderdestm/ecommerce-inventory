@@ -69,11 +69,7 @@ Build a secure authentication and authorization system.
 **Features**
 - User registration and login
 - JWT-based authentication
-- Password hashing
 - Role-based access control
-- Profile management
-- Admin ability to create and manage users
-- Account activation and deactivation
 
 ### 2. Product Catalog Management
 
@@ -84,8 +80,6 @@ Manage product-related information and metadata.
 - Product categories and subcategories
 - SKU generation
 - Product pricing
-- Unit handling such as piece, box, \(kg\), liter
-- Product status such as active, discontinued, and draft
 - Search by name, SKU, category, or supplier
 - Product image metadata storage
 
@@ -115,7 +109,6 @@ Manage supplier details and supplier-related procurement information.
 - Supplier contact information
 - Supplier rating
 - Supplier-product mapping
-- Payment terms
 - Supplier status
 - Supplier performance summary
 
