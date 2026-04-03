@@ -1,0 +1,26 @@
+body {
+    font-family: Arial, sans-serif;
+    background: #0f172a;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.dashboard-card {
+    background: #1e293b;
+    padding: 40px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background: #ef4444;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+}
