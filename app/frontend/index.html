@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Inventory App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body id="body">
+
+<!-- LOGIN -->
+<div class="container" id="loginBox">
+    <h2>Login</h2>
+    <input type="email" id="loginEmail" placeholder="Email">
+    <input type="password" id="loginPassword" placeholder="Password">
+    <button onclick="login()">Login</button>
+    <p id="loginMsg"></p>
+    <p class="link" onclick="showRegister()">Go to Register</p>
+</div>
+
+<!-- REGISTER -->
+<div class="container" id="registerBox" style="display:none;">
+    <h2>Register</h2>
+    <input type="text" id="name" placeholder="Name">
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+
+    <select id="role">
+        <option value="admin">Admin</option>
+        <option value="inventory_manager">Inventory Manager</option>
+        <option value="warehouse_staff">Warehouse Staff</option>
+        <option value="finance_staff">Finance Staff</option>
+        <option value="viewer">Viewer</option>
+    </select>
+
+    <button onclick="register()">Register</button>
+    <p id="registerMsg"></p>
+    <p class="link" onclick="showLogin()">Go to Login</p>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+    <h2>Welcome, <span id="nameTop"></span>👋</h2>
+
+    <div class="nav">
+        <button onclick="goTo('products')">Products</button>
+        <button onclick="goTo('orders')">Orders</button>
+        <button onclick="goTo('profile')">Profile</button>
+        <button onclick="logout()">Logout</button>
+    </div>
+
+    <!-- <div id="content">
+        <h3>Dashboard</h3>
+        <p>Select an option</p>
+    </div> -->
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
