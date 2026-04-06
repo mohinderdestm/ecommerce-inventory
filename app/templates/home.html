@@ -1,68 +1,110 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Smart Inventory Dashboard</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Inventory Dashboard</title>
 
-  <link rel="stylesheet" href="/static/css/home.css"/>
-</head>
+    <link rel="stylesheet" href="/static/css/home.css" />
+  </head>
 
-<body>
+  <body>
+    <nav class="navbar">
+      <div class="nav-left">
+        <div class="user-box">
+          <div class="avatar" id="avatar">U</div>
+          <div class="user-details">
+            <span id="userName">User Name</span>
+            <span id="userRole">Role</span>
+          </div>
+        </div>
+      </div>
 
-<nav class="navbar">
-  <div class="nav-left">
-    <div class="user-box">
-      <div class="avatar" id="avatar">U</div>
-      <div class="user-details">
-        <span id="userName">User Name</span>
-        <span id="userRole">Role</span>
+      <div class="nav-center">
+        <h2 class="logo">Smart Inventory</h2>
+      </div>
+
+      <div class="nav-right">
+        <button id="openAddProduct" class="btn add-btn">Add Product</button>
+        <button id="logoutBtn" class="btn logout-btn">Logout</button>
+      </div>
+    </nav>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <section class="products-section">
+      <h2 class="section-title">Your Products</h2>
+      <div id="productsContainer" class="products-grid"></div>
+    </section>
+
+    <div id="productOverlay" class="overlay hidden">
+      <div class="overlay-content">
+        <div class="overlay-header">
+          <h2 id="formTitle">Add Product</h2>
+          <button id="closeOverlay" class="close-btn">&times;</button>
+        </div>
+
+        <form id="productForm">
+          <input type="text" id="name" placeholder="Product Name" required />
+          <textarea id="description" placeholder="Description"></textarea>
+          <input type="text" id="category" placeholder="Category" />
+          <input type="number" id="cost_price" placeholder="Cost Price" />
+          <input
+            type="number"
+            id="price"
+            placeholder="Selling Price"
+            required
+          />
+          <input
+            type="number"
+            id="quantity"
+            placeholder="Stock Quantity"
+            required
+          />
+
+          <select id="unit">
+            <option value="piece">Piece</option>
+            <option value="kg">Kilogram</option>
+            <option value="litre">Litre</option>
+          </select>
+
+          <input type="file" id="image" />
+
+          <button type="submit" class="submit-btn">Save Product</button>
+        </form>
       </div>
     </div>
-  </div>
 
-  <div class="nav-center">
-    <h2 class="logo">Smart Inventory</h2>
-  </div>
+    <div id="logoutOverlay" class="overlay hidden">
+      <div class="overlay-content logout-box">
+        <div class="overlay-header">
+          <h2>Confirm Logout</h2>
+          <button id="closeLogoutOverlay" class="close-btn">&times;</button>
+        </div>
 
-  <div class="nav-right">
-    <button id="openAddProduct" class="btn add-btn">Add Product</button>
-    <button id="logoutBtn" class="btn logout-btn">Logout</button>
-  </div>
-</nav>
+        <div class="logout-body">
+          <p>Do you want to logout?</p>
 
-
-<div id="toast" class="toast hidden"></div>
-
-
-<section class="products-section">
-  <h2 class="section-title">Your Products</h2>
-  <div id="productsContainer" class="products-grid"></div>
-</section>
-
-
-<div id="productOverlay" class="overlay hidden">
-  <div class="overlay-content">
-
-    <div class="overlay-header">
-      <h2>Add Product</h2>
-      <button id="closeOverlay" class="close-btn">&times;</button>
+          <div class="logout-actions">
+            <button id="cancelLogout" class="btn cancel-btn">Back</button>
+            <button id="confirmLogout" class="btn logout-btn">Logout</button>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <form id="productForm">
-      <input type="text" id="name" placeholder="Product Name" required/>
-      <textarea id="description" placeholder="Description"></textarea>
-      <input type="number" id="price" placeholder="Price" required/>
-      <input type="number" id="quantity" placeholder="Quantity" required/>
-      <input type="text" id="category" placeholder="Category"/>
-      <input type="file" id="image"/>
+    <div id="deleteOverlay" class="overlay hidden">
+      <div class="modal">
+        <h2>Confirm Delete</h2>
+        <p>Are you sure you want to delete this product?</p>
 
-      <button type="submit" class="submit-btn">Create Product</button>
-    </form>
+        <div class="modal-actions">
+          <button id="cancelDelete" class="btn-cancel">Cancel</button>
+          <button id="confirmDelete" class="btn-delete">Delete</button>
+        </div>
+      </div>
+    </div>
 
-  </div>
-</div>
-
-<script src="/static/js/home.js"></script>
-</body>
+    <script src="/static/js/home.js"></script>
+  </body>
 </html>

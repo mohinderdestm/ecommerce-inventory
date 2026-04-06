@@ -9,44 +9,60 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const getSafeValue = (key, fallback = "") => {
     const value = localStorage.getItem(key);
-    if (!value || value === "undefined" || value === "null") {
-      return fallback;
-    }
+    if (!value || value === "undefined" || value === "null") return fallback;
     return value;
   };
+
+  const getEl = (id) => document.getElementById(id);
 
   const userEmail = getSafeValue("user_email", "");
   const userRole = getSafeValue("user_role", "viewer");
   const userName =
     getSafeValue("user_name") || (userEmail ? userEmail.split("@")[0] : "User");
 
-  const avatar = document.getElementById("avatar");
-  const nameEl = document.getElementById("userName");
-  const roleEl = document.getElementById("userRole");
-  const logoutBtn = document.getElementById("logoutBtn");
-  const addBtn = document.getElementById("openAddProduct");
+  const avatar = getEl("avatar");
+  const nameEl = getEl("userName");
+  const roleEl = getEl("userRole");
 
-  const overlay = document.getElementById("productOverlay");
-  const closeOverlay = document.getElementById("closeOverlay");
-  const form = document.getElementById("productForm");
+  const logoutBtn = getEl("logoutBtn");
+  const addBtn = getEl("openAddProduct");
 
-  const container = document.getElementById("productsContainer");
-  const toast = document.getElementById("toast");
+  const logoutOverlay = getEl("logoutOverlay");
+  const closeLogoutOverlay = getEl("closeLogoutOverlay");
+  const cancelLogout = getEl("cancelLogout");
+  const confirmLogout = getEl("confirmLogout");
 
-  const formatText = (text) => {
-    if (!text) return "User";
-    return text.charAt(0).toUpperCase() + text.slice(1);
-  };
+  const overlay = getEl("productOverlay");
+  const closeOverlay = getEl("closeOverlay");
+  const form = getEl("productForm");
 
-  avatar.innerText = formatText(userName).charAt(0);
-  nameEl.innerText = formatText(userName);
-  roleEl.innerText = formatText(userRole);
+  const deleteOverlay = getEl("deleteOverlay");
+  const cancelDelete = getEl("cancelDelete");
+  const confirmDelete = getEl("confirmDelete");
 
-  if (!["admin", "manager"].includes(userRole.toLowerCase())) {
-    addBtn.style.display = "none";
-  }
+  const container = getEl("productsContainer");
+  const toast = getEl("toast");
+
+  const saveBtn = document.querySelector("#productForm button[type='submit']");
+
+  if (overlay) overlay.classList.add("hidden");
+  if (deleteOverlay) deleteOverlay.classList.add("hidden");
+  if (logoutOverlay) logoutOverlay.classList.add("hidden");
+
+  let editMode = false;
+  let editProductId = null;
+  let deleteProductId = null;
+
+  const formatText = (text) =>
+    text ? text.charAt(0).toUpperCase() + text.slice(1) : "User";
+
+  if (avatar) avatar.innerText = formatText(userName).charAt(0);
+  if (nameEl) nameEl.innerText = formatText(userName);
+  if (roleEl) roleEl.innerText = formatText(userRole);
 
   const showToast = (msg) => {
+    if (!toast) return;
+
     toast.innerText = msg;
     toast.classList.remove("hidden");
     toast.classList.add("show");
@@ -54,66 +70,275 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => {
       toast.classList.remove("show");
       setTimeout(() => toast.classList.add("hidden"), 300);
-    }, 2500);
+    }, 2000);
   };
 
-  addBtn.addEventListener("click", () => {
+  const openLogoutOverlay = () => {
+    if (logoutOverlay) logoutOverlay.classList.remove("hidden");
+  };
+
+  const closeLogoutOverlayFn = () => {
+    if (logoutOverlay) logoutOverlay.classList.add("hidden");
+  };
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      openLogoutOverlay();
+    });
+  }
+
+  if (closeLogoutOverlay) {
+    closeLogoutOverlay.addEventListener("click", closeLogoutOverlayFn);
+  }
+
+  if (cancelLogout) {
+    cancelLogout.addEventListener("click", closeLogoutOverlayFn);
+  }
+
+  if (logoutOverlay) {
+    logoutOverlay.addEventListener("click", (e) => {
+      if (e.target === logoutOverlay) closeLogoutOverlayFn();
+    });
+  }
+
+  if (confirmLogout) {
+    confirmLogout.addEventListener("click", () => {
+      localStorage.clear();
+      window.location.href = "/";
+    });
+  }
+
+  const openDeleteOverlay = (id) => {
+    deleteProductId = id;
+    if (deleteOverlay) deleteOverlay.classList.remove("hidden");
+  };
+
+  const closeDeleteOverlay = () => {
+    if (deleteOverlay) deleteOverlay.classList.add("hidden");
+    deleteProductId = null;
+  };
+
+  if (cancelDelete) {
+    cancelDelete.addEventListener("click", closeDeleteOverlay);
+  }
+
+  if (deleteOverlay) {
+    deleteOverlay.addEventListener("click", (e) => {
+      if (e.target === deleteOverlay) closeDeleteOverlay();
+    });
+  }
+
+  if (confirmDelete) {
+    confirmDelete.addEventListener("click", async () => {
+      if (!deleteProductId) return;
+
+      try {
+        const res = await fetch(`/api/v1/products/${deleteProductId}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          showToast("Delete failed ❌");
+          return;
+        }
+
+        showToast("Deleted product");
+        closeDeleteOverlay();
+        loadProducts();
+      } catch (err) {
+        showToast("Server error ❌");
+      }
+    });
+  }
+
+  const openOverlay = (mode = "add", product = null) => {
+    if (!overlay) return;
+
     overlay.classList.remove("hidden");
-  });
 
-  closeOverlay.addEventListener("click", () => {
-    overlay.classList.add("hidden");
-  });
+    if (mode === "edit" && product) {
+      editMode = true;
+      editProductId = product._id || product.id;
 
-  overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) {
-      overlay.classList.add("hidden");
+      const title = getEl("formTitle");
+      if (title) title.innerText = "Edit Product";
+
+      const setVal = (id, val) => {
+        const el = getEl(id);
+        if (el) el.value = val ?? "";
+      };
+
+      setVal("name", product.name);
+      setVal("description", product.description);
+      setVal("category", product.category);
+      setVal("brand", product.brand);
+      setVal("cost_price", product.cost_price);
+      setVal("price", product.selling_price);
+      setVal("quantity", product.reorder_level);
+      setVal("tax", product.tax);
+      setVal("unit", product.unit || "piece");
+    } else {
+      editMode = false;
+      editProductId = null;
+
+      const title = getEl("formTitle");
+      if (title) title.innerText = "Add Product";
+
+      if (form) form.reset();
     }
-  });
+  };
+
+  const closeOverlayFn = () => {
+    if (!overlay) return;
+
+    overlay.classList.add("hidden");
+    if (form) form.reset();
+
+    editMode = false;
+    editProductId = null;
+  };
+
+  window.openOverlay = openOverlay;
+
+  if (addBtn) {
+    addBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      openOverlay("add");
+    });
+  }
+
+  if (closeOverlay) {
+    closeOverlay.addEventListener("click", closeOverlayFn);
+  }
+
+  if (overlay) {
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) closeOverlayFn();
+    });
+  }
+
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const getVal = (id, fallback = "") => {
+        const el = getEl(id);
+        return el ? el.value : fallback;
+      };
+
+      const payload = {
+        name: getVal("name"),
+        description: getVal("description"),
+        category: getVal("category"),
+        brand: getVal("brand"),
+        cost_price: Number(getVal("cost_price", 0)),
+        selling_price: Number(getVal("price", 0)),
+        reorder_level: Number(getVal("quantity", 0)),
+        tax: Number(getVal("tax", 0)),
+        unit: getVal("unit", "piece"),
+      };
+
+      const img = getEl("image");
+      const formData = new FormData();
+
+      Object.keys(payload).forEach((key) => {
+        formData.append(key, payload[key]);
+      });
+
+      if (img && img.files && img.files[0]) {
+        formData.append("image", img.files[0]);
+      }
+
+      try {
+        let url = "/api/v1/products/";
+        let method = "POST";
+
+        if (editMode) {
+          url = `/api/v1/products/${editProductId}`;
+          method = "PUT";
+        }
+
+        const res = await fetch(url, {
+          method,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
+
+        if (!res.ok) {
+          showToast("Failed ❌");
+          return;
+        }
+
+        showToast(editMode ? "Updated product" : "Added product");
+        closeOverlayFn();
+        loadProducts();
+      } catch (err) {
+        showToast("Server error ❌");
+      }
+    });
+
+    if (saveBtn) {
+      saveBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        form.requestSubmit();
+      });
+    }
+  }
 
   const loadProducts = async () => {
     try {
       const res = await fetch("/api/v1/products", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = await res.json();
       const products = Array.isArray(data) ? data : data.products || [];
 
+      if (!container) return;
       container.innerHTML = "";
 
-      if (products.length === 0) {
-        container.innerHTML = "<p>No products found</p>";
-        return;
-      }
-
       products.forEach((p) => {
-        const imageUrl =
-          p.image || "https://via.placeholder.com/300x200?text=No+Image";
-
         const card = document.createElement("div");
         card.className = "product-card";
 
         card.innerHTML = `
           <div class="img-box">
-            <img src="${imageUrl}" />
+            <img src="${p.image || "https://via.placeholder.com/300"}" />
           </div>
 
           <div class="card-body">
-            <h3>${p.name || "Unnamed Product"}</h3>
+            <h3>${p.name}</h3>
             <p>${p.description || ""}</p>
 
             <div class="meta">
-              <span class="price">₹ ${p.selling_price}</span>
-              <span class="qty">Stock: ${p.reorder_level}</span>
+              <span>₹ ${p.selling_price}</span>
+              <span>Stock: ${p.reorder_level}</span>
+            </div>
+
+            <p>${p.brand || ""} • ${p.category || ""}</p>
+
+            <div class="card-actions">
+              <button class="edit-btn">Edit</button>
+              <button class="delete-btn">Delete</button>
             </div>
           </div>
         `;
 
+        card.querySelector(".edit-btn").addEventListener("click", () => {
+          openOverlay("edit", p);
+        });
+
+        card.querySelector(".delete-btn").addEventListener("click", () => {
+          openDeleteOverlay(p._id || p.id);
+        });
+
         container.appendChild(card);
-        console.log("FULL API DATA:", p);
       });
     } catch (err) {
       console.error(err);
@@ -121,70 +346,4 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   loadProducts();
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const formData = new FormData();
-
-    const nameVal = document.getElementById("name").value.trim();
-    const descVal = document.getElementById("description").value.trim();
-    const categoryVal = document.getElementById("category").value.trim();
-    const priceVal = document.getElementById("price").value;
-    const qtyVal = document.getElementById("quantity").value;
-
-    if (!nameVal || nameVal === "undefined") {
-      showToast("Product name required ❌");
-      return;
-    }
-
-    formData.append("name", nameVal);
-    formData.append("description", descVal || "");
-    formData.append("category", categoryVal || "General");
-    formData.append("brand", "default");
-
-    formData.append("cost_price", priceVal || 0);
-    formData.append("selling_price", priceVal || 0);
-    formData.append("reorder_level", qtyVal || 0);
-
-    formData.append("tax", 0);
-    formData.append("unit", "piece");
-
-    const imageInput = document.getElementById("image");
-    if (imageInput.files[0]) {
-      formData.append("image", imageInput.files[0]);
-    }
-
-    try {
-      const res = await fetch("/api/v1/products/", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        console.log(data);
-        showToast("Error creating product ❌");
-        return;
-      }
-
-      showToast("Product Added 🚀");
-
-      overlay.classList.add("hidden");
-      form.reset();
-
-      loadProducts();
-    } catch (err) {
-      showToast("Server error ❌");
-    }
-  });
-
-  logoutBtn.addEventListener("click", () => {
-    localStorage.clear();
-    window.location.href = "/";
-  });
 });
