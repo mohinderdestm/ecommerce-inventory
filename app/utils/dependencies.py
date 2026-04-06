@@ -39,7 +39,7 @@ async def get_current_user(
     return {
         "id": str(user["_id"]),
         "email": user["email"],
-        "role": user.get("role", "viewer"),  # 🔥 FIX
+        "role": user.get("role", "viewer"), 
         "name": user.get("name", ""),
     }
 
