@@ -1,20 +1,68 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Dashboard - Inventory System</title>
-    <link rel="stylesheet" href="/static/css/home.css" />
-  </head>
-  <body>
-    <div class="container">
-      <div class="dashboard-card">
-        <h2>Home Page</h2>
-        <p>Welcome to Smart Inventory System</p>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Inventory Dashboard</title>
 
-        <button id="logoutBtn">Logout</button>
+  <link rel="stylesheet" href="/static/css/home.css"/>
+</head>
+
+<body>
+
+<nav class="navbar">
+  <div class="nav-left">
+    <div class="user-box">
+      <div class="avatar" id="avatar">U</div>
+      <div class="user-details">
+        <span id="userName">User Name</span>
+        <span id="userRole">Role</span>
       </div>
     </div>
+  </div>
 
-    <script src="/static/js/home.js"></script>
-  </body>
+  <div class="nav-center">
+    <h2 class="logo">Smart Inventory</h2>
+  </div>
+
+  <div class="nav-right">
+    <button id="openAddProduct" class="btn add-btn">Add Product</button>
+    <button id="logoutBtn" class="btn logout-btn">Logout</button>
+  </div>
+</nav>
+
+<!-- TOAST -->
+<div id="toast" class="toast hidden"></div>
+
+<!-- PRODUCTS -->
+<section class="products-section">
+  <h2 class="section-title">Your Products</h2>
+  <div id="productsContainer" class="products-grid"></div>
+</section>
+
+<!-- OVERLAY -->
+<div id="productOverlay" class="overlay hidden">
+  <div class="overlay-content">
+
+    <div class="overlay-header">
+      <h2>Add Product</h2>
+      <button id="closeOverlay" class="close-btn">&times;</button>
+    </div>
+
+    <form id="productForm">
+      <input type="text" id="name" placeholder="Product Name" required/>
+      <textarea id="description" placeholder="Description"></textarea>
+      <input type="number" id="price" placeholder="Price" required/>
+      <input type="number" id="quantity" placeholder="Quantity" required/>
+      <input type="text" id="category" placeholder="Category"/>
+      <input type="file" id="image"/>
+
+      <button type="submit" class="submit-btn">Create Product</button>
+    </form>
+
+  </div>
+</div>
+
+<script src="/static/js/home.js"></script>
+</body>
 </html>

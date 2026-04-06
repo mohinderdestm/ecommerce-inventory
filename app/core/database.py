@@ -6,3 +6,4 @@ db = client[settings.DB_NAME]
 
 
 users_collection = db["users"]
+product_collection = db["products"]

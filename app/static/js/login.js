@@ -2,8 +2,9 @@ const form = document.getElementById("loginForm");
 const errorMsg = document.getElementById("errorMsg");
 const successMsg = document.getElementById("successMsg");
 
-const token = localStorage.getItem("access_token");
-if (token && window.location.pathname === "/") {
+
+const existingToken = localStorage.getItem("access_token");
+if (existingToken && existingToken !== "undefined") {
   window.location.href = "/home";
 }
 
@@ -63,14 +64,21 @@ form.addEventListener("submit", async (e) => {
 
     const data = await res.json();
 
-    if (!res.ok) {
+    if (!res.ok || !data.access_token) {
       showError(data.detail || "Invalid email or password");
       return;
     }
 
     localStorage.setItem("access_token", data.access_token);
-    localStorage.setItem("user_role", data.role);
-    localStorage.setItem("user_email", data.email);
+    localStorage.setItem("user_email", data.email || "");
+    localStorage.setItem("user_role", data.role || "viewer");
+    localStorage.setItem("user_name", data.name || "User");
+
+    console.log("Saved to localStorage:", {
+      email: data.email,
+      role: data.role,
+      name: data.name,
+    });
 
     showSuccess("Login successful");
 

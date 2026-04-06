@@ -10,8 +10,8 @@ app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-
-templates = Jinja2Templates(directory="app/templates")  # ✅ STRING ONLY
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+templates = Jinja2Templates(directory="app/templates")
 
 
 app.include_router(api_router, prefix="/api/v1")
