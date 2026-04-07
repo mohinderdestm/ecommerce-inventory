@@ -1,163 +1,479 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Inventory Auth Service</title>
+<title>Smart Inventory Platform</title>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
-  header { background: #1e293b; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
-  header h1 { font-size: 1.1rem; font-weight: 600; color: #f1f5f9; }
-  header span { font-size: 0.8rem; color: #64748b; }
-  .container { max-width: 960px; margin: 40px auto; padding: 0 24px; }
-  .tabs { display: flex; gap: 4px; margin-bottom: 24px; }
-  .tab { padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 0.875rem; border: 1px solid #334155; background: transparent; color: #94a3b8; transition: all 0.15s; }
-  .tab.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
-  .card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 28px; }
-  .form-group { margin-bottom: 16px; }
-  label { display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
-  input, select { width: 100%; padding: 10px 14px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; font-size: 0.9rem; outline: none; transition: border-color 0.15s; }
-  input:focus, select:focus { border-color: #3b82f6; }
-  button[type="submit"] { width: 100%; padding: 11px; background: #3b82f6; color: #fff; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: 500; cursor: pointer; margin-top: 8px; transition: background 0.15s; }
-  button[type="submit"]:hover { background: #2563eb; }
-  .result { margin-top: 20px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 16px; font-size: 0.8rem; font-family: monospace; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto; color: #94a3b8; }
-  .result.success { border-color: #22c55e; color: #86efac; }
-  .result.error { border-color: #ef4444; color: #fca5a5; }
-  .token-bar { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 14px 18px; margin-bottom: 24px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .token-bar label { color: #64748b; font-size: 0.78rem; white-space: nowrap; text-transform: none; letter-spacing: 0; margin: 0; }
-  .token-bar input { flex: 1; min-width: 0; font-size: 0.75rem; }
-  .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
-  .badge.admin { background: #7c3aed22; color: #a78bfa; border: 1px solid #7c3aed55; }
-  .badge.customer { background: #0284c722; color: #38bdf8; border: 1px solid #0284c755; }
-  .badge.supplier { background: #d9770622; color: #fb923c; border: 1px solid #d9770655; }
-  h2 { font-size: 1rem; font-weight: 600; color: #f1f5f9; margin-bottom: 20px; }
-  .panel { display: none; } .panel.active { display: block; }
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+
+/* ── Header ── */
+header{background:#1e293b;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #334155;position:sticky;top:0;z-index:100}
+header h1{font-size:1rem;font-weight:700;color:#f1f5f9}
+.header-right{display:flex;align-items:center;gap:12px}
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.72rem;font-weight:600}
+.badge.admin{background:#7c3aed22;color:#a78bfa;border:1px solid #7c3aed55}
+.badge.customer{background:#0284c722;color:#38bdf8;border:1px solid #0284c755}
+.badge.supplier{background:#d9770622;color:#fb923c;border:1px solid #d9770655}
+
+/* ── Layout ── */
+.layout{display:flex;min-height:calc(100vh - 53px)}
+
+/* ── Sidebar ── */
+.sidebar{width:200px;background:#1e293b;border-right:1px solid #334155;padding:16px 0;flex-shrink:0}
+.sidebar-label{font-size:.65rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.08em;padding:6px 16px 4px}
+.nav-btn{display:block;width:100%;text-align:left;padding:8px 16px;background:transparent;border:none;color:#94a3b8;font-size:.82rem;cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.nav-btn:hover{color:#e2e8f0;background:#0f172a44}
+.nav-btn.active{color:#38bdf8;background:#0284c711;border-left-color:#38bdf8}
+
+/* ── Main ── */
+.main{flex:1;padding:28px;overflow-y:auto}
+.panel{display:none}.panel.active{display:block}
+.panel-title{font-size:1rem;font-weight:600;color:#f1f5f9;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid #1e293b}
+
+/* ── Token bar ── */
+.token-bar{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:12px 16px;margin-bottom:24px;display:flex;gap:10px;align-items:center}
+.token-bar label{color:#64748b;font-size:.75rem;white-space:nowrap}
+.token-bar input{flex:1;font-size:.72rem;font-family:monospace}
+
+/* ── Cards ── */
+.card{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:24px;margin-bottom:20px}
+
+/* ── Form ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid.three{grid-template-columns:1fr 1fr 1fr}
+.form-grid.one{grid-template-columns:1fr}
+@media(max-width:700px){.form-grid,.form-grid.three{grid-template-columns:1fr}}
+.form-group{margin-bottom:14px}
+label{display:block;font-size:.72rem;color:#64748b;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em}
+input,select,textarea{width:100%;padding:9px 12px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;font-size:.85rem;outline:none;transition:border-color .15s;font-family:inherit}
+input:focus,select:focus,textarea:focus{border-color:#3b82f6}
+textarea{resize:vertical;min-height:70px}
+
+/* ── Buttons ── */
+.btn{padding:9px 18px;border-radius:6px;font-size:.85rem;font-weight:500;cursor:pointer;border:none;transition:all .15s}
+.btn-primary{background:#3b82f6;color:#fff}.btn-primary:hover{background:#2563eb}
+.btn-success{background:#16a34a;color:#fff}.btn-success:hover{background:#15803d}
+.btn-danger{background:#dc2626;color:#fff}.btn-danger:hover{background:#b91c1c}
+.btn-ghost{background:transparent;color:#94a3b8;border:1px solid #334155}.btn-ghost:hover{color:#e2e8f0;border-color:#475569}
+.btn-sm{padding:5px 12px;font-size:.78rem}
+.btn-full{width:100%;margin-top:6px}
+
+/* ── Result ── */
+.result{margin-top:16px;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:14px;font-size:.78rem;font-family:monospace;white-space:pre-wrap;word-break:break-all;max-height:320px;overflow-y:auto;color:#94a3b8;display:none}
+.result.success{border-color:#22c55e;color:#86efac}
+.result.error{border-color:#ef4444;color:#fca5a5}
+
+/* ── Hint ── */
+.hint{font-size:.78rem;color:#475569;margin-bottom:16px;line-height:1.5}
+.hint strong{color:#64748b}
+
+/* ── Filter row ── */
+.filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px}
+.filter-row .form-group{margin-bottom:0;flex:1;min-width:130px}
+
+/* ── Color filter chips ── */
+.color-filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;align-items:center}
+.color-filters span{font-size:.72rem;color:#64748b;margin-right:4px;white-space:nowrap}
+.chip{padding:5px 14px;border-radius:999px;font-size:.75rem;font-weight:600;cursor:pointer;border:2px solid transparent;transition:all .15s;white-space:nowrap}
+.chip.all{background:#1e293b;color:#94a3b8;border-color:#334155}
+.chip.all.active{background:#334155;color:#f1f5f9;border-color:#64748b}
+.chip.active-chip{background:#16a34a22;color:#4ade80;border-color:#16a34a}
+.chip.active-chip.active{background:#16a34a;color:#fff;border-color:#16a34a}
+.chip.inactive-chip{background:#64748b22;color:#94a3b8;border-color:#475569}
+.chip.inactive-chip.active{background:#475569;color:#fff;border-color:#64748b}
+.chip.discontinued-chip{background:#7c3aed22;color:#a78bfa;border-color:#7c3aed}
+.chip.discontinued-chip.active{background:#7c3aed;color:#fff;border-color:#7c3aed}
+.chip.out_of_stock-chip{background:#dc262622;color:#f87171;border-color:#dc2626}
+.chip.out_of_stock-chip.active{background:#dc2626;color:#fff;border-color:#dc2626}
+
+/* ── Product cards grid ── */
+.products-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,280px));gap:16px;margin-top:16px}
+.prod-card{background:#1e293b;border:1px solid #334155;border-radius:10px;overflow:hidden;transition:border-color .15s;display:flex;flex-direction:column}
+.prod-card:hover{border-color:#475569}
+.prod-img{width:100%;height:160px;object-fit:cover;background:#0f172a;display:flex;align-items:center;justify-content:center;color:#334155;font-size:2.5rem}
+.prod-img img{width:100%;height:160px;object-fit:cover}
+.prod-body{padding:14px;flex:1;display:flex;flex-direction:column;gap:6px}
+.prod-name{font-size:.9rem;font-weight:600;color:#f1f5f9;line-height:1.3}
+.prod-sku{font-size:.72rem;color:#64748b;font-family:monospace}
+.prod-brand{font-size:.75rem;color:#94a3b8}
+.prod-price{display:flex;gap:10px;align-items:baseline;margin-top:4px}
+.prod-sell{font-size:1rem;font-weight:700;color:#38bdf8}
+.prod-cost{font-size:.75rem;color:#64748b}
+.prod-footer{padding:10px 14px;border-top:1px solid #0f172a55;display:flex;justify-content:space-between;align-items:center}
+.status-dot{display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:600}
+.status-dot::before{content:'';width:7px;height:7px;border-radius:50%;display:inline-block}
+.status-dot.active::before{background:#4ade80}.status-dot.active{color:#4ade80}
+.status-dot.inactive::before{background:#94a3b8}.status-dot.inactive{color:#94a3b8}
+.status-dot.discontinued::before{background:#a78bfa}.status-dot.discontinued{color:#a78bfa}
+.status-dot.out_of_stock::before{background:#f87171}.status-dot.out_of_stock{color:#f87171}
+.prod-unit{font-size:.72rem;color:#475569}
+.empty-state{text-align:center;padding:48px 24px;color:#475569}
+.empty-state .icon{font-size:2.5rem;margin-bottom:12px}
+.empty-state p{font-size:.85rem}
+
+/* ── Image upload section ── */
+.img-upload-area{border:2px dashed #334155;border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:border-color .15s;background:#0f172a;margin-bottom:12px}
+.img-upload-area:hover,.img-upload-area.dragover{border-color:#3b82f6;background:#1e3a5f22}
+.img-upload-area input[type=file]{display:none}
+.img-upload-label{font-size:.82rem;color:#64748b;cursor:pointer}
+.img-upload-label span{color:#3b82f6;font-weight:500}
+.img-previews{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.img-preview-item{position:relative;width:80px;height:80px;border-radius:6px;overflow:hidden;border:1px solid #334155}
+.img-preview-item img{width:100%;height:100%;object-fit:cover}
+.img-preview-item .remove-img{position:absolute;top:2px;right:2px;background:#dc2626cc;border:none;color:#fff;width:18px;height:18px;border-radius:50%;font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.img-preview-item .primary-badge{position:absolute;bottom:2px;left:2px;background:#16a34acc;color:#fff;font-size:.6rem;padding:1px 5px;border-radius:3px}
+.img-url-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.img-url-row input{flex:1}
+.img-url-row .btn{flex-shrink:0}
+
+/* ── Pagination ── */
+.pagination{display:flex;gap:8px;align-items:center;margin-top:20px;justify-content:center}
+.page-info{font-size:.8rem;color:#64748b}
+
+/* ── Search summary ── */
+.search-summary{font-size:.8rem;color:#64748b;margin-bottom:12px}
+.search-summary strong{color:#94a3b8}
+
+/* ── Divider ── */
+.divider{border:none;border-top:1px solid #334155;margin:16px 0}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>⚡ Inventory Auth Service</h1>
-  <span id="userBadge"></span>
+  <h1>⚡ Smart Inventory Platform</h1>
+  <div class="header-right">
+    <span id="userBadge"></span>
+    <span id="usernameLabel" style="font-size:.8rem;color:#94a3b8"></span>
+  </div>
 </header>
 
-<div class="container">
-
-  <!-- Token input bar -->
-  <div class="token-bar">
+<div style="padding:10px 24px;background:#0a1120;border-bottom:1px solid #1e293b">
+  <div class="token-bar" style="margin-bottom:0">
     <label>JWT Token:</label>
-    <input id="tokenInput" placeholder="Paste your token here after login..." />
+    <input id="tokenInput" placeholder="Login first — token will auto-fill here..."/>
   </div>
+</div>
 
-  <!-- Tabs -->
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('register')">Register</button>
-    <button class="tab" onclick="switchTab('login')">Login</button>
-    <button class="tab" onclick="switchTab('me')">My Profile</button>
-    <button class="tab" onclick="switchTab('users')">All Users</button>
-  </div>
+<div class="layout">
 
-  <!-- Register -->
-  <div id="panel-register" class="panel active">
-    <div class="card">
-      <h2>Create Account</h2>
-      <form onsubmit="handleRegister(event)">
-        <div class="two-col">
-          <div class="form-group">
-            <label>Username</label>
-            <input name="username" placeholder="john_doe" required />
-          </div>
-          <div class="form-group">
-            <label>Full Name</label>
-            <input name="full_name" placeholder="John Doe" />
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div style="margin-bottom:6px">
+      <div class="sidebar-label">Auth</div>
+      <button class="nav-btn active" data-panel="register" onclick="switchTab(this,'register')">Register</button>
+      <button class="nav-btn" data-panel="login" onclick="switchTab(this,'login')">Login</button>
+      <button class="nav-btn" data-panel="me" onclick="switchTab(this,'me')">My Profile</button>
+    </div>
+    <div style="margin-bottom:6px">
+      <div class="sidebar-label">Users</div>
+      <button class="nav-btn" data-panel="users" onclick="switchTab(this,'users')">All Users</button>
+      <button class="nav-btn" data-panel="update-user" onclick="switchTab(this,'update-user')">Update User</button>
+    </div>
+    <div style="margin-bottom:6px">
+      <div class="sidebar-label">Categories</div>
+      <button class="nav-btn" data-panel="create-category" onclick="switchTab(this,'create-category')">Create Category</button>
+      <button class="nav-btn" data-panel="list-categories" onclick="switchTab(this,'list-categories')">List Categories</button>
+    </div>
+    <div>
+      <div class="sidebar-label">Products</div>
+      <button class="nav-btn" data-panel="create-product" onclick="switchTab(this,'create-product')">Create Product</button>
+      <button class="nav-btn" data-panel="search-products" onclick="switchTab(this,'search-products')">Search Products</button>
+      <button class="nav-btn" data-panel="get-product" onclick="switchTab(this,'get-product')">Get by ID / SKU</button>
+      <button class="nav-btn" data-panel="update-product" onclick="switchTab(this,'update-product')">Update Product</button>
+      <button class="nav-btn" data-panel="delete-product" onclick="switchTab(this,'delete-product')">Delete Product</button>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- ── REGISTER ── -->
+    <div id="panel-register" class="panel active">
+      <div class="panel-title">Register New User</div>
+      <div class="card">
+        <div class="form-grid">
+          <div class="form-group"><label>Username</label><input id="reg-username" placeholder="john_doe"/></div>
+          <div class="form-group"><label>Full Name</label><input id="reg-fullname" placeholder="John Doe"/></div>
+          <div class="form-group"><label>Email</label><input id="reg-email" type="email" placeholder="john@example.com"/></div>
+          <div class="form-group"><label>Phone</label><input id="reg-phone" placeholder="+91-9876543210"/></div>
+          <div class="form-group"><label>Password</label><input id="reg-password" type="password" placeholder="Min 8 chars, 1 uppercase, 1 digit"/></div>
+          <div class="form-group"><label>Role</label>
+            <select id="reg-role"><option value="customer">Customer</option><option value="supplier">Supplier</option><option value="admin">Admin</option></select>
           </div>
         </div>
-        <div class="two-col">
-          <div class="form-group">
-            <label>Email</label>
-            <input type="email" name="email" placeholder="john@example.com" required />
+        <button class="btn btn-primary btn-full" onclick="handleRegister()">Register</button>
+        <div id="reg-result" class="result"></div>
+      </div>
+    </div>
+
+    <!-- ── LOGIN ── -->
+    <div id="panel-login" class="panel">
+      <div class="panel-title">Login</div>
+      <div class="card">
+        <div class="form-grid one">
+          <div class="form-group"><label>Email</label><input id="login-email" type="email" placeholder="john@example.com"/></div>
+          <div class="form-group"><label>Password</label><input id="login-password" type="password"/></div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="handleLogin()">Login</button>
+        <div id="login-result" class="result"></div>
+      </div>
+    </div>
+
+    <!-- ── MY PROFILE ── -->
+    <div id="panel-me" class="panel">
+      <div class="panel-title">My Profile</div>
+      <div class="card">
+        <p class="hint">Returns the profile of the currently logged-in user from the JWT token.</p>
+        <button class="btn btn-primary" onclick="handleMe()">Fetch My Profile</button>
+        <div id="me-result" class="result"></div>
+      </div>
+    </div>
+
+    <!-- ── ALL USERS ── -->
+    <div id="panel-users" class="panel">
+      <div class="panel-title">All Users</div>
+      <div class="card">
+        <p class="hint"><strong>Admin only.</strong> Filter by role and status.</p>
+        <div class="filter-row">
+          <div class="form-group"><label>Role</label>
+            <select id="users-role"><option value="">All</option><option value="admin">Admin</option><option value="customer">Customer</option><option value="supplier">Supplier</option></select>
           </div>
-          <div class="form-group">
-            <label>Phone</label>
-            <input name="phone" placeholder="+91-9876543210" />
+          <div class="form-group"><label>Status</label>
+            <select id="users-status"><option value="">All</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="suspended">Suspended</option></select>
+          </div>
+          <div class="form-group"><label>Page</label><input id="users-page" type="number" value="1" min="1"/></div>
+          <button class="btn btn-primary" onclick="handleUsers()">Fetch</button>
+        </div>
+        <div id="users-result" class="result"></div>
+      </div>
+    </div>
+
+    <!-- ── UPDATE USER ── -->
+    <div id="panel-update-user" class="panel">
+      <div class="panel-title">Update User</div>
+      <div class="card">
+        <p class="hint">Users can update name/phone. <strong>Admin</strong> can also change role and status.</p>
+        <div class="form-group"><label>User ID</label><input id="upd-user-id" placeholder="MongoDB ObjectId"/></div>
+        <div class="form-grid">
+          <div class="form-group"><label>Full Name</label><input id="upd-fullname" placeholder="Leave blank to skip"/></div>
+          <div class="form-group"><label>Phone</label><input id="upd-phone" placeholder="Leave blank to skip"/></div>
+          <div class="form-group"><label>Role (Admin only)</label>
+            <select id="upd-role"><option value="">No change</option><option value="admin">Admin</option><option value="customer">Customer</option><option value="supplier">Supplier</option></select>
+          </div>
+          <div class="form-group"><label>Status (Admin only)</label>
+            <select id="upd-status"><option value="">No change</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="suspended">Suspended</option></select>
           </div>
         </div>
-        <div class="two-col">
-          <div class="form-group">
-            <label>Password</label>
-            <input type="password" name="password" placeholder="Min 8 chars, 1 uppercase, 1 digit" required />
+        <button class="btn btn-primary btn-full" onclick="handleUpdateUser()">Update User</button>
+        <div id="upd-user-result" class="result"></div>
+      </div>
+    </div>
+
+    <!-- ── CREATE CATEGORY ── -->
+    <div id="panel-create-category" class="panel">
+      <div class="panel-title">Create Category</div>
+      <div class="card">
+        <p class="hint"><strong>Admin only.</strong> Leave Parent ID empty for a top-level category.</p>
+        <div class="form-grid one">
+          <div class="form-group"><label>Category Name</label><input id="cat-name" placeholder="e.g. Electronics"/></div>
+          <div class="form-group"><label>Description</label><textarea id="cat-desc" placeholder="Optional description"></textarea></div>
+          <div class="form-group"><label>Parent Category ID (optional)</label><input id="cat-parent" placeholder="Leave empty for top-level"/></div>
+        </div>
+        <button class="btn btn-success btn-full" onclick="handleCreateCategory()">Create Category</button>
+        <div id="cat-result" class="result"></div>
+      </div>
+    </div>
+
+    <!-- ── LIST CATEGORIES ── -->
+    <div id="panel-list-categories" class="panel">
+      <div class="panel-title">List Categories</div>
+      <div class="card">
+        <div class="filter-row">
+          <div class="form-group"><label>Parent ID (optional)</label><input id="listcat-parent" placeholder="Empty = top-level"/></div>
+          <div class="form-group"><label>Only Active</label>
+            <select id="listcat-active"><option value="true">Yes</option><option value="false">All</option></select>
           </div>
-          <div class="form-group">
-            <label>Role</label>
-            <select name="role">
-              <option value="customer">Customer</option>
-              <option value="supplier">Supplier</option>
-              <option value="admin">Admin</option>
+          <button class="btn btn-primary" onclick="handleListCategories()">Fetch</button>
+        </div>
+        <div id="listcat-result" class="result"></div>
+      </div>
+    </div>
+
+    <!-- ── CREATE PRODUCT ── -->
+    <div id="panel-create-product" class="panel">
+      <div class="panel-title">Create Product</div>
+      <div class="card">
+        <p class="hint"><strong>Admin or Supplier.</strong> Leave SKU empty to auto-generate.</p>
+
+        <div class="form-grid">
+          <div class="form-group"><label>Product Name</label><input id="prod-name" placeholder="Nike Air Max 90"/></div>
+          <div class="form-group"><label>Brand</label><input id="prod-brand" placeholder="Nike"/></div>
+          <div class="form-group"><label>Category ID</label><input id="prod-cat-id" placeholder="MongoDB ObjectId of category"/></div>
+          <div class="form-group"><label>SKU (leave empty to auto-generate)</label><input id="prod-sku" placeholder="e.g. NIK-SHO-2604XXXX"/></div>
+          <div class="form-group"><label>Cost Price (₹)</label><input id="prod-cost" type="number" placeholder="800"/></div>
+          <div class="form-group"><label>Selling Price (₹)</label><input id="prod-sell" type="number" placeholder="1200"/></div>
+          <div class="form-group"><label>Reorder Level</label><input id="prod-reorder" type="number" placeholder="10" value="0"/></div>
+          <div class="form-group"><label>Tax %</label><input id="prod-tax" type="number" placeholder="18" value="0"/></div>
+          <div class="form-group"><label>Unit</label>
+            <select id="prod-unit">
+              <option value="piece">Piece</option><option value="kg">KG</option><option value="gram">Gram</option>
+              <option value="litre">Litre</option><option value="metre">Metre</option>
+              <option value="box">Box</option><option value="dozen">Dozen</option><option value="pack">Pack</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Status</label>
+            <select id="prod-status">
+              <option value="active">Active</option><option value="inactive">Inactive</option>
+              <option value="discontinued">Discontinued</option><option value="out_of_stock">Out of Stock</option>
             </select>
           </div>
         </div>
-        <button type="submit">Register</button>
-      </form>
-      <div id="reg-result" class="result" style="display:none"></div>
-    </div>
-  </div>
 
-  <!-- Login -->
-  <div id="panel-login" class="panel">
-    <div class="card">
-      <h2>Login</h2>
-      <form onsubmit="handleLogin(event)">
-        <div class="form-group">
-          <label>Email</label>
-          <input type="email" name="email" placeholder="john@example.com" required />
+        <div class="form-group"><label>Supplier IDs (comma-separated, optional)</label><input id="prod-suppliers" placeholder="objectid1, objectid2"/></div>
+        <div class="form-group"><label>Description</label><textarea id="prod-desc" placeholder="Product description..."></textarea></div>
+
+        <!-- Image upload -->
+        <label style="margin-bottom:10px;display:block">Product Images</label>
+        <div id="create-img-previews" class="img-previews"></div>
+        <div class="img-url-row">
+          <input id="create-img-url" placeholder="Paste image URL  e.g. https://example.com/image.jpg" onkeydown="if(event.key==='Enter'){addImageUrl('create');event.preventDefault()}"/>
+          <button class="btn btn-ghost btn-sm" onclick="addImageUrl('create')">+ Add URL</button>
         </div>
-        <div class="form-group">
-          <label>Password</label>
-          <input type="password" name="password" required />
+        <div class="img-upload-area" onclick="document.getElementById('create-img-file').click()" id="create-drop-zone">
+          <input type="file" id="create-img-file" accept="image/*" multiple onchange="handleFileSelect(event,'create')"/>
+          <div class="img-upload-label">
+            <div style="font-size:1.5rem;margin-bottom:6px">🖼️</div>
+            <span>Click to upload</span> or drag & drop image files<br>
+            <span style="font-size:.72rem;color:#475569">(Files are converted to object URLs for preview — store actual URLs in production)</span>
+          </div>
         </div>
-        <button type="submit">Login</button>
-      </form>
-      <div id="login-result" class="result" style="display:none"></div>
-    </div>
-  </div>
 
-  <!-- Me -->
-  <div id="panel-me" class="panel">
-    <div class="card">
-      <h2>My Profile</h2>
-      <button type="submit" onclick="handleMe()">Fetch My Profile</button>
-      <div id="me-result" class="result" style="display:none"></div>
+        <button class="btn btn-success btn-full" onclick="handleCreateProduct()">Create Product</button>
+        <div id="create-prod-result" class="result"></div>
+      </div>
     </div>
-  </div>
 
-  <!-- Users (Admin) -->
-  <div id="panel-users" class="panel">
-    <div class="card">
-      <h2>All Users <span style="font-size:0.75rem;color:#64748b;font-weight:400">(Admin only)</span></h2>
-      <button type="submit" onclick="handleUsers()">Fetch Users</button>
-      <div id="users-result" class="result" style="display:none"></div>
+    <!-- ── SEARCH PRODUCTS ── -->
+    <div id="panel-search-products" class="panel">
+      <div class="panel-title">Search Products</div>
+
+      <!-- Color / status filter chips -->
+      <div class="color-filters">
+        <span>Filter by status:</span>
+        <button class="chip all active" onclick="setStatusChip('',this)">All</button>
+        <button class="chip active-chip" onclick="setStatusChip('active',this)">● Available</button>
+        <button class="chip inactive-chip" onclick="setStatusChip('inactive',this)">● Unavailable</button>
+        <button class="chip discontinued-chip" onclick="setStatusChip('discontinued',this)">● Discontinued</button>
+        <button class="chip out_of_stock-chip" onclick="setStatusChip('out_of_stock',this)">● Out of Stock</button>
+      </div>
+
+      <div class="card" style="padding:16px">
+        <div class="filter-row">
+          <div class="form-group"><label>Search (name / SKU / brand)</label><input id="search-q" placeholder="e.g. Nike, AIR-MAX..."/></div>
+          <div class="form-group"><label>Category ID</label><input id="search-cat" placeholder="Optional"/></div>
+          <div class="form-group"><label>Min Price (₹)</label><input id="search-min" type="number" placeholder="0"/></div>
+          <div class="form-group"><label>Max Price (₹)</label><input id="search-max" type="number" placeholder="999999"/></div>
+          <div class="form-group"><label>Page Size</label><input id="search-size" type="number" value="12" min="1" max="100"/></div>
+          <button class="btn btn-primary" style="align-self:flex-end" onclick="searchProducts(1)">Search</button>
+        </div>
+      </div>
+
+      <div id="search-summary" class="search-summary" style="display:none"></div>
+      <div id="products-grid" class="products-grid"></div>
+      <div id="search-pagination" class="pagination"></div>
     </div>
-  </div>
 
+    <!-- ── GET PRODUCT ── -->
+    <div id="panel-get-product" class="panel">
+      <div class="panel-title">Get Product by ID or SKU</div>
+      <div class="card">
+        <div class="form-group"><label>Product ID</label><input id="get-prod-id" placeholder="MongoDB ObjectId"/></div>
+        <button class="btn btn-primary" onclick="handleGetProduct()">Get by ID</button>
+        <hr class="divider"/>
+        <div class="form-group"><label>SKU</label><input id="get-prod-sku" placeholder="e.g. NIK-SHO-26041A3X"/></div>
+        <button class="btn btn-primary" onclick="handleGetBySku()">Get by SKU</button>
+        <div id="get-prod-result" class="result"></div>
+      </div>
+    </div>
+
+    <!-- ── UPDATE PRODUCT ── -->
+    <div id="panel-update-product" class="panel">
+      <div class="panel-title">Update Product</div>
+      <div class="card">
+        <p class="hint"><strong>Admin or Supplier.</strong> Only fill fields you want to change.</p>
+        <div class="form-group"><label>Product ID</label><input id="upd-prod-id" placeholder="MongoDB ObjectId"/></div>
+        <div class="form-grid">
+          <div class="form-group"><label>Name</label><input id="upd-prod-name" placeholder="Leave blank to skip"/></div>
+          <div class="form-group"><label>Brand</label><input id="upd-prod-brand" placeholder="Leave blank to skip"/></div>
+          <div class="form-group"><label>Category ID</label><input id="upd-prod-cat" placeholder="Leave blank to skip"/></div>
+          <div class="form-group"><label>Cost Price (₹)</label><input id="upd-prod-cost" type="number" placeholder="Leave blank to skip"/></div>
+          <div class="form-group"><label>Selling Price (₹)</label><input id="upd-prod-sell" type="number" placeholder="Leave blank to skip"/></div>
+          <div class="form-group"><label>Reorder Level</label><input id="upd-prod-reorder" type="number" placeholder="Leave blank to skip"/></div>
+          <div class="form-group"><label>Tax %</label><input id="upd-prod-tax" type="number" placeholder="Leave blank to skip"/></div>
+          <div class="form-group"><label>Unit</label>
+            <select id="upd-prod-unit">
+              <option value="">No change</option><option value="piece">Piece</option><option value="kg">KG</option>
+              <option value="gram">Gram</option><option value="litre">Litre</option><option value="metre">Metre</option>
+              <option value="box">Box</option><option value="dozen">Dozen</option><option value="pack">Pack</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Status</label>
+            <select id="upd-prod-status">
+              <option value="">No change</option><option value="active">Active</option><option value="inactive">Inactive</option>
+              <option value="discontinued">Discontinued</option><option value="out_of_stock">Out of Stock</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label>Description</label><textarea id="upd-prod-desc" placeholder="Leave blank to skip"></textarea></div>
+
+        <!-- Update images -->
+        <label style="margin-bottom:10px;display:block">Update Images (optional)</label>
+        <div id="update-img-previews" class="img-previews"></div>
+        <div class="img-url-row">
+          <input id="update-img-url" placeholder="Paste image URL" onkeydown="if(event.key==='Enter'){addImageUrl('update');event.preventDefault()}"/>
+          <button class="btn btn-ghost btn-sm" onclick="addImageUrl('update')">+ Add URL</button>
+        </div>
+
+        <button class="btn btn-primary btn-full" onclick="handleUpdateProduct()">Update Product</button>
+        <div id="upd-prod-result" class="result"></div>
+      </div>
+    </div>
+
+    <!-- ── DELETE PRODUCT ── -->
+    <div id="panel-delete-product" class="panel">
+      <div class="panel-title">Delete Product</div>
+      <div class="card">
+        <p class="hint"><strong>Admin only.</strong> This action is permanent and cannot be undone.</p>
+        <div class="form-group"><label>Product ID</label><input id="del-prod-id" placeholder="MongoDB ObjectId"/></div>
+        <button class="btn btn-danger btn-full" onclick="handleDeleteProduct()">Delete Product</button>
+        <div id="del-prod-result" class="result"></div>
+      </div>
+    </div>
+
+  </main>
 </div>
 
 <script>
 const BASE = '/api/v1';
 
-function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t, i) => {
-    t.classList.toggle('active', ['register','login','me','users'][i] === name);
-  });
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentStatusFilter = '';
+let currentSearchPage = 1;
+const imageStore = { create: [], update: [] }; // {url, alt_text, is_primary}
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(btn, name) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
   document.getElementById('panel-' + name).classList.add('active');
 }
 
-function getToken() {
-  return document.getElementById('tokenInput').value.trim();
-}
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const getToken = () => document.getElementById('tokenInput').value.trim();
+const val = id => document.getElementById(id).value.trim();
 
 function showResult(elId, data, isError) {
   const el = document.getElementById(elId);
@@ -175,41 +491,298 @@ async function apiFetch(path, options = {}) {
   return { ok: res.ok, data };
 }
 
-async function handleRegister(e) {
-  e.preventDefault();
-  const fd = new FormData(e.target);
-  const body = Object.fromEntries(fd.entries());
+function updateUserDisplay(user) {
+  if (!user) return;
+  document.getElementById('userBadge').innerHTML = `<span class="badge ${user.role}">${user.role}</span>`;
+  document.getElementById('usernameLabel').textContent = user.username || user.email;
+}
+
+// ── Image handling ────────────────────────────────────────────────────────────
+function addImageUrl(context) {
+  const input = document.getElementById(context + '-img-url');
+  const url = input.value.trim();
+  if (!url) return;
+  const isPrimary = imageStore[context].length === 0; // first image = primary
+  imageStore[context].push({ url, alt_text: '', is_primary: isPrimary });
+  input.value = '';
+  renderImagePreviews(context);
+}
+
+function handleFileSelect(event, context) {
+  const files = Array.from(event.target.files);
+  files.forEach(file => {
+    const objectUrl = URL.createObjectURL(file);
+    const isPrimary = imageStore[context].length === 0;
+    imageStore[context].push({ url: objectUrl, alt_text: file.name, is_primary: isPrimary });
+  });
+  renderImagePreviews(context);
+}
+
+function removeImage(context, index) {
+  imageStore[context].splice(index, 1);
+  // If removed was primary, make first one primary
+  if (imageStore[context].length > 0) imageStore[context][0].is_primary = true;
+  renderImagePreviews(context);
+}
+
+function setPrimary(context, index) {
+  imageStore[context].forEach((img, i) => img.is_primary = (i === index));
+  renderImagePreviews(context);
+}
+
+function renderImagePreviews(context) {
+  const container = document.getElementById(context + '-img-previews');
+  container.innerHTML = '';
+  imageStore[context].forEach((img, i) => {
+    const div = document.createElement('div');
+    div.className = 'img-preview-item';
+    div.title = 'Click to set as primary';
+    div.onclick = () => setPrimary(context, i);
+    div.innerHTML = `
+      <img src="${img.url}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%231e293b%22 width=%22100%22 height=%22100%22/><text y=%2250%25%22 x=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2230%22>🖼️</text></svg>'"/>
+      <button class="remove-img" onclick="event.stopPropagation();removeImage('${context}',${i})">✕</button>
+      ${img.is_primary ? '<span class="primary-badge">Primary</span>' : ''}
+    `;
+    container.appendChild(div);
+  });
+}
+
+// Setup drag and drop
+document.addEventListener('DOMContentLoaded', () => {
+  ['create'].forEach(ctx => {
+    const zone = document.getElementById(ctx + '-drop-zone');
+    if (!zone) return;
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault(); zone.classList.remove('dragover');
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+      files.forEach(file => {
+        const isPrimary = imageStore[ctx].length === 0;
+        imageStore[ctx].push({ url: URL.createObjectURL(file), alt_text: file.name, is_primary: isPrimary });
+      });
+      renderImagePreviews(ctx);
+    });
+  });
+});
+
+// ── Status chip filter ────────────────────────────────────────────────────────
+function setStatusChip(status, btn) {
+  currentStatusFilter = status;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  searchProducts(1);
+}
+
+// ── Product card renderer ─────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function renderProductCards(products, total, page, pageSize) {
+  const grid = document.getElementById('products-grid');
+  const summary = document.getElementById('search-summary');
+  const pagination = document.getElementById('search-pagination');
+
+  summary.style.display = 'block';
+  summary.innerHTML = `Showing <strong>${products.length}</strong> of <strong>${total}</strong> products`;
+
+  if (products.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="icon">📦</div><p>No products found.<br>Try adjusting your filters.</p></div>`;
+    pagination.innerHTML = '';
+    return;
+  }
+
+  grid.innerHTML = '';
+  products.forEach(p => {
+    const primaryImg = p.image_metadata && p.image_metadata.find(i => i.is_primary);
+    const imgData = primaryImg || (p.image_metadata && p.image_metadata[0]);
+
+    const card = document.createElement('div');
+    card.className = 'prod-card';
+
+    // Image — use DOM to avoid attribute injection
+    const imgWrap = document.createElement('div');
+    imgWrap.className = 'prod-img';
+    if (imgData && imgData.url) {
+      const img = document.createElement('img');
+      img.src = imgData.url;
+      img.alt = imgData.alt_text || p.name;
+      img.style.width = '100%';
+      img.style.height = '160px';
+      img.style.objectFit = 'cover';
+      img.onerror = () => { imgWrap.innerHTML = '<div style="font-size:2rem;color:#334155">📦</div>'; };
+      imgWrap.appendChild(img);
+    } else {
+      imgWrap.innerHTML = '<div style="font-size:2rem;color:#334155">📦</div>';
+    }
+
+    // Body
+    const body = document.createElement('div');
+    body.className = 'prod-body';
+    body.innerHTML = `
+      <div class="prod-name">${escHtml(p.name)}</div>
+      <div class="prod-sku">SKU: ${escHtml(p.sku)}</div>
+      ${p.brand ? `<div class="prod-brand">${escHtml(p.brand)}</div>` : ''}
+      <div class="prod-price">
+        <span class="prod-sell">₹${Number(p.selling_price).toLocaleString('en-IN')}</span>
+      </div>
+      ${p.tax_percentage > 0 ? `<div style="font-size:.72rem;color:#475569">Tax: ${escHtml(p.tax_percentage)}%</div>` : ''}
+    `;
+
+    // Footer
+    const footer = document.createElement('div');
+    footer.className = 'prod-footer';
+    footer.innerHTML = `
+      <span class="status-dot ${escHtml(p.status)}">${({'active':'Available','inactive':'Unavailable','discontinued':'Discontinued','out_of_stock':'Out of Stock'}[p.status] || p.status.replace('_',' '))}</span>
+      <span class="prod-unit">${escHtml(p.unit)}</span>
+    `;
+
+    card.appendChild(imgWrap);
+    card.appendChild(body);
+    card.appendChild(footer);
+    grid.appendChild(card);
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(total / pageSize);
+  if (totalPages <= 1) { pagination.innerHTML = ''; return; }
+  let pHtml = '';
+  if (page > 1) pHtml += `<button class="btn btn-ghost btn-sm" onclick="searchProducts(${page-1})">← Prev</button>`;
+  pHtml += `<span class="page-info">Page ${page} of ${totalPages}</span>`;
+  if (page < totalPages) pHtml += `<button class="btn btn-ghost btn-sm" onclick="searchProducts(${page+1})">Next →</button>`;
+  pagination.innerHTML = pHtml;
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+async function handleRegister() {
+  const body = { username: val('reg-username'), email: val('reg-email'), password: val('reg-password'), full_name: val('reg-fullname'), phone: val('reg-phone'), role: val('reg-role') };
   const { ok, data } = await apiFetch('/auth/register', { method: 'POST', body: JSON.stringify(body) });
   showResult('reg-result', data, !ok);
 }
 
-async function handleLogin(e) {
-  e.preventDefault();
-  const fd = new FormData(e.target);
-  const body = Object.fromEntries(fd.entries());
-  const { ok, data } = await apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(body) });
+async function handleLogin() {
+  const { ok, data } = await apiFetch('/auth/login', { method: 'POST', body: JSON.stringify({ email: val('login-email'), password: val('login-password') }) });
   showResult('login-result', data, !ok);
-  if (ok && data.access_token) {
-    document.getElementById('tokenInput').value = data.access_token;
-    updateBadge(data.user);
-  }
+  if (ok && data.access_token) { document.getElementById('tokenInput').value = data.access_token; updateUserDisplay(data.user); }
 }
 
 async function handleMe() {
   const { ok, data } = await apiFetch('/auth/me');
   showResult('me-result', data, !ok);
-  if (ok) updateBadge(data);
+  if (ok) updateUserDisplay(data);
 }
 
+// ── Users ─────────────────────────────────────────────────────────────────────
 async function handleUsers() {
-  const { ok, data } = await apiFetch('/users/');
+  const role = val('users-role'), status = val('users-status'), page = val('users-page') || 1;
+  let qs = `?page=${page}&page_size=20`;
+  if (role) qs += `&role=${role}`;
+  if (status) qs += `&status=${status}`;
+  const { ok, data } = await apiFetch('/users/' + qs);
   showResult('users-result', data, !ok);
 }
 
-function updateBadge(user) {
-  const el = document.getElementById('userBadge');
-  if (!user) return;
-  el.innerHTML = `<span class="badge ${user.role}">${user.role}</span>&nbsp;&nbsp;<span style="font-size:0.8rem;color:#cbd5e1">${user.username}</span>`;
+async function handleUpdateUser() {
+  const id = val('upd-user-id'); if (!id) return alert('User ID is required');
+  const body = {};
+  if (val('upd-fullname')) body.full_name = val('upd-fullname');
+  if (val('upd-phone'))    body.phone = val('upd-phone');
+  if (val('upd-role'))     body.role = val('upd-role');
+  if (val('upd-status'))   body.status = val('upd-status');
+  const { ok, data } = await apiFetch(`/users/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+  showResult('upd-user-result', data, !ok);
+}
+
+// ── Categories ────────────────────────────────────────────────────────────────
+async function handleCreateCategory() {
+  const body = { name: val('cat-name'), description: val('cat-desc') };
+  const parent = val('cat-parent'); if (parent) body.parent_id = parent;
+  const { ok, data } = await apiFetch('/categories/', { method: 'POST', body: JSON.stringify(body) });
+  showResult('cat-result', data, !ok);
+}
+
+async function handleListCategories() {
+  const parent = val('listcat-parent'), active = val('listcat-active');
+  let qs = `?only_active=${active}`; if (parent) qs += `&parent_id=${parent}`;
+  const { ok, data } = await apiFetch('/categories/' + qs);
+  showResult('listcat-result', data, !ok);
+}
+
+// ── Products ──────────────────────────────────────────────────────────────────
+async function handleCreateProduct() {
+  const suppRaw = val('prod-suppliers');
+  const supplier_ids = suppRaw ? suppRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+  const body = {
+    name: val('prod-name'), brand: val('prod-brand'), category_id: val('prod-cat-id'),
+    cost_price: parseFloat(val('prod-cost')), selling_price: parseFloat(val('prod-sell')),
+    reorder_level: parseInt(val('prod-reorder')) || 0, tax_percentage: parseFloat(val('prod-tax')) || 0,
+    unit: val('prod-unit'), status: val('prod-status'), description: val('prod-desc'),
+    supplier_ids,
+    image_metadata: imageStore.create,
+  };
+  const sku = val('prod-sku'); if (sku) body.sku = sku;
+  const { ok, data } = await apiFetch('/products/', { method: 'POST', body: JSON.stringify(body) });
+  showResult('create-prod-result', data, !ok);
+  if (ok) { imageStore.create = []; renderImagePreviews('create'); }
+}
+
+async function searchProducts(page) {
+  currentSearchPage = page;
+  const pageSize = parseInt(val('search-size')) || 12;
+  const params = new URLSearchParams();
+  if (val('search-q'))   params.set('q', val('search-q'));
+  if (val('search-cat')) params.set('category_id', val('search-cat'));
+  if (val('search-min')) params.set('min_price', val('search-min'));
+  if (val('search-max')) params.set('max_price', val('search-max'));
+  if (currentStatusFilter) params.set('status', currentStatusFilter);
+  params.set('page', page);
+  params.set('page_size', pageSize);
+
+  const { ok, data } = await apiFetch('/products/?' + params.toString());
+  if (!ok) {
+    document.getElementById('products-grid').innerHTML = `<div class="empty-state" style="grid-column:1/-1"><p style="color:#f87171">${data.detail || 'Error fetching products'}</p></div>`;
+    return;
+  }
+  renderProductCards(data.products, data.total, page, pageSize);
+}
+
+async function handleGetProduct() {
+  const id = val('get-prod-id'); if (!id) return alert('Product ID is required');
+  const { ok, data } = await apiFetch(`/products/${id}`);
+  showResult('get-prod-result', data, !ok);
+}
+
+async function handleGetBySku() {
+  const sku = val('get-prod-sku'); if (!sku) return alert('SKU is required');
+  const { ok, data } = await apiFetch(`/products/sku/${sku}`);
+  showResult('get-prod-result', data, !ok);
+}
+
+async function handleUpdateProduct() {
+  const id = val('upd-prod-id'); if (!id) return alert('Product ID is required');
+  const body = {};
+  if (val('upd-prod-name'))    body.name = val('upd-prod-name');
+  if (val('upd-prod-brand'))   body.brand = val('upd-prod-brand');
+  if (val('upd-prod-cat'))     body.category_id = val('upd-prod-cat');
+  if (val('upd-prod-cost'))    body.cost_price = parseFloat(val('upd-prod-cost'));
+  if (val('upd-prod-sell'))    body.selling_price = parseFloat(val('upd-prod-sell'));
+  if (val('upd-prod-reorder')) body.reorder_level = parseInt(val('upd-prod-reorder'));
+  if (val('upd-prod-tax'))     body.tax_percentage = parseFloat(val('upd-prod-tax'));
+  if (val('upd-prod-unit'))    body.unit = val('upd-prod-unit');
+  if (val('upd-prod-status'))  body.status = val('upd-prod-status');
+  if (val('upd-prod-desc'))    body.description = val('upd-prod-desc');
+  if (imageStore.update.length > 0) body.image_metadata = imageStore.update;
+  const { ok, data } = await apiFetch(`/products/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+  showResult('upd-prod-result', data, !ok);
+  if (ok) { imageStore.update = []; renderImagePreviews('update'); }
+}
+
+async function handleDeleteProduct() {
+  const id = val('del-prod-id'); if (!id) return alert('Product ID is required');
+  if (!confirm(`Permanently delete product ${id}?`)) return;
+  const { ok, data } = await apiFetch(`/products/${id}`, { method: 'DELETE' });
+  showResult('del-prod-result', data, !ok);
 }
 </script>
 </body>

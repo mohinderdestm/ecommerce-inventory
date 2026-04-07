@@ -29,9 +29,23 @@ async def close_mongo_connection():
         logger.info("MongoDB connection closed")
 
 async def create_indexes():
+    # Users
     await db["users"].create_index("email", unique=True)
     await db["users"].create_index("username", unique=True)
     await db["users"].create_index("role")
+
+    # Categories
+    await db["categories"].create_index("slug", unique=True)
+    await db["categories"].create_index("parent_id")
+    await db["categories"].create_index("is_active")
+
+    # Products
+    await db["products"].create_index("sku", unique=True)
+    await db["products"].create_index("category_id")
+    await db["products"].create_index("status")
+    await db["products"].create_index("supplier_ids")
+    await db["products"].create_index([("name", "text"), ("brand", "text"), ("description", "text")])
+    
     logger.info("Database indexes ensured.")
 
 
