@@ -78,6 +78,63 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 2000);
   };
 
+  const addProductToDOM = (product) => {
+    if (!container) return;
+    loadProducts();
+  };
+
+  const updateProductInDOM = (product) => {
+    loadProducts();
+  };
+
+  const deleteProductFromDOM = (id) => {
+    const el = document.querySelector(`[data-id="${id}"]`);
+    if (el) el.remove();
+    else loadProducts();
+  };
+
+  let socket;
+
+  const connectWebSocket = () => {
+    socket = new WebSocket("ws://localhost:8000/ws");
+
+    socket.onopen = () => {
+      console.log("✅ WebSocket Connected");
+    };
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log("📡 Realtime Event:", data);
+
+      if (data.event === "PRODUCT_CREATED") {
+        showToast("New product added ");
+        addProductToDOM(data.data);
+      }
+
+      if (data.event === "PRODUCT_UPDATED") {
+        showToast("Product updated ");
+        updateProductInDOM(data.data);
+      }
+
+      if (data.event === "PRODUCT_DELETED") {
+        showToast("Product deleted ");
+        deleteProductFromDOM(data.data.id);
+      }
+    };
+
+    socket.onclose = () => {
+      console.log("❌ WebSocket Disconnected. Reconnecting...");
+      setTimeout(connectWebSocket, 2000);
+    };
+
+    socket.onerror = (err) => {
+      console.error("WebSocket error:", err);
+      socket.close();
+    };
+  };
+
+  connectWebSocket();
+
   const openLogoutOverlay = () => {
     if (logoutOverlay) logoutOverlay.classList.remove("hidden");
   };
@@ -311,6 +368,8 @@ document.addEventListener("DOMContentLoaded", () => {
       products.forEach((p) => {
         const card = document.createElement("div");
         card.className = "product-card";
+
+        card.setAttribute("data-id", p._id || p.id);
 
         let actionButtonsHtml = "";
         const isAdmin = userRole === "admin";

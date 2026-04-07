@@ -1,7 +1,9 @@
 import random
 import string
+import asyncio
 from fastapi import HTTPException
 from app.repositories.product_repository import ProductRepository
+from app.core.websocket_manager import manager
 
 
 class ProductService:
@@ -21,7 +23,13 @@ class ProductService:
         if "image" not in data:
             data["image"] = None
 
-        return await ProductRepository.create_product(data)
+        product = await ProductRepository.create_product(data)
+
+        asyncio.create_task(
+            manager.broadcast({"event": "PRODUCT_CREATED", "data": product})
+        )
+
+        return product
 
     @classmethod
     async def get_products(cls):
@@ -34,6 +42,12 @@ class ProductService:
         if not result or result.matched_count == 0:
             raise HTTPException(status_code=404, detail="Product not found")
 
+        updated_product = await ProductRepository.get_product_by_id(product_id)
+
+        asyncio.create_task(
+            manager.broadcast({"event": "PRODUCT_UPDATED", "data": updated_product})
+        )
+
         return {"message": "Product updated"}
 
     @classmethod
@@ -42,5 +56,9 @@ class ProductService:
 
         if not result or result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Product not found")
+
+        asyncio.create_task(
+            manager.broadcast({"event": "PRODUCT_DELETED", "data": {"id": product_id}})
+        )
 
         return {"message": "Product deleted successfully"}
