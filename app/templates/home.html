@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Smart Inventory Dashboard</title>
-
     <link rel="stylesheet" href="/static/css/home.css" />
   </head>
 
@@ -33,7 +32,24 @@
     <div id="toast" class="toast hidden"></div>
 
     <section class="products-section">
-      <h2 class="section-title">Your Products</h2>
+      <div class="section-header">
+        <h2 class="section-title">Your Products</h2>
+
+        <div class="search-container">
+          <div class="search-box">
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Search products..."
+            />
+            <select id="categoryFilter">
+              <option value="all">All Categories</option>
+            </select>
+            <button id="searchBtn" class="btn search-btn">Search</button>
+          </div>
+        </div>
+      </div>
+
       <div id="productsContainer" class="products-grid"></div>
     </section>
 
@@ -48,6 +64,7 @@
           <input type="text" id="name" placeholder="Product Name" required />
           <textarea id="description" placeholder="Description"></textarea>
           <input type="text" id="category" placeholder="Category" />
+          <input type="text" id="brand" placeholder="Brand" />
           <input type="number" id="cost_price" placeholder="Cost Price" />
           <input
             type="number"
@@ -61,6 +78,7 @@
             placeholder="Stock Quantity"
             required
           />
+          <input type="number" id="tax" placeholder="Tax %" />
 
           <select id="unit">
             <option value="piece">Piece</option>
@@ -69,7 +87,6 @@
           </select>
 
           <input type="file" id="image" />
-
           <button type="submit" class="submit-btn">Save Product</button>
         </form>
       </div>
@@ -81,10 +98,8 @@
           <h2>Confirm Logout</h2>
           <button id="closeLogoutOverlay" class="close-btn">&times;</button>
         </div>
-
         <div class="logout-body">
           <p>Do you want to logout?</p>
-
           <div class="logout-actions">
             <button id="cancelLogout" class="btn cancel-btn">Back</button>
             <button id="confirmLogout" class="btn logout-btn">Logout</button>
@@ -97,7 +112,6 @@
       <div class="modal">
         <h2>Confirm Delete</h2>
         <p>Are you sure you want to delete this product?</p>
-
         <div class="modal-actions">
           <button id="cancelDelete" class="btn-cancel">Cancel</button>
           <button id="confirmDelete" class="btn-delete">Delete</button>
