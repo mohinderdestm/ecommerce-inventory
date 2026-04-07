@@ -2,15 +2,30 @@ const form = document.getElementById("loginForm");
 const errorMsg = document.getElementById("errorMsg");
 const successMsg = document.getElementById("successMsg");
 
-
 const existingToken = localStorage.getItem("access_token");
 if (existingToken && existingToken !== "undefined") {
   window.location.href = "/home";
 }
 
 function showError(message) {
+  let finalMessage = "An error occurred";
+
+  if (typeof message === "object" && message !== null) {
+    if (Array.isArray(message)) {
+      finalMessage = message[0]?.msg || "Validation error";
+    } else {
+      finalMessage = message.msg || message.detail || JSON.stringify(message);
+    }
+  } else {
+    finalMessage = message;
+  }
+
+  if (typeof finalMessage === "string") {
+    finalMessage = finalMessage.replace(/String/i, "Password");
+  }
+
   successMsg.innerText = "";
-  errorMsg.innerText = message;
+  errorMsg.innerText = finalMessage;
 
   errorMsg.classList.remove("show-error", "fade-out");
   void errorMsg.offsetWidth;
@@ -64,7 +79,7 @@ form.addEventListener("submit", async (e) => {
 
     const data = await res.json();
 
-    if (!res.ok || !data.access_token) {
+    if (!res.ok) {
       showError(data.detail || "Invalid email or password");
       return;
     }
@@ -73,12 +88,6 @@ form.addEventListener("submit", async (e) => {
     localStorage.setItem("user_email", data.email || "");
     localStorage.setItem("user_role", data.role || "viewer");
     localStorage.setItem("user_name", data.name || "User");
-
-    console.log("Saved to localStorage:", {
-      email: data.email,
-      role: data.role,
-      name: data.name,
-    });
 
     showSuccess("Login successful");
 

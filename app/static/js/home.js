@@ -16,7 +16,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const getEl = (id) => document.getElementById(id);
 
   const userEmail = getSafeValue("user_email", "");
-  const userRole = getSafeValue("user_role", "viewer");
+
+  const userRole = getSafeValue("user_role", "viewer").toLowerCase();
   const userName =
     getSafeValue("user_name") || (userEmail ? userEmail.split("@")[0] : "User");
 
@@ -48,6 +49,10 @@ document.addEventListener("DOMContentLoaded", () => {
   if (overlay) overlay.classList.add("hidden");
   if (deleteOverlay) deleteOverlay.classList.add("hidden");
   if (logoutOverlay) logoutOverlay.classList.add("hidden");
+
+  if (addBtn && userRole === "viewer") {
+    addBtn.style.display = "none";
+  }
 
   let editMode = false;
   let editProductId = null;
@@ -307,6 +312,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const card = document.createElement("div");
         card.className = "product-card";
 
+        let actionButtonsHtml = "";
+        const isAdmin = userRole === "admin";
+        const isManager = userRole === "manager";
+
+        if (isAdmin || isManager) {
+          actionButtonsHtml += `<button class="edit-btn">Edit</button>`;
+        }
+        if (isAdmin) {
+          actionButtonsHtml += `<button class="delete-btn">Delete</button>`;
+        }
+
         card.innerHTML = `
           <div class="img-box">
             <img src="${p.image || "https://via.placeholder.com/300"}" />
@@ -323,20 +339,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
             <p>${p.brand || ""} • ${p.category || ""}</p>
 
-            <div class="card-actions">
-              <button class="edit-btn">Edit</button>
-              <button class="delete-btn">Delete</button>
-            </div>
+            ${actionButtonsHtml ? `<div class="card-actions">${actionButtonsHtml}</div>` : ""}
           </div>
         `;
 
-        card.querySelector(".edit-btn").addEventListener("click", () => {
-          openOverlay("edit", p);
-        });
+        const editBtn = card.querySelector(".edit-btn");
+        const deleteBtn = card.querySelector(".delete-btn");
 
-        card.querySelector(".delete-btn").addEventListener("click", () => {
-          openDeleteOverlay(p._id || p.id);
-        });
+        if (editBtn) {
+          editBtn.addEventListener("click", () => {
+            openOverlay("edit", p);
+          });
+        }
+
+        if (deleteBtn) {
+          deleteBtn.addEventListener("click", () => {
+            openDeleteOverlay(p._id || p.id);
+          });
+        }
 
         container.appendChild(card);
       });
