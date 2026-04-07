@@ -122,7 +122,30 @@ Manage supplier details and supplier-related procurement information.
 - Payment terms
 - Active status
 
-### 4. Warehouse Management
+### 4. Sales Order Management
+
+Support customer-side order processing and fulfillment.
+
+**Features**
+- Create sales orders
+- Add products and quantities
+- Validate stock before confirming
+- Reserve stock
+- Fulfill and dispatch orders
+- Handle cancelled orders
+- Handle returns
+- Generate order summaries
+
+**Possible Statuses**
+- Draft
+- Confirmed
+- Packed
+- Shipped
+- Delivered
+- Cancelled
+- Returned
+
+### 5. Warehouse Management
 
 Support multiple warehouses and warehouse-specific stock visibility.
 
@@ -134,7 +157,7 @@ Support multiple warehouses and warehouse-specific stock visibility.
 - Warehouse-level stock summary
 - Enable stock transfer between warehouses
 
-### 5. Inventory Movement Tracking
+### 6. Inventory Movement Tracking
 
 Track all inventory changes across the system.
 
@@ -157,7 +180,7 @@ Track all inventory changes across the system.
 - Timestamp
 - Remarks
 
-### 6. Purchase Order Management
+### 7. Purchase Order Management
 
 Handle procurement workflows from suppliers.
 
@@ -178,29 +201,6 @@ Handle procurement workflows from suppliers.
 - Partially Received
 - Completed
 - Cancelled
-
-### 7. Sales Order Management
-
-Support customer-side order processing and fulfillment.
-
-**Features**
-- Create sales orders
-- Add products and quantities
-- Validate stock before confirming
-- Reserve stock
-- Fulfill and dispatch orders
-- Handle cancelled orders
-- Handle returns
-- Generate order summaries
-
-**Possible Statuses**
-- Draft
-- Confirmed
-- Packed
-- Shipped
-- Delivered
-- Cancelled
-- Returned
 
 ### 8. Alerts and Notifications
 
