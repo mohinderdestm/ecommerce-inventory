@@ -20,27 +20,9 @@ class VariantCreate(BaseModel):
     price: float
     stock: int
 
-    
 
-# from pydantic import BaseModel
-# from typing import Optional
-
-# class ProductCreate(BaseModel):
-#     name: str
-#     description: Optional[str] = None
-#     category_id: str
-#     brand: Optional[str] = None
-#     supplier_id: str
-#     cost_price: float
-#     selling_price: float
-#     reorder_level: int
-#     tax_percentage: float
-#     unit: str
-#     color: Optional[str] = None
-#     size: Optional[str] = None
-
-
-# # class ProductResponse(ProductCreate):
-# #     id: str
-# #     sku: str
-# #     status: bool
+class ProductUpdate(BaseModel):
+    name: Optional[str]
+    description: Optional[str]
+    selling_price: Optional[float]
+    brand: Optional[str]
