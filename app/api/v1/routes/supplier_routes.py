@@ -10,7 +10,7 @@ service = SupplierService()
 
 @router.post("/")
 async def create_supplier(
-    supplier: SupplierCreate, user=Depends(require_role(["Admin", "Supplier"]))
+    supplier: SupplierCreate, user=Depends(require_role(["admin", "supplier"]))
 ):
     return {"id": await service.create_supplier(supplier)}
 
@@ -32,7 +32,7 @@ async def get_supplier(supplier_id: str, user=Depends(get_current_user)):
 async def update_supplier(
     supplier_id: str,
     supplier: SupplierUpdate,
-    user=Depends(require_role(["Admin", "Supplier"])),
+    user=Depends(require_role(["admin", "supplier"])),
 ):
     try:
         return await service.update_supplier(supplier_id, supplier)
@@ -42,7 +42,7 @@ async def update_supplier(
 
 @router.delete("/{supplier_id}")
 async def delete_supplier(
-    supplier_id: str, user=Depends(require_role(["Admin", "Supplier"]))
+    supplier_id: str, user=Depends(require_role(["admin", "supplier"]))
 ):
     await service.delete_supplier(supplier_id)
     return {"message": "Supplier deleted"}

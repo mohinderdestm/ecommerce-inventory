@@ -39,7 +39,7 @@ async def get_current_user(
     return {
         "id": str(user["_id"]),
         "email": user["email"],
-        "role": user.get("role", "viewer"), 
+        "role": user.get("role", "viewer"),
         "name": user.get("name", ""),
     }
 
@@ -49,7 +49,7 @@ def require_role(required_roles: list):
         if user.get("role") not in required_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied",
+                detail=f"Access denied. Required roles: {', '.join(required_roles)}",
             )
         return user
 

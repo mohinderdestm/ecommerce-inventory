@@ -13,7 +13,8 @@ UPLOAD_DIR = "uploads/products"
 
 @router.post("/json")
 async def create_product_json(product: ProductCreate, user=Depends(get_current_user)):
-    if user["role"] not in ["admin", "manager"]:
+
+    if user["role"] not in ["admin", "manager", "supplier"]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     return await ProductService.create_product(product.dict(), user)
@@ -33,7 +34,8 @@ async def create_product(
     image: UploadFile = File(None),
     user=Depends(get_current_user),
 ):
-    if user["role"] not in ["admin", "manager"]:
+
+    if user["role"] not in ["admin", "manager", "supplier"]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     data = {
@@ -50,13 +52,10 @@ async def create_product(
 
     if image:
         os.makedirs(UPLOAD_DIR, exist_ok=True)
-
         filename = f"{uuid.uuid4()}_{image.filename}"
         filepath = os.path.join(UPLOAD_DIR, filename)
-
         with open(filepath, "wb") as buffer:
             buffer.write(await image.read())
-
         data["image"] = f"/uploads/products/{filename}"
 
     return await ProductService.create_product(data, user)
@@ -77,7 +76,8 @@ async def update_product(
     image: UploadFile = File(None),
     user=Depends(get_current_user),
 ):
-    if user["role"] not in ["admin", "manager"]:
+
+    if user["role"] not in ["admin", "manager", "supplier"]:
         raise HTTPException(status_code=403, detail="Not authorized")
 
     data = {
@@ -94,13 +94,10 @@ async def update_product(
 
     if image:
         os.makedirs(UPLOAD_DIR, exist_ok=True)
-
         filename = f"{uuid.uuid4()}_{image.filename}"
         filepath = os.path.join(UPLOAD_DIR, filename)
-
         with open(filepath, "wb") as buffer:
             buffer.write(await image.read())
-
         data["image"] = f"/uploads/products/{filename}"
 
     return await ProductService.update_product(product_id, data)
@@ -113,7 +110,8 @@ async def get_products(user=Depends(get_current_user)):
 
 @router.delete("/{product_id}")
 async def delete_product(product_id: str, user=Depends(get_current_user)):
-    if user.get("role") != "admin":
-        raise HTTPException(status_code=403, detail="Only admin can delete")
+
+    if user.get("role") not in ["admin", "supplier"]:
+        raise HTTPException(status_code=403, detail="Not authorized to delete")
 
     return await ProductService.delete_product(product_id)
