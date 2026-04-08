@@ -30,3 +30,10 @@ async def register_page(request: Request):
 @app.get("/home", response_class=HTMLResponse)
 async def home_page(request: Request):
     return templates.TemplateResponse(request, "home.html", {"request": request})
+
+
+@app.get("/register-supplier", response_class=HTMLResponse)
+async def register_supplier_page(request: Request):
+    return templates.TemplateResponse(
+        request, "register_supplier.html", {"request": request}
+    )

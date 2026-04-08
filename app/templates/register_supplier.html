@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Supplier Registration - Inventory System</title>
+    <link rel="stylesheet" href="/static/css/register.css" />
+    <style>
+      .login-card {
+        width: 650px;
+        margin: 40px auto;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 15px;
+        text-align: left;
+      }
+
+      .full-width {
+        grid-column: span 2;
+      }
+
+      body {
+        height: 100vh;
+        overflow-y: overlay;
+        overflow-x: hidden;
+        display: block;
+        padding: 20px 0;
+      }
+
+      body::before {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: -1;
+      }
+
+      .container {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 100%;
+        padding: 40px 0;
+      }
+
+      .login-card input {
+        margin: 8px 0;
+      }
+
+      @media (max-width: 680px) {
+        .login-card {
+          width: 90%;
+          margin: 20px auto;
+        }
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+        .full-width {
+          grid-column: span 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="login-card">
+        <h2>Partner Registration</h2>
+        <p>Register your business to start supplying</p>
+
+        <form id="supplierForm">
+          <div class="form-grid">
+            <div class="full-width">
+              <small style="color: #60a5fa">Account Details</small>
+            </div>
+            <input
+              type="email"
+              id="email"
+              placeholder="Business Email"
+              required
+            />
+            <input
+              type="password"
+              id="password"
+              placeholder="Password"
+              required
+            />
+
+            <div class="full-width" style="margin-top: 10px">
+              <small style="color: #60a5fa">Business Details</small>
+            </div>
+            <input
+              type="text"
+              id="name"
+              placeholder="Company Name"
+              required
+              class="full-width"
+            />
+            <input
+              type="text"
+              id="contact_person"
+              placeholder="Contact Person Name"
+              required
+            />
+            <input type="text" id="phone" placeholder="Phone Number" required />
+            <input type="text" id="gst" placeholder="GST Number" required />
+            <input
+              type="text"
+              id="payment_terms"
+              placeholder="Payment Terms (e.g. Net 30)"
+            />
+
+            <div class="full-width">
+              <input
+                type="text"
+                id="address"
+                placeholder="Full Business Address"
+                required
+              />
+            </div>
+          </div>
+
+          <button type="submit" id="submitBtn">Register Business</button>
+        </form>
+
+        <button onclick="window.location.href = '/register'">
+          Back to Roles
+        </button>
+
+        <p class="error" id="errorMsg"></p>
+        <p class="success" id="successMsg"></p>
+      </div>
+    </div>
+
+    <script src="/static/js/register_supplier.js"></script>
+  </body>
+</html>
