@@ -44,7 +44,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let editMode = false;
   let editProductId = null;
   let deleteProductId = null;
-
   let isSubmitting = false;
 
   if (addBtn && userRole === "viewer") {
@@ -135,10 +134,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       updateHeaderUI();
 
-      if (addBtn && user.role.toLowerCase() === "viewer") {
-        addBtn.style.display = "none";
-      } else if (addBtn) {
-        addBtn.style.display = "flex";
+      if (addBtn) {
+        addBtn.style.display =
+          user.role.toLowerCase() === "viewer" ? "none" : "flex";
       }
     } catch (err) {
       console.error("Error updating profile data:", err);
@@ -260,13 +258,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const openOverlay = (mode = "add", product = null) => {
     if (!overlay || userRole === "viewer") return;
     overlay.classList.remove("hidden");
+
     if (mode === "edit" && product) {
       editMode = true;
       editProductId = product._id || product.id;
       getEl("formTitle").innerText = "Edit Product";
+
       const setVal = (id, val) => {
-        if (getEl(id)) getEl(id).value = val ?? "";
+        const el = getEl(id);
+        if (el) el.value = val !== undefined && val !== null ? val : "";
       };
+
       setVal("name", product.name);
       setVal("description", product.description);
       setVal("category", product.category);
@@ -371,7 +373,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <h3>${p.name}</h3>
           <p>${p.description || ""}</p>
           <div class="meta"><span class="price">₹ ${p.selling_price}</span><span class="qty">Stock: ${p.reorder_level}</span></div>
-          <p class="extra">${p.brand || ""} • ${p.category || ""}</p>
+          <p class="extra">${p.brand || "Generic"} • ${p.category || "Uncategorized"}</p>
           ${actionButtonsHtml ? `<div class="card-actions">${actionButtonsHtml}</div>` : ""}
         </div>`;
 
