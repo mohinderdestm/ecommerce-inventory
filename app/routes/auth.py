@@ -1,6 +1,6 @@
 from fastapi import APIRouter, status,Depends
-from app.modules.auth.schema import RegisterSchema, loginSchema
-from app.modules.auth.service import AuthService
+from app.schemas.auth_schema import RegisterSchema, loginSchema
+from app.services.auth_service import AuthService
 from app.core.dependencies import get_current_user,required_roles
 
 

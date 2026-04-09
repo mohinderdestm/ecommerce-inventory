@@ -1,60 +1,810 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-    <meta charset="UTF-8">
-    <title>Inventory App</title>
-    <link rel="stylesheet" href="style.css">
-</head>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Inventory System</title>
 
-<body id="body">
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        margin: 0;
+        min-height: 100vh;
+      }
 
-<!-- LOGIN -->
-<div class="container" id="loginBox">
-    <h2>Login</h2>
-    <input type="email" id="loginEmail" placeholder="Email">
-    <input type="password" id="loginPassword" placeholder="Password">
-    <button onclick="login()">Login</button>
-    <p id="loginMsg"></p>
-    <p class="link" onclick="showRegister()">Go to Register</p>
-</div>
+      /* AUTH */
+      .container {
+        width: 350px;
+        margin: 80px auto;
+        background: linear-gradient(135deg, #ffffff, #f0fdf4);
+        padding: 30px;
+        border-radius: 10px;
+        text-align: center;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e7eb;
+      }
+      .container input,
+      .container select {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        outline: none;
+      }
 
-<!-- REGISTER -->
-<div class="container" id="registerBox" style="display:none;">
-    <h2>Register</h2>
-    <input type="text" id="name" placeholder="Name">
-    <input type="email" id="email" placeholder="Email">
-    <input type="password" id="password" placeholder="Password">
+      .container input:focus,
+      .container select:focus {
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+      }
 
-    <select id="role">
+      /* HEADER */
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 30px;
+        background: white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .add-product-btn {
+        margin: 10px 20px;
+        padding: 10px 15px;
+        background: #10b981;
+        border: none;
+        color: white;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+
+      /* GRID */
+      .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 30px;
+        padding: 20px;
+      }
+
+      .product-card {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #ddd;
+      }
+
+      .product-image {
+        height: 180px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .product-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .product-info {
+        padding: 10px;
+      }
+
+      .product-name {
+        font-weight: bold;
+      }
+      .product-category {
+        color: gray;
+        font-size: 13px;
+      }
+      .product-price {
+        color: green;
+        font-weight: bold;
+      }
+
+      .actions {
+        display: flex;
+        gap: 5px;
+        padding: 10px;
+      }
+
+      .btn {
+        flex: 1;
+        padding: 6px;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+      }
+
+      .edit {
+        background: #3b82f6;
+        color: white;
+      }
+      .delete {
+        background: #ef4444;
+        color: white;
+      }
+
+      .search-wrapper {
+        max-width: 500px;
+        margin: 20px auto;
+        position: relative;
+        padding: 0 20px;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 12px 16px 12px 40px;
+        border-radius: 25px;
+        border: 2px solid #333;
+        outline: none;
+        background: white;
+        box-sizing: border-box;
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 35px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: gray;
+      }
+
+      /* MODAL */
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+      }
+
+      .modal-content {
+        background: white;
+        width: 400px;
+        margin: 100px auto;
+        padding: 20px;
+        border-radius: 10px;
+      }
+
+      .modal-content input {
+        width: 90%;
+        padding: 10px;
+        margin: 8px 0;
+      }
+
+      .variants {
+        margin-top: 8px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+
+      .variant-chip {
+        padding: 4px 8px;
+        border: 1px solid #ccc;
+        border-radius: 20px;
+        font-size: 11px;
+        cursor: pointer;
+        background: #f3f4f6;
+      }
+
+      .variant-chip:hover {
+        background: #e5e7eb;
+      }
+
+      .variant-chip.active {
+        background: #10b981;
+        color: white;
+        border-color: #10b981;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- LOGIN -->
+    <div class="container" id="loginBox">
+      <h2 id="authTitle">Login</h2>
+
+      <input id="nameInput" placeholder="Name" style="display: none" />
+      <input id="emailInput" placeholder="Email" />
+      <input id="passwordInput" type="password" placeholder="Password" />
+
+      <select id="roleInput" style="display: none">
         <option value="admin">Admin</option>
         <option value="inventory_manager">Inventory Manager</option>
-        <option value="warehouse_staff">Warehouse Staff</option>
-        <option value="finance_staff">Finance Staff</option>
-        <option value="viewer">Viewer</option>
-    </select>
+        <option value="staff">Staff</option>
+      </select>
 
-    <button onclick="register()">Register</button>
-    <p id="registerMsg"></p>
-    <p class="link" onclick="showLogin()">Go to Login</p>
-</div>
+      <button onclick="handleAuth()" id="authBtn">Login</button>
 
-<!-- DASHBOARD -->
-<div id="dashboard">
-    <h2>Welcome, <span id="nameTop"></span>👋</h2>
+      <p id="authToggle" style="cursor: pointer; color: blue">
+        Don't have an account? Register
+      </p>
 
-    <div class="nav">
-        <button onclick="goTo('products')">Products</button>
-        <button onclick="goTo('orders')">Orders</button>
-        <button onclick="goTo('profile')">Profile</button>
-        <button onclick="logout()">Logout</button>
+      <p id="authMsg"></p>
     </div>
 
-    <!-- <div id="content">
-        <h3>Dashboard</h3>
-        <p>Select an option</p>
-    </div> -->
-</div>
+    <!-- DASHBOARD -->
+    <div id="dashboard" style="display: none">
+      <div class="header">
+        <div>
+          Welcome, <span id="nameTop"></span> (<span id="roleDisplay"></span>)
+        </div>
+        <button onclick="logout()">Logout</button>
+      </div>
 
-<script src="app.js"></script>
-</body>
+      <button class="add-product-btn" id="addBtn" onclick="openAddModal()">
+        ➕ Add Product
+      </button>
+
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input
+          id="searchInput"
+          class="search-input"
+          placeholder="Search products..."
+        />
+      </div>
+
+      <div class="products-grid" id="grid"></div>
+    </div>
+
+    <!-- MODAL -->
+    <div class="modal" id="productModal">
+      <div class="modal-content">
+        <h3 id="modalTitle">Add Product</h3>
+
+        <input type="hidden" id="productId" />
+
+        <input id="name" placeholder="Name" />
+        <input id="category" placeholder="Category" />
+        <input id="price" type="number" placeholder="Selling Price" />
+        <!-- <input id="image" placeholder="Image URL" /> -->
+        <div style="text-align: center">
+          <img
+            id="previewImage"
+            style="
+              width: 120px;
+              height: 120px;
+              object-fit: cover;
+              border-radius: 8px;
+              display: none;
+              margin-bottom: 10px;
+            "
+          />
+          <input type="file" id="imageFile" accept="image/*" />
+        </div>
+
+        <button id="saveBtn" onclick="saveProduct()">Save</button>
+        <button onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+
+    <script>
+      const BASE_URL = "http://127.0.0.1:8000";
+
+      let editMode = false;
+      let currentUserRole = "";
+
+      /* ================= NORMALIZE ROLE ================= */
+      function normalizeRole(role) {
+        return (role || "").toLowerCase().trim();
+      }
+
+      /* ================= PERMISSION CHECK ================= */
+      function hasPermission(roles) {
+        return roles.includes(currentUserRole);
+      }
+
+      /* ================= UPDATE UI ================= */
+      function updateUIBasedOnRole() {
+        const addBtn = document.getElementById("addBtn");
+
+        console.log("🔐 Current Role:", currentUserRole);
+
+        if (hasPermission(["admin", "inventory_manager"])) {
+          addBtn.style.display = "block";
+        } else {
+          addBtn.style.display = "none";
+        }
+      }
+
+      function isValidEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      }
+
+      function isStrongPassword(password) {
+        return password.length >= 6;
+      }
+
+      let isRegister = false;
+
+      authToggle.onclick = () => {
+        isRegister = !isRegister;
+
+        authTitle.innerText = isRegister ? "Register" : "Login";
+        authBtn.innerText = isRegister ? "Register" : "Login";
+
+        nameInput.style.display = isRegister ? "block" : "none";
+        roleInput.style.display = isRegister ? "block" : "none";
+
+        authToggle.innerText = isRegister
+          ? "Already have an account? Login"
+          : "Don't have an account? Register";
+
+        authMsg.innerText = "";
+      };
+
+      async function handleAuth() {
+        const email = emailInput.value.trim();
+        const password = passwordInput.value.trim();
+
+        //  VALIDATION
+        if (!email) {
+          authMsg.innerText = "Email required";
+          return;
+        }
+
+        if (!isValidEmail(email)) {
+          authMsg.innerText = "Invalid email format";
+          return;
+        }
+
+        if (!password) {
+          authMsg.innerText = "Password required";
+          return;
+        }
+
+        if (!isStrongPassword(password)) {
+          authMsg.innerText = "Password must be at least 6 characters";
+          return;
+        }
+
+        // ================= REGISTER =================
+        if (isRegister) {
+          const name = nameInput.value.trim();
+          const role = roleInput.value;
+
+          if (!name) {
+            authMsg.innerText = "Name required";
+            return;
+          }
+
+          if (!role) {
+            authMsg.innerText = "Select role";
+            return;
+          }
+
+          authMsg.innerText = "Creating account...";
+
+          try {
+            const res = await fetch(`${BASE_URL}/auth/register`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name, email, password, role }),
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+              authMsg.innerText = " Registered successfully! Please login.";
+
+              // switch back to login
+              isRegister = false;
+              authToggle.click();
+            } else {
+              authMsg.innerText = data.detail || "Registration failed";
+            }
+          } catch (err) {
+            authMsg.innerText = "Network error";
+          }
+        }
+
+        // ================= LOGIN =================
+        else {
+          authMsg.innerText = "Signing in...";
+
+          try {
+            const res = await fetch(`${BASE_URL}/auth/login`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, password }),
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+              localStorage.setItem("token", data.access_token);
+
+              loadDashboard();
+            } else {
+              authMsg.innerText = data.detail || "Login failed";
+            }
+          } catch (err) {
+            authMsg.innerText = "Network error";
+          }
+          emailInput.addEventListener("input", () => (authMsg.innerText = ""));
+          passwordInput.addEventListener(
+            "input",
+            () => (authMsg.innerText = ""),
+          );
+          nameInput.addEventListener("input", () => (authMsg.innerText = ""));
+        }
+      }
+
+      /* ================= image upload ================= */
+
+      async function uploadProductImage(productId, file) {
+        const token = localStorage.getItem("token");
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch(
+          `${BASE_URL}/products/${productId}/upload-image`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+          },
+        );
+
+        const data = await res.json();
+        return data.image_url;
+      }
+
+      let selectedFile = null;
+
+      document.getElementById("imageFile").addEventListener("change", (e) => {
+        selectedFile = e.target.files[0];
+
+        const preview = document.getElementById("previewImage");
+
+        if (selectedFile) {
+          preview.src = URL.createObjectURL(selectedFile);
+          preview.style.display = "block";
+        }
+      });
+
+      /* ================= LOAD DASHBOARD ================= */
+      async function loadDashboard() {
+        loginBox.style.display = "none";
+        dashboard.style.display = "block";
+
+        const token = localStorage.getItem("token");
+
+        const res = await fetch(`${BASE_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert("Session expired");
+          logout();
+          return;
+        }
+
+        const name = data.user.name;
+        const role = normalizeRole(data.user.role);
+
+        currentUserRole = role;
+
+        console.log("✅ Logged in role:", role);
+
+        nameTop.innerText = name;
+        roleDisplay.innerText = role;
+
+        updateUIBasedOnRole();
+        loadProducts();
+      }
+
+      /* ================= LOAD PRODUCTS ================= */
+      async function loadProducts(search = "") {
+        const token = localStorage.getItem("token");
+
+        const url = search
+          ? `${BASE_URL}/products?search=${encodeURIComponent(search)}`
+          : `${BASE_URL}/products`;
+
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const data = await res.json();
+
+        if (!data.data?.length) {
+          grid.innerHTML = `<div>No products found</div>`;
+          return;
+        }
+
+        grid.innerHTML = data.data
+          .map((p) => {
+            let actions = "";
+
+            if (hasPermission(["admin"])) {
+              actions = `
+                  <div class="actions">
+                    <button class="btn edit" onclick="event.stopPropagation(); editProduct('${p.id}')">Edit</button>
+                    <button class="btn delete" onclick="event.stopPropagation(); deleteProduct('${p.id}')">Delete</button>
+                  </div>
+                `;
+            } else if (hasPermission(["inventory_manager"])) {
+              actions = `
+                  <div class="actions">
+                    <button class="btn delete" onclick="deleteProduct('${p.id}')">Delete</button>
+                  </div>
+                `;
+            }
+            const firstVariant = p.variants?.[0];
+
+            return `
+                <div class="product-card" onclick="openProduct('${p.id}')">
+
+                  <div class="product-image">
+                    ${p.image_url ? `<img src="${p.image_url}">` : "📦"}
+                  </div>
+
+                  <div class="product-info">
+                    <div class="product-name">${p.name}</div>
+                    <div class="product-category">${p.category}</div>
+
+                    <div class="product-price" id="price-${p.id}">
+                      ₹${p.selling_price + (firstVariant?.additional_price || 0)}
+                    </div>
+
+                    <div style="font-size:12px;color:gray;" id="sku-${p.id}">
+                      SKU: ${firstVariant?.sku || "-"}
+                    </div>
+
+                    <div style="font-size:12px;color:gray;" id="stock-${p.id}">
+                      Stock: ${firstVariant?.stock || 0}
+                    </div>
+
+                    <!-- ✅ VARIANTS -->
+                    <div class="variants">
+                      ${p.variants
+                        ?.map(
+                          (v, i) => `
+                        <span
+                          class="variant-chip ${i === 0 ? "active" : ""}"
+                          onclick='selectVariant(${JSON.stringify(v)}, "${p.id}", ${p.selling_price})'
+                        >
+                          ${Object.values(v.attributes).join(" / ")}
+                        </span>
+                      `,
+                        )
+                        .join("")}
+                    </div>
+                  </div>
+
+                  ${actions}
+                </div>
+              `;
+          })
+          .join("");
+      }
+
+      /* ================= Variant Click Logic ================= */
+
+      function selectVariant(variant, productId, basePrice) {
+        // update price
+        document.getElementById(`price-${productId}`).innerText =
+          "₹" + (basePrice + (variant.additional_price || 0));
+
+        // update sku
+        document.getElementById(`sku-${productId}`).innerText =
+          "SKU: " + variant.sku;
+
+        // update stock
+        document.getElementById(`stock-${productId}`).innerText =
+          "Stock: " + variant.stock;
+
+        // highlight selected
+        const parent = document.getElementById(
+          `price-${productId}`,
+        ).parentElement;
+        const chips = parent.querySelectorAll(".variant-chip");
+
+        chips.forEach((c) => c.classList.remove("active"));
+        event.target.classList.add("active");
+      }
+
+      /* ================= ADD ================= */
+      function openAddModal() {
+        if (!hasPermission(["admin", "inventory_manager"])) {
+          alert("No permission");
+          return;
+        }
+
+        editMode = false;
+
+        productId.value = "";
+        name.value = "";
+        category.value = "";
+        price.value = "";
+        // image.value = "";
+
+        modalTitle.innerText = "Add Product";
+        productModal.style.display = "block";
+
+        selectedFile = null;
+
+        const preview = document.getElementById("previewImage");
+        preview.src = "";
+        preview.style.display = "none";
+
+        document.getElementById("imageFile").value = "";
+      }
+
+      /* ================= EDIT ================= */
+      async function editProduct(id) {
+        if (!hasPermission(["admin"])) {
+          alert("Only admin can edit");
+          return;
+        }
+
+        const token = localStorage.getItem("token");
+
+        const res = await fetch(`${BASE_URL}/products/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.status === 403) {
+          alert(" Not allowed");
+          return;
+        }
+
+        const p = await res.json();
+
+        editMode = true;
+
+        productId.value = p._id;
+        name.value = p.name;
+        category.value = p.category;
+        price.value = p.selling_price;
+        // image.value = p.image_url || "";
+        const preview = document.getElementById("previewImage");
+
+        if (p.image_url) {
+          preview.src = p.image_url;
+          preview.style.display = "block";
+        }
+
+        modalTitle.innerText = "Edit Product";
+        productModal.style.display = "block";
+      }
+
+      /* ================= SAVE ================= */
+      async function saveProduct() {
+        const nameVal = name.value.trim();
+        const categoryVal = category.value.trim();
+        const priceVal = Number(price.value);
+
+        if (!nameVal || !categoryVal || priceVal <= 0) {
+          alert("Fill all fields");
+          return;
+        }
+
+        const token = localStorage.getItem("token");
+
+        let productId = document.getElementById("productId").value;
+
+        const payload = {
+          name: nameVal,
+          category: categoryVal,
+          selling_price: priceVal,
+          cost_price: priceVal * 0.8,
+          reorder_level: 10,
+          tax_percentage: 0,
+          unit: "pcs",
+          supplier_ids: [],
+          variants: [],
+        };
+
+        let url = `${BASE_URL}/products/`;
+        let method = "POST";
+
+        if (editMode && productId) {
+          url = `${BASE_URL}/products/${productId}`;
+          method = "PUT";
+        }
+
+        try {
+          const res = await fetch(url, {
+            method,
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(payload),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            alert("Error saving product");
+            return;
+          }
+
+          //  GET PRODUCT ID
+          const newProductId = editMode ? productId : data._id;
+
+          //  UPLOAD IMAGE AFTER PRODUCT CREATED
+          if (selectedFile) {
+            await uploadProductImage(newProductId, selectedFile);
+          }
+
+          alert(" Product saved");
+          closeModal();
+          loadProducts();
+        } catch (err) {
+          console.error(err);
+          alert("Server error");
+        }
+      }
+      /* ================= DELETE ================= */
+      async function deleteProduct(id) {
+        if (!hasPermission(["admin", "inventory_manager"])) {
+          alert("No permission");
+          return;
+        }
+
+        if (!confirm("Delete?")) return;
+
+        const token = localStorage.getItem("token");
+
+        const res = await fetch(`${BASE_URL}/products/${id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.status === 403) {
+          alert(" Only admin can delete");
+          return;
+        }
+
+        loadProducts();
+      }
+
+       /* ================= product description page ================= */
+
+      function openProduct(id) {
+        window.location.href = `product.html?id=${id}`;
+      }
+
+      /* ================= LOGOUT ================= */
+      function logout() {
+        localStorage.clear();
+        location.reload();
+      }
+
+      function closeModal() {
+        document.getElementById("productModal").style.display = "none";
+      }
+
+      /* ================= INIT ================= */
+      if (localStorage.getItem("token")) {
+        loadDashboard();
+      }
+
+      let searchTimeout;
+
+      searchInput.addEventListener("input", () => {
+        clearTimeout(searchTimeout);
+
+        searchTimeout = setTimeout(() => {
+          const value = searchInput.value.trim();
+          loadProducts(value);
+        }, 400); // debounce
+      });
+    </script>
+  </body>
 </html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="UTF-8" />
+  <title>Product Detail</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #f3f4f6;
+      padding: 20px;
+    }
+
+    .container {
+      display: flex;
+      gap: 40px;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+    }
+
+    .left img {
+      width: 400px;
+      border-radius: 10px;
+    }
+
+    .right {
+      flex: 1;
+    }
+
+    .price {
+      color: green;
+      font-size: 24px;
+      margin: 10px 0;
+    }
+
+    .variant-group {
+      margin: 15px 0;
+    }
+
+    .variant-option {
+      padding: 6px 12px;
+      border: 1px solid #ccc;
+      margin: 5px;
+      cursor: pointer;
+      border-radius: 6px;
+      display: inline-block;
+    }
+
+    .variant-option.active {
+      background: #10b981;
+      color: white;
+      border-color: #10b981;
+    }
+
+    .stock {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+  <div class="left">
+    <img id="productImage" />
+  </div>
+
+  <div class="right">
+    <h2 id="name"></h2>
+    <p id="desc"></p>
+
+    <div class="price" id="price"></div>
+    <div id="sku"></div>
+    <div class="stock" id="stock"></div>
+
+    <div id="variantsContainer"></div>
+  </div>
+</div>
+
+<script>
+const BASE_URL = "http://127.0.0.1:8000";
+
+let product;
+let selectedAttributes = {};
+
+// get product id from URL
+const params = new URLSearchParams(window.location.search);
+const productId = params.get("id");
+
+// ================= LOAD PRODUCT =================
+async function loadProduct() {
+  const res = await fetch(`${BASE_URL}/products/${productId}`);
+  product = await res.json();
+
+  document.getElementById("name").innerText = product.name;
+  document.getElementById("desc").innerText = product.description;
+
+  // default image
+  document.getElementById("productImage").src = product.image_url;
+
+  buildVariantSelectors();
+
+  // auto select first variant
+  if (product.variants?.length) {
+    selectedAttributes = { ...product.variants[0].attributes };
+    updateSelection();
+  }
+}
+
+// ================= BUILD VARIANTS =================
+function buildVariantSelectors() {
+  const container = document.getElementById("variantsContainer");
+
+  const attributes = {};
+
+  // collect attributes dynamically
+  product.variants.forEach(v => {
+    Object.entries(v.attributes || {}).forEach(([key, val]) => {
+      if (!attributes[key]) attributes[key] = new Set();
+      attributes[key].add(val);
+    });
+  });
+
+  container.innerHTML = "";
+
+  Object.entries(attributes).forEach(([attr, values]) => {
+    const div = document.createElement("div");
+    div.className = "variant-group";
+
+    div.innerHTML = `<b>${attr.toUpperCase()}</b><br>`;
+
+    values.forEach(val => {
+      const btn = document.createElement("span");
+      btn.className = "variant-option";
+      btn.innerText = val;
+
+      btn.onclick = () => {
+        selectedAttributes[attr] = val;
+        updateSelection();
+        highlightSelected(attr, val);
+      };
+
+      div.appendChild(btn);
+    });
+
+    container.appendChild(div);
+  });
+}
+
+// ================= UPDATE UI =================
+function updateSelection() {
+  const variant = product.variants.find(v =>
+    Object.entries(selectedAttributes).every(
+      ([k, v2]) => v.attributes?.[k] === v2
+    )
+  );
+
+  if (!variant) return;
+
+  // price
+  document.getElementById("price").innerText =
+    "₹" + (product.selling_price + (variant.additional_price || 0));
+
+  // sku
+  document.getElementById("sku").innerText =
+    "SKU: " + (variant.sku || "-");
+
+  // stock
+  document.getElementById("stock").innerText =
+    "Stock: " + variant.stock;
+
+  // image switch
+  if (variant.image_url) {
+    document.getElementById("productImage").src = variant.image_url;
+  } else {
+    document.getElementById("productImage").src = product.image_url;
+  }
+
+  // highlight selected
+  Object.entries(selectedAttributes).forEach(([k, v]) => {
+    highlightSelected(k, v);
+  });
+}
+
+// ================= HIGHLIGHT =================
+function highlightSelected(attr, value) {
+  const groups = document.querySelectorAll(".variant-group");
+
+  groups.forEach(group => {
+    if (group.innerText.toLowerCase().includes(attr.toLowerCase())) {
+      group.querySelectorAll(".variant-option").forEach(btn => {
+        btn.classList.remove("active");
+        if (btn.innerText === value) {
+          btn.classList.add("active");
+        }
+      });
+    }
+  });
+}
+
+// ================= INIT =================
+loadProduct();
+</script>
+
+</body>
+</html>

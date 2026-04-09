@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from app.modules.auth.repository import AuthRepository
+from app.repositories.auth_repository import AuthRepository
 from app.core.security import hash_password, verify_password, create_access_token
 
 
