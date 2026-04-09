@@ -8,14 +8,19 @@ from app.schemas.user import (
 )
 from app.services.user_service import UserService
 from app.repositories.user_repository import UserRepository
-from app.utils.dependencies import get_user_repo, get_current_user
+from app.repositories.supplier_repository import SupplierRepository
+from app.utils.dependencies import get_current_user, get_db
 from app.core.config import settings
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-def get_user_service(repo: UserRepository = Depends(get_user_repo)) -> UserService:
-    return UserService(repo)
+def get_user_service(db: AsyncIOMotorDatabase = Depends(get_db)) -> UserService:
+    return UserService(
+        repo=UserRepository(db),
+        supplier_repo=SupplierRepository(db),  # injected for auto supplier profile
+    )
 
 
 @router.post(
@@ -23,7 +28,13 @@ def get_user_service(repo: UserRepository = Depends(get_user_repo)) -> UserServi
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user",
-    description="Creates a new user account. Role defaults to **customer** if not specified.",
+    description=(
+        "Creates a new user account.\n\n"
+        "- Role defaults to **customer** if not specified.\n"
+        "- If role is **supplier**, a basic supplier profile is automatically "
+        "created and linked to this account. Admin can later fill in GST, "
+        "address, and payment terms via `PUT /suppliers/{id}`."
+    ),
 )
 async def register(
     payload: UserRegisterRequest,
@@ -37,7 +48,6 @@ async def register(
     "/login",
     response_model=TokenResponse,
     summary="Login and get JWT token",
-    description="Authenticates a user and returns a JWT access token.",
 )
 async def login(
     payload: UserLoginRequest,
@@ -56,7 +66,6 @@ async def login(
     "/me",
     response_model=UserResponse,
     summary="Get current logged-in user",
-    description="Returns the profile of the user associated with the provided JWT token.",
 )
 async def get_me(current_user: dict = Depends(get_current_user)):
     return current_user

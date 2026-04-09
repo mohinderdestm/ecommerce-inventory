@@ -46,6 +46,13 @@ async def create_indexes():
     await db["products"].create_index("supplier_ids")
     await db["products"].create_index([("name", "text"), ("brand", "text"), ("description", "text")])
     
+    # Suppliers
+    await db["suppliers"].create_index("email", sparse=True)
+    await db["suppliers"].create_index("gst_number", sparse=True)
+    await db["suppliers"].create_index("status")
+    await db["suppliers"].create_index("product_ids")
+    await db["suppliers"].create_index([("name", "text"), ("contact_person", "text")])
+
     logger.info("Database indexes ensured.")
 
 

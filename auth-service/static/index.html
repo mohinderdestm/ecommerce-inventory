@@ -177,6 +177,12 @@ textarea{resize:vertical;min-height:70px}
       <button class="nav-btn" data-panel="create-category" onclick="switchTab(this,'create-category')">Create Category</button>
       <button class="nav-btn" data-panel="list-categories" onclick="switchTab(this,'list-categories')">List Categories</button>
     </div>
+    <div style="margin-bottom:6px">
+      <div class="sidebar-label">Suppliers</div>
+      <button class="nav-btn" data-panel="create-supplier" onclick="switchTab(this,'create-supplier')">Create Supplier</button>
+      <button class="nav-btn" data-panel="list-suppliers" onclick="switchTab(this,'list-suppliers')">List Suppliers</button>
+      <button class="nav-btn" data-panel="supplier-products" onclick="switchTab(this,'supplier-products')">Link Products</button>
+    </div>
     <div>
       <div class="sidebar-label">Products</div>
       <button class="nav-btn" data-panel="create-product" onclick="switchTab(this,'create-product')">Create Product</button>
@@ -449,6 +455,93 @@ textarea{resize:vertical;min-height:70px}
         <div class="form-group"><label>Product ID</label><input id="del-prod-id" placeholder="MongoDB ObjectId"/></div>
         <button class="btn btn-danger btn-full" onclick="handleDeleteProduct()">Delete Product</button>
         <div id="del-prod-result" class="result"></div>
+      </div>
+    </div>
+
+
+    <!-- ── CREATE SUPPLIER ── -->
+    <div id="panel-create-supplier" class="panel">
+      <div class="panel-title">Create Supplier</div>
+      <div class="card">
+        <p class="hint"><strong>Admin only.</strong> GST number must be exactly 15 characters if provided.</p>
+        <div class="form-grid">
+          <div class="form-group"><label>Supplier Name *</label><input id="sup-name" placeholder="ABC Traders Pvt Ltd"/></div>
+          <div class="form-group"><label>Contact Person</label><input id="sup-contact" placeholder="Rajesh Kumar"/></div>
+          <div class="form-group"><label>Phone</label><input id="sup-phone" placeholder="+91-9876543210"/></div>
+          <div class="form-group"><label>Email</label><input id="sup-email" type="email" placeholder="supplier@example.com"/></div>
+          <div class="form-group"><label>GST Number</label><input id="sup-gst" placeholder="27AABCU9603R1ZX" maxlength="15"/></div>
+          <div class="form-group"><label>Payment Terms</label>
+            <select id="sup-payment">
+              <option value="net_30">Net 30 days</option>
+              <option value="net_15">Net 15 days</option>
+              <option value="net_60">Net 60 days</option>
+              <option value="net_90">Net 90 days</option>
+              <option value="immediate">Immediate</option>
+              <option value="advance">Advance</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Rating (0–5)</label><input id="sup-rating" type="number" min="0" max="5" step="0.1" value="0" placeholder="4.2"/></div>
+        </div>
+        <div class="form-group"><label>Notes</label><textarea id="sup-notes" placeholder="Any additional notes about the supplier..."></textarea></div>
+        <label style="margin-bottom:8px;display:block">Address</label>
+        <div class="form-grid three">
+          <div class="form-group"><label>Street</label><input id="sup-street" placeholder="123 Main Street"/></div>
+          <div class="form-group"><label>City</label><input id="sup-city" placeholder="Mumbai"/></div>
+          <div class="form-group"><label>State</label><input id="sup-state" placeholder="Maharashtra"/></div>
+          <div class="form-group"><label>Pincode</label><input id="sup-pin" placeholder="400001"/></div>
+          <div class="form-group"><label>Country</label><input id="sup-country" value="India" placeholder="India"/></div>
+        </div>
+        <button class="btn btn-success btn-full" onclick="handleCreateSupplier()">Create Supplier</button>
+        <div id="create-sup-result" class="result"></div>
+      </div>
+    </div>
+
+    <!-- ── LIST SUPPLIERS ── -->
+    <div id="panel-list-suppliers" class="panel">
+      <div class="panel-title">List Suppliers</div>
+      <div class="card">
+        <div class="filter-row">
+          <div class="form-group"><label>Search (name / email / GST)</label><input id="sup-search" placeholder="Search..."/></div>
+          <div class="form-group"><label>Status</label>
+            <select id="sup-filter-status">
+              <option value="">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="blacklisted">Blacklisted</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Page</label><input id="sup-page" type="number" value="1" min="1"/></div>
+          <button class="btn btn-primary" onclick="handleListSuppliers()">Fetch</button>
+        </div>
+        <div id="list-sup-result" class="result"></div>
+      </div>
+    </div>
+
+    <!-- ── LINK PRODUCTS ── -->
+    <div id="panel-supplier-products" class="panel">
+      <div class="panel-title">Supplier–Product Mapping</div>
+      <div class="card">
+        <p class="hint">Link or unlink products to a supplier. Use comma-separated Product IDs. This updates both the supplier and the product documents automatically.</p>
+        <div class="form-group"><label>Supplier ID</label><input id="map-sup-id" placeholder="MongoDB ObjectId of supplier"/></div>
+        <div class="form-group"><label>Product IDs (comma-separated)</label><input id="map-prod-ids" placeholder="productId1, productId2, productId3"/></div>
+        <div style="display:flex;gap:10px;margin-top:6px">
+          <button class="btn btn-success" style="flex:1" onclick="handleLinkProducts()">Link Products</button>
+          <button class="btn btn-danger"  style="flex:1" onclick="handleUnlinkProducts()">Unlink Products</button>
+        </div>
+        <div id="map-result" class="result"></div>
+        <hr class="divider"/>
+        <p class="hint" style="margin-bottom:12px">Get all suppliers for a product:</p>
+        <div class="form-group"><label>Product ID</label><input id="sup-by-prod-id" placeholder="MongoDB ObjectId of product"/></div>
+        <button class="btn btn-primary" onclick="handleSuppliersByProduct()">Get Suppliers for Product</button>
+        <div id="sup-by-prod-result" class="result"></div>
+        <hr class="divider"/>
+        <p class="hint" style="margin-bottom:12px">Update supplier rating:</p>
+        <div class="form-grid">
+          <div class="form-group"><label>Supplier ID</label><input id="rate-sup-id" placeholder="MongoDB ObjectId"/></div>
+          <div class="form-group"><label>Rating (0.0 – 5.0)</label><input id="rate-value" type="number" min="0" max="5" step="0.1" placeholder="4.5"/></div>
+        </div>
+        <button class="btn btn-primary" onclick="handleUpdateRating()">Update Rating</button>
+        <div id="rate-result" class="result"></div>
       </div>
     </div>
 
@@ -783,6 +876,66 @@ async function handleDeleteProduct() {
   if (!confirm(`Permanently delete product ${id}?`)) return;
   const { ok, data } = await apiFetch(`/products/${id}`, { method: 'DELETE' });
   showResult('del-prod-result', data, !ok);
+}
+
+// ── Suppliers ─────────────────────────────────────────────────────────────────
+async function handleCreateSupplier() {
+  const body = {
+    name: val('sup-name'),
+    contact_person: val('sup-contact'),
+    phone: val('sup-phone'),
+    payment_terms: val('sup-payment'),
+    rating: parseFloat(val('sup-rating')) || 0,
+    notes: val('sup-notes'),
+    address: {
+      street: val('sup-street'), city: val('sup-city'),
+      state: val('sup-state'), pincode: val('sup-pin'),
+      country: val('sup-country') || 'India',
+    },
+  };
+  if (val('sup-email')) body.email = val('sup-email');
+  if (val('sup-gst'))   body.gst_number = val('sup-gst');
+  const { ok, data } = await apiFetch('/suppliers/', { method: 'POST', body: JSON.stringify(body) });
+  showResult('create-sup-result', data, !ok);
+}
+
+async function handleListSuppliers() {
+  const search = val('sup-search'), status = val('sup-filter-status'), page = val('sup-page') || 1;
+  let qs = `?page=${page}&page_size=20`;
+  if (search) qs += `&search=${encodeURIComponent(search)}`;
+  if (status) qs += `&status=${status}`;
+  const { ok, data } = await apiFetch('/suppliers/' + qs);
+  showResult('list-sup-result', data, !ok);
+}
+
+async function handleLinkProducts() {
+  const id = val('map-sup-id'); if (!id) return alert('Supplier ID required');
+  const raw = val('map-prod-ids'); if (!raw) return alert('Product IDs required');
+  const product_ids = raw.split(',').map(s => s.trim()).filter(Boolean);
+  const { ok, data } = await apiFetch(`/suppliers/${id}/products`, { method: 'POST', body: JSON.stringify({ product_ids }) });
+  showResult('map-result', data, !ok);
+}
+
+async function handleUnlinkProducts() {
+  const id = val('map-sup-id'); if (!id) return alert('Supplier ID required');
+  const raw = val('map-prod-ids'); if (!raw) return alert('Product IDs required');
+  const product_ids = raw.split(',').map(s => s.trim()).filter(Boolean);
+  const { ok, data } = await apiFetch(`/suppliers/${id}/products`, { method: 'DELETE', body: JSON.stringify({ product_ids }) });
+  showResult('map-result', data, !ok);
+}
+
+async function handleSuppliersByProduct() {
+  const pid = val('sup-by-prod-id'); if (!pid) return alert('Product ID required');
+  const { ok, data } = await apiFetch(`/suppliers/by-product/${pid}`);
+  showResult('sup-by-prod-result', data, !ok);
+}
+
+async function handleUpdateRating() {
+  const id = val('rate-sup-id'); if (!id) return alert('Supplier ID required');
+  const rating = parseFloat(val('rate-value'));
+  if (isNaN(rating)) return alert('Enter a valid rating between 0 and 5');
+  const { ok, data } = await apiFetch(`/suppliers/${id}/rating`, { method: 'PATCH', body: JSON.stringify({ rating }) });
+  showResult('rate-result', data, !ok);
 }
 </script>
 </body>

@@ -10,18 +10,24 @@ from app.schemas.user import (
 )
 from app.services.user_service import UserService
 from app.repositories.user_repository import UserRepository
+from app.repositories.supplier_repository import SupplierRepository
 from app.utils.dependencies import (
     get_user_repo,
     get_current_user,
     require_admin,
+    get_db,
 )
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.models.user import UserRole, UserStatus
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
-def get_user_service(repo: UserRepository = Depends(get_user_repo)) -> UserService:
-    return UserService(repo)
+def get_user_service(db: AsyncIOMotorDatabase = Depends(get_db)) -> UserService:
+    return UserService(
+        repo = UserRepository(db),
+        supplier_repo = SupplierRepository(db),
+    )
 
 
 @router.get(

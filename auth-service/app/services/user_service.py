@@ -3,7 +3,9 @@ from fastapi import HTTPException, status
 import logging
 
 from app.repositories.user_repository import UserRepository
+from app.repositories.supplier_repository import SupplierRepository
 from app.models.user import UserRole, UserStatus, build_user_document
+from app.models.supplier import build_supplier_document
 from app.schemas.user import (
     UserRegisterRequest,
     UserLoginRequest,
@@ -18,8 +20,9 @@ logger = logging.getLogger(__name__)
 
 class UserService:
 
-    def __init__(self, repo: UserRepository):
+    def __init__(self, repo: UserRepository, supplier_repo: Optional[SupplierRepository] = None):
         self.repo = repo
+        self.supplier_repo = supplier_repo  # For potential supplier-related user operations
 
     # Registration
 
@@ -46,7 +49,33 @@ class UserService:
         )
         created_user = await self.repo.create(user_doc)
         logger.info(f"New user registered: {created_user['email']} | role={created_user['role']}")
+
+        if payload.role == UserRole.SUPPLIER and self.supplier_repo:
+            await self._create_supplier_profile(created_user, payload)
+
         return created_user
+
+    async def _create_supplier_profile(self, user: dict, payload: UserRegisterRequest):
+        try:
+            supplier_name = payload.full_name.strip() if payload.full_name else payload.username
+
+            supplier_doc = build_supplier_document(
+                name=supplier_name,
+                created_by=user["_id"],
+                contact_person=payload.full_name or payload.username,
+                phone=payload.phone or "",
+                email=str(payload.email),
+            )
+
+            supplier_doc["user_id"] = user["_id"]
+
+            created_supplier = await self.supplier_repo.create(supplier_doc)
+            logger.info(
+                f"Auto-created supplier profile '{created_supplier['name']}' "
+                f"for user {user['email']}"
+            )
+        except Exception as e:
+            logger.error(f"Failed to auto-create supplier profile for {user['email']}: {e}")
 
     # Login
 
