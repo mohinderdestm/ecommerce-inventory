@@ -1,6 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
   const token = localStorage.getItem("access_token");
-
   if (!token || token === "undefined" || token === "null") {
     localStorage.clear();
     window.location.href = "/";
@@ -8,17 +7,17 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   let allProducts = [];
-  const searchInput = document.getElementById("searchInput");
-  const categoryFilter = document.getElementById("categoryFilter");
-  const searchBtn = document.getElementById("searchBtn");
+  const getEl = (id) => document.getElementById(id);
 
-  const getSafeValue = (key, fallback = "") => {
+  const searchInput = getEl("searchInput");
+  const categoryFilter = getEl("categoryFilter");
+  const searchBtn = getEl("searchBtn");
+
+  const getSafeValue = (key, fallback = "N/A") => {
     const value = localStorage.getItem(key);
     if (!value || value === "undefined" || value === "null") return fallback;
     return value;
   };
-
-  const getEl = (id) => document.getElementById(id);
 
   const userEmail = getSafeValue("user_email", "");
   const userRole = getSafeValue("user_role", "viewer").toLowerCase();
@@ -30,37 +29,38 @@ document.addEventListener("DOMContentLoaded", () => {
   const roleEl = getEl("userRole");
   const logoutBtn = getEl("logoutBtn");
   const addBtn = getEl("openAddProduct");
-  const logoutOverlay = getEl("logoutOverlay");
-  const closeLogoutOverlay = getEl("closeLogoutOverlay");
-  const cancelLogout = getEl("cancelLogout");
-  const confirmLogout = getEl("confirmLogout");
-  const overlay = getEl("productOverlay");
-  const closeOverlay = getEl("closeOverlay");
-  const form = getEl("productForm");
-  const deleteOverlay = getEl("deleteOverlay");
-  const cancelDelete = getEl("cancelDelete");
-  const confirmDelete = getEl("confirmDelete");
-  const container = getEl("productsContainer");
   const toast = getEl("toast");
-  const saveBtn = document.querySelector("#productForm button[type='submit']");
+  const container = getEl("productsContainer");
 
-  if (overlay) overlay.classList.add("hidden");
-  if (deleteOverlay) deleteOverlay.classList.add("hidden");
-  if (logoutOverlay) logoutOverlay.classList.add("hidden");
+  const overlay = getEl("productOverlay");
+  const deleteOverlay = getEl("deleteOverlay");
+  const logoutOverlay = getEl("logoutOverlay");
+  const profileOverlay = getEl("userProfileOverlay");
 
-  if (addBtn && userRole === "viewer") {
-    addBtn.style.display = "none";
-  }
+  const form = getEl("productForm");
+  const profileDetails = getEl("profileDetails");
+  const userBox = document.querySelector(".user-box");
 
   let editMode = false;
   let editProductId = null;
   let deleteProductId = null;
 
+  let isSubmitting = false;
+
+  if (addBtn && userRole === "viewer") {
+    addBtn.style.display = "none";
+  }
+
   const formatText = (text) =>
     text ? text.charAt(0).toUpperCase() + text.slice(1) : "User";
-  if (avatar) avatar.innerText = formatText(userName).charAt(0);
-  if (nameEl) nameEl.innerText = formatText(userName);
-  if (roleEl) roleEl.innerText = formatText(userRole);
+
+  const updateHeaderUI = () => {
+    const dName = localStorage.getItem("user_name") || userName;
+    const dRole = localStorage.getItem("user_role") || userRole;
+    if (avatar) avatar.innerText = formatText(dName).charAt(0);
+    if (nameEl) nameEl.innerText = formatText(dName);
+    if (roleEl) roleEl.innerText = formatText(dRole);
+  };
 
   const showToast = (msg) => {
     if (!toast) return;
@@ -73,21 +73,119 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 2000);
   };
 
+  const closeAllOverlays = () => {
+    [overlay, deleteOverlay, logoutOverlay, profileOverlay].forEach((ov) =>
+      ov?.classList.add("hidden"),
+    );
+    if (form) form.reset();
+    editMode = false;
+    deleteProductId = null;
+  };
+
+  window.addEventListener("click", (e) => {
+    if (
+      e.target === overlay ||
+      e.target === deleteOverlay ||
+      e.target === logoutOverlay ||
+      e.target === profileOverlay ||
+      e.target.classList.contains("overlay-container")
+    ) {
+      closeAllOverlays();
+    }
+  });
+
+  [
+    getEl("closeOverlay"),
+    getEl("closeDeleteOverlay"),
+    getEl("closeLogoutOverlay"),
+    getEl("closeProfileOverlay"),
+    getEl("cancelLogout"),
+    getEl("cancelDelete"),
+  ].forEach((btn) => {
+    btn?.addEventListener("click", (e) => {
+      e.preventDefault();
+      closeAllOverlays();
+    });
+  });
+
+  const fetchUserData = async () => {
+    try {
+      const res = await fetch("/api/v1/users/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      const user = data.user;
+
+      localStorage.setItem(
+        "user_name",
+        user.full_name || user.name || userName,
+      );
+      localStorage.setItem("user_role", user.role);
+      localStorage.setItem("user_email", user.email);
+
+      if (user.role === "supplier" && user.supplier_details) {
+        const s = user.supplier_details;
+        localStorage.setItem("company_name", s.name || "N/A");
+        localStorage.setItem("contact_name", s.contact_person || "N/A");
+        localStorage.setItem("phone_number", s.phone || "N/A");
+        localStorage.setItem("gst_number", s.gst || "N/A");
+        localStorage.setItem("address", s.address || "N/A");
+        localStorage.setItem("payment_term", s.payment_terms || "N/A");
+        localStorage.setItem("business_email", user.email);
+      }
+      updateHeaderUI();
+
+      if (addBtn && user.role.toLowerCase() === "viewer") {
+        addBtn.style.display = "none";
+      } else if (addBtn) {
+        addBtn.style.display = "flex";
+      }
+    } catch (err) {
+      console.error("Error updating profile data:", err);
+    }
+  };
+
+  const renderProfile = () => {
+    const role = localStorage.getItem("user_role") || userRole;
+    let html = `
+      <div class="profile-info-item"><label>Name:</label> <span>${formatText(localStorage.getItem("user_name") || userName)}</span></div>
+      <div class="profile-info-item"><label>Role:</label> <span>${formatText(role)}</span></div>
+      <div class="profile-info-item"><label>Email:</label> <span>${localStorage.getItem("user_email") || userEmail}</span></div>
+    `;
+
+    if (role === "supplier") {
+      html += `
+        <div class="profile-info-item"><label>Company:</label> <span>${getSafeValue("company_name")}</span></div>
+        <div class="profile-info-item"><label>Contact Name:</label> <span>${getSafeValue("contact_name")}</span></div>
+        <div class="profile-info-item"><label>Business Email:</label> <span>${getSafeValue("business_email")}</span></div>
+        <div class="profile-info-item"><label>Phone:</label> <span>${getSafeValue("phone_number")}</span></div>
+        <div class="profile-info-item"><label>GST Number:</label> <span>${getSafeValue("gst_number")}</span></div>
+        <div class="profile-info-item"><label>Address:</label> <span>${getSafeValue("address")}</span></div>
+        <div class="profile-info-item"><label>Payment Terms:</label> <span>${getSafeValue("payment_term")}</span></div>
+      `;
+    }
+    profileDetails.innerHTML = html;
+  };
+
+  if (userBox) {
+    userBox.style.cursor = "pointer";
+    userBox.addEventListener("click", () => {
+      renderProfile();
+      profileOverlay.classList.remove("hidden");
+    });
+  }
+
   const performSearch = () => {
     const query = searchInput.value.trim().toLowerCase().replace(/\s+/g, " ");
     const selectedCategory = categoryFilter.value;
-
     const filtered = allProducts.filter((p) => {
       const pName = (p.name || "").toLowerCase().replace(/\s+/g, " ");
       const pCat = p.category || "";
-
-      const matchesName = pName.includes(query);
-      const matchesCategory =
-        selectedCategory === "all" || pCat === selectedCategory;
-
-      return matchesName && matchesCategory;
+      return (
+        pName.includes(query) &&
+        (selectedCategory === "all" || pCat === selectedCategory)
+      );
     });
-
     renderProducts(filtered);
   };
 
@@ -101,7 +199,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const categories = [
       ...new Set(products.map((p) => p.category).filter((c) => c)),
     ];
-
     categoryFilter.innerHTML = '<option value="all">All Categories</option>';
     categories.forEach((cat) => {
       const opt = document.createElement("option");
@@ -109,22 +206,18 @@ document.addEventListener("DOMContentLoaded", () => {
       opt.innerText = formatText(cat);
       categoryFilter.appendChild(opt);
     });
-
-    if (categories.includes(currentSelection)) {
+    if (categories.includes(currentSelection))
       categoryFilter.value = currentSelection;
-    }
   };
 
-  let socket;
   const connectWebSocket = () => {
-    socket = new WebSocket("ws://localhost:8000/ws");
-    socket.onopen = () => console.log("✅ WebSocket Connected");
+    const socket = new WebSocket("ws://localhost:8000/ws");
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (
-        data.event === "PRODUCT_CREATED" ||
-        data.event === "PRODUCT_UPDATED" ||
-        data.event === "PRODUCT_DELETED"
+        ["PRODUCT_CREATED", "PRODUCT_UPDATED", "PRODUCT_DELETED"].includes(
+          data.event,
+        )
       ) {
         showToast(data.event.replace("_", " ").toLowerCase());
         loadProducts();
@@ -134,45 +227,20 @@ document.addEventListener("DOMContentLoaded", () => {
   };
   connectWebSocket();
 
-  const closeLogoutOverlayFn = () => logoutOverlay?.classList.add("hidden");
-  const closeDeleteOverlayFn = () => {
-    deleteOverlay?.classList.add("hidden");
-    deleteProductId = null;
-  };
-  const closeProductOverlayFn = () => {
-    overlay?.classList.add("hidden");
-    form?.reset();
-    editMode = false;
-  };
-
   if (logoutBtn)
     logoutBtn.addEventListener("click", (e) => {
       e.preventDefault();
       logoutOverlay?.classList.remove("hidden");
     });
-  if (closeLogoutOverlay)
-    closeLogoutOverlay.addEventListener("click", closeLogoutOverlayFn);
-  if (cancelLogout)
-    cancelLogout.addEventListener("click", closeLogoutOverlayFn);
-  if (confirmLogout)
-    confirmLogout.addEventListener("click", () => {
+  if (getEl("confirmLogout"))
+    getEl("confirmLogout").addEventListener("click", () => {
       localStorage.clear();
       window.location.href = "/";
     });
-  if (logoutOverlay)
-    logoutOverlay.addEventListener("click", (e) => {
-      if (e.target === logoutOverlay) closeLogoutOverlayFn();
-    });
 
-  // Delete Listeners
-  if (cancelDelete)
-    cancelDelete.addEventListener("click", closeDeleteOverlayFn);
-  if (deleteOverlay)
-    deleteOverlay.addEventListener("click", (e) => {
-      if (e.target === deleteOverlay) closeDeleteOverlayFn();
-    });
-  if (confirmDelete)
-    confirmDelete.addEventListener("click", async () => {
+  const confirmDeleteBtn = getEl("confirmDelete");
+  if (confirmDeleteBtn)
+    confirmDeleteBtn.addEventListener("click", async () => {
       if (!deleteProductId) return;
       try {
         const res = await fetch(`/api/v1/products/${deleteProductId}`, {
@@ -181,7 +249,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         if (res.ok) {
           showToast("Deleted product");
-          closeDeleteOverlayFn();
+          closeAllOverlays();
           loadProducts();
         }
       } catch (err) {
@@ -190,15 +258,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
   const openOverlay = (mode = "add", product = null) => {
-    if (!overlay) return;
+    if (!overlay || userRole === "viewer") return;
     overlay.classList.remove("hidden");
     if (mode === "edit" && product) {
       editMode = true;
       editProductId = product._id || product.id;
       getEl("formTitle").innerText = "Edit Product";
       const setVal = (id, val) => {
-        const el = getEl(id);
-        if (el) el.value = val ?? "";
+        if (getEl(id)) getEl(id).value = val ?? "";
       };
       setVal("name", product.name);
       setVal("description", product.description);
@@ -211,7 +278,6 @@ document.addEventListener("DOMContentLoaded", () => {
       setVal("unit", product.unit || "piece");
     } else {
       editMode = false;
-      editProductId = null;
       getEl("formTitle").innerText = "Add Product";
       form?.reset();
     }
@@ -223,16 +289,13 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       openOverlay("add");
     });
-  if (closeOverlay)
-    closeOverlay.addEventListener("click", closeProductOverlayFn);
-  if (overlay)
-    overlay.addEventListener("click", (e) => {
-      if (e.target === overlay) closeProductOverlayFn();
-    });
 
   if (form) {
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+      if (isSubmitting) return;
+      isSubmitting = true;
+
       const getVal = (id) => getEl(id)?.value || "";
       const payload = {
         name: getVal("name"),
@@ -245,30 +308,33 @@ document.addEventListener("DOMContentLoaded", () => {
         tax: Number(getVal("tax")),
         unit: getVal("unit"),
       };
+
       const img = getEl("image");
       const formData = new FormData();
       Object.keys(payload).forEach((key) => formData.append(key, payload[key]));
       if (img?.files?.[0]) formData.append("image", img.files[0]);
 
       try {
-        let url = "/api/v1/products/";
-        let method = "POST";
-        if (editMode) {
-          url = `/api/v1/products/${editProductId}`;
-          method = "PUT";
-        }
+        let url = editMode
+          ? `/api/v1/products/${editProductId}`
+          : "/api/v1/products/";
+        let method = editMode ? "PUT" : "POST";
+
         const res = await fetch(url, {
           method,
           headers: { Authorization: `Bearer ${token}` },
           body: formData,
         });
+
         if (res.ok) {
           showToast(editMode ? "Updated" : "Added");
-          closeProductOverlayFn();
+          closeAllOverlays();
           loadProducts();
         }
       } catch (err) {
         showToast("Server error ❌");
+      } finally {
+        isSubmitting = false;
       }
     });
   }
@@ -277,19 +343,26 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!container) return;
     container.innerHTML = "";
     if (products.length === 0) {
-      container.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #94a3b8;">No products found matching your search.</p>`;
+      container.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #94a3b8;">No products found.</p>`;
       return;
     }
+
+    const currentRole = (
+      localStorage.getItem("user_role") || userRole
+    ).toLowerCase();
 
     products.forEach((p) => {
       const card = document.createElement("div");
       card.className = "product-card";
-      const isAdmin = userRole === "admin";
-      const isManager = userRole === "manager";
+
+      const isAdmin = currentRole === "admin";
+      const isManager = currentRole === "manager";
+      const isSupplier = currentRole === "supplier";
+
       let actionButtonsHtml = "";
-      if (isAdmin || isManager)
+      if (isAdmin || isManager || isSupplier)
         actionButtonsHtml += `<button class="edit-btn">Edit</button>`;
-      if (isAdmin)
+      if (isAdmin || isSupplier)
         actionButtonsHtml += `<button class="delete-btn">Delete</button>`;
 
       card.innerHTML = `
@@ -297,10 +370,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="card-body">
           <h3>${p.name}</h3>
           <p>${p.description || ""}</p>
-          <div class="meta">
-            <span class="price">₹ ${p.selling_price}</span>
-            <span class="qty">Stock: ${p.reorder_level}</span>
-          </div>
+          <div class="meta"><span class="price">₹ ${p.selling_price}</span><span class="qty">Stock: ${p.reorder_level}</span></div>
           <p class="extra">${p.brand || ""} • ${p.category || ""}</p>
           ${actionButtonsHtml ? `<div class="card-actions">${actionButtonsHtml}</div>` : ""}
         </div>`;
@@ -312,6 +382,7 @@ document.addEventListener("DOMContentLoaded", () => {
         deleteProductId = p._id || p.id;
         deleteOverlay.classList.remove("hidden");
       });
+
       container.appendChild(card);
     });
   };
@@ -323,7 +394,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       const data = await res.json();
       allProducts = Array.isArray(data) ? data : data.products || [];
-
       updateCategoryDropdown(allProducts);
       performSearch();
     } catch (err) {
@@ -331,5 +401,5 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  loadProducts();
+  fetchUserData().then(loadProducts);
 });
