@@ -36,6 +36,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const deleteOverlay = getEl("deleteOverlay");
   const logoutOverlay = getEl("logoutOverlay");
   const profileOverlay = getEl("userProfileOverlay");
+  const detailOverlay = getEl("productDetailOverlay");
+  const detailBody = getEl("productDetailBody");
 
   const form = getEl("productForm");
   const profileDetails = getEl("profileDetails");
@@ -46,8 +48,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let deleteProductId = null;
   let isSubmitting = false;
 
-  if (addBtn && userRole === "viewer") {
-    addBtn.style.display = "none";
+  if (addBtn) {
+    addBtn.style.display = userRole === "supplier" ? "flex" : "none";
   }
 
   const formatText = (text) =>
@@ -73,9 +75,13 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const closeAllOverlays = () => {
-    [overlay, deleteOverlay, logoutOverlay, profileOverlay].forEach((ov) =>
-      ov?.classList.add("hidden"),
-    );
+    [
+      overlay,
+      deleteOverlay,
+      logoutOverlay,
+      profileOverlay,
+      detailOverlay,
+    ].forEach((ov) => ov?.classList.add("hidden"));
     if (form) form.reset();
     editMode = false;
     deleteProductId = null;
@@ -87,6 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
       e.target === deleteOverlay ||
       e.target === logoutOverlay ||
       e.target === profileOverlay ||
+      e.target === detailOverlay ||
       e.target.classList.contains("overlay-container")
     ) {
       closeAllOverlays();
@@ -98,6 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
     getEl("closeDeleteOverlay"),
     getEl("closeLogoutOverlay"),
     getEl("closeProfileOverlay"),
+    getEl("closeDetailOverlay"),
     getEl("cancelLogout"),
     getEl("cancelDelete"),
   ].forEach((btn) => {
@@ -136,7 +144,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (addBtn) {
         addBtn.style.display =
-          user.role.toLowerCase() === "viewer" ? "none" : "flex";
+          user.role.toLowerCase() === "supplier" ? "flex" : "none";
       }
     } catch (err) {
       console.error("Error updating profile data:", err);
@@ -256,7 +264,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
   const openOverlay = (mode = "add", product = null) => {
-    if (!overlay || userRole === "viewer") return;
+    if (!overlay || userRole !== "supplier") return;
     overlay.classList.remove("hidden");
 
     if (mode === "edit" && product) {
@@ -282,6 +290,82 @@ document.addEventListener("DOMContentLoaded", () => {
       editMode = false;
       getEl("formTitle").innerText = "Add Product";
       form?.reset();
+    }
+  };
+
+  const openDetailOverlay = (p) => {
+    if (!detailOverlay || !detailBody) return;
+    detailOverlay.classList.remove("hidden");
+
+    const currentRole = (
+      localStorage.getItem("user_role") || userRole
+    ).toLowerCase();
+    const isSupplier = currentRole === "supplier";
+
+    const supplier = p.supplier_details || null;
+
+    let supplierHtml = `<p class="no-supplier">No supplier information available.</p>`;
+    if (supplier && supplier.name) {
+      supplierHtml = `
+        <div class="supplier-card-mini">
+          <div class="supplier-header-mini">
+            <h4>Sold By: ${supplier.name}</h4>
+          </div>
+          <div class="supplier-grid-mini">
+            <p><strong>Contact:</strong> ${supplier.contact_person || "N/A"}</p>
+            <p><strong>Email:</strong> ${supplier.email || "N/A"}</p>
+            <p><strong>Phone:</strong> ${supplier.phone || "N/A"}</p>
+            <p><strong>Address:</strong> ${supplier.address || "N/A"}</p>
+          </div>
+        </div>
+      `;
+    }
+
+    let managementHtml = "";
+    if (isSupplier) {
+      managementHtml = `
+        <div class="detail-management-actions">
+            <button class="btn edit-btn-large" id="detailEditBtn">Edit Product</button>
+            <button class="btn delete-btn-large" id="detailDeleteBtn">Delete Product</button>
+        </div>
+      `;
+    }
+
+    detailBody.innerHTML = `
+      <div class="detail-grid">
+        <div class="detail-img-box">
+          <img src="${p.image || "https://via.placeholder.com/300"}" />
+        </div>
+        <div class="detail-info">
+          <span class="detail-category">${p.category || "Uncategorized"}</span>
+          <h2 class="detail-title">${p.name}</h2>
+          <p class="detail-brand">Brand: ${p.brand || "Generic"}</p>
+          <div class="detail-pricing">
+             <span class="detail-price">₹ ${p.selling_price}</span>
+             <span class="detail-tax">+ ${p.tax}% Tax</span>
+          </div>
+          <p class="detail-stock">Available Stock: <strong>${p.reorder_level} ${p.unit || "piece"}</strong></p>
+          <div class="detail-desc">
+            <label>Description</label>
+            <p>${p.description || "No description provided."}</p>
+          </div>
+        </div>
+      </div>
+      <div class="detail-footer">
+        ${supplierHtml}
+        ${managementHtml}
+      </div>
+    `;
+
+    if (isSupplier) {
+      getEl("detailEditBtn").addEventListener("click", () => {
+        detailOverlay.classList.add("hidden");
+        openOverlay("edit", p);
+      });
+      getEl("detailDeleteBtn").addEventListener("click", () => {
+        deleteProductId = p._id || p.id;
+        deleteOverlay.classList.remove("hidden");
+      });
     }
   };
 
@@ -349,23 +433,10 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const currentRole = (
-      localStorage.getItem("user_role") || userRole
-    ).toLowerCase();
-
     products.forEach((p) => {
       const card = document.createElement("div");
       card.className = "product-card";
-
-      const isAdmin = currentRole === "admin";
-      const isManager = currentRole === "manager";
-      const isSupplier = currentRole === "supplier";
-
-      let actionButtonsHtml = "";
-      if (isAdmin || isManager || isSupplier)
-        actionButtonsHtml += `<button class="edit-btn">Edit</button>`;
-      if (isAdmin || isSupplier)
-        actionButtonsHtml += `<button class="delete-btn">Delete</button>`;
+      card.style.cursor = "pointer";
 
       card.innerHTML = `
         <div class="img-box"><img src="${p.image || "https://via.placeholder.com/300"}" /></div>
@@ -374,17 +445,9 @@ document.addEventListener("DOMContentLoaded", () => {
           <p>${p.description || ""}</p>
           <div class="meta"><span class="price">₹ ${p.selling_price}</span><span class="qty">Stock: ${p.reorder_level}</span></div>
           <p class="extra">${p.brand || "Generic"} • ${p.category || "Uncategorized"}</p>
-          ${actionButtonsHtml ? `<div class="card-actions">${actionButtonsHtml}</div>` : ""}
         </div>`;
 
-      card
-        .querySelector(".edit-btn")
-        ?.addEventListener("click", () => openOverlay("edit", p));
-      card.querySelector(".delete-btn")?.addEventListener("click", () => {
-        deleteProductId = p._id || p.id;
-        deleteOverlay.classList.remove("hidden");
-      });
-
+      card.addEventListener("click", () => openDetailOverlay(p));
       container.appendChild(card);
     });
   };

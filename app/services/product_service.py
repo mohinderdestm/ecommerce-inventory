@@ -20,14 +20,12 @@ class ProductService:
         data["status"] = "active"
         data["created_by"] = user.get("id")
 
+        data["supplier_email"] = user.get("email")
+
         if "image" not in data:
             data["image"] = None
 
         product = await ProductRepository.create_product(data)
-
-        asyncio.create_task(
-            manager.broadcast({"event": "PRODUCT_CREATED", "data": product})
-        )
 
         return product
 

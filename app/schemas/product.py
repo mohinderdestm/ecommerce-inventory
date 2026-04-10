@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional
+from app.schemas.supplier_schema import SupplierResponse
 
 
 class ProductCreate(BaseModel):
@@ -29,3 +30,4 @@ class ProductResponse(BaseModel):
     description: Optional[str] = None
     status: str
     image: Optional[str] = None
+    supplier_details: Optional[SupplierResponse] = None
