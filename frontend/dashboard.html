@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Inventory Management</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h2>📦 Inventory</h2>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-tab="products">
+        <span class="icon">🏷️</span> Products
+      </a>
+      <a href="#" class="nav-item" data-tab="categories">
+        <span class="icon">📁</span> Categories
+      </a>
+      <a href="#" class="nav-item" data-tab="low-stock">
+        <span class="icon">⚠️</span> Low Stock
+      </a>
+      <a href="#" class="nav-item" data-tab="suppliers">
+        <span class="icon">🏭</span> Suppliers
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <span id="userName">User</span>
+        <span id="userRole" class="role-badge">Role</span>
+      </div>
+      <button class="btn-logout" onclick="logout()">Logout</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- Top Header -->
+    <header class="top-header">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Search products by name, SKU, or description...">
+        <button onclick="searchProducts()">🔍</button>
+      </div>
+      <div class="header-actions">
+        <button class="btn-primary" onclick="openProductModal()">+ Add Product</button>
+      </div>
+    </header>
+
+    <!-- ==================== PRODUCTS TAB ==================== -->
+    <section id="productsTab" class="tab-content active">
+      <div class="filters-bar">
+        <select id="filterCategory" onchange="applyFilters()">
+          <option value="">All Categories</option>
+        </select>
+        <select id="filterStatus" onchange="applyFilters()">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="out_of_stock">Out of Stock</option>
+        </select>
+        <select id="filterStock" onchange="applyFilters()">
+          <option value="">All Stock</option>
+          <option value="in_stock">In Stock</option>
+          <option value="low_stock">Low Stock</option>
+        </select>
+        <input type="number" id="filterMinPrice" placeholder="Min Price" onchange="applyFilters()">
+        <input type="number" id="filterMaxPrice" placeholder="Max Price" onchange="applyFilters()">
+        <button class="btn-secondary" onclick="clearFilters()">Clear</button>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <span class="stat-number" id="totalProducts">0</span>
+          <span class="stat-label">Total Products</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number" id="activeProducts">0</span>
+          <span class="stat-label">Active</span>
+        </div>
+        <div class="stat-card warning">
+          <span class="stat-number" id="lowStockCount">0</span>
+          <span class="stat-label">Low Stock</span>
+        </div>
+        <div class="stat-card danger">
+          <span class="stat-number" id="outOfStockCount">0</span>
+          <span class="stat-label">Out of Stock</span>
+        </div>
+      </div>
+
+      <div id="productList" class="product-grid"></div>
+      <div class="pagination" id="pagination"></div>
+
+      <div id="emptyState" class="empty-state" style="display: none;">
+        <div class="empty-icon">📭</div>
+        <h3>No products found</h3>
+        <p>Start by adding your first product</p>
+        <button class="btn-primary" onclick="openProductModal()">+ Add Product</button>
+      </div>
+    </section>
+
+    <!-- ==================== CATEGORIES TAB ==================== -->
+    <section id="categoriesTab" class="tab-content">
+      <div class="section-header">
+        <h2>Categories</h2>
+        <button class="btn-primary" onclick="openCategoryModal()">+ Add Category</button>
+      </div>
+      <div id="categoryList" class="category-grid"></div>
+    </section>
+
+    <!-- ==================== LOW STOCK TAB ==================== -->
+    <section id="low-stockTab" class="tab-content">
+      <div class="section-header">
+        <h2>⚠️ Low Stock Alert</h2>
+        <p class="subtitle">Products below reorder level</p>
+      </div>
+      <div id="lowStockList" class="product-table"></div>
+    </section>
+
+    <!-- ==================== SUPPLIERS TAB ==================== -->
+    <section id="suppliersTab" class="tab-content">
+      <div class="section-header">
+        <h2>Suppliers</h2>
+        <div class="section-actions">
+          <div class="search-box">
+            <input 
+              type="text" 
+              id="supplierSearchInput" 
+              placeholder="Search suppliers..."
+              onkeypress="handleSupplierSearch(event)"
+            >
+            <button onclick="searchSuppliers()">Search</button>
+            <button onclick="clearSupplierSearch()">Clear</button>
+          </div>
+          <button class="btn-primary" onclick="openSupplierModal()" id="addSupplierBtn">
+            + Add Supplier
+          </button>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <select id="supplierStatusFilter" onchange="filterSuppliers()">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="blacklisted">Blacklisted</option>
+        </select>
+      </div>
+
+      <div class="supplier-stats">
+        <div class="stat-card">
+          <span class="stat-value" id="totalSuppliers">0</span>
+          <span class="stat-label">Total Suppliers</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value" id="activeSuppliers">0</span>
+          <span class="stat-label">Active</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value" id="inactiveSuppliers">0</span>
+          <span class="stat-label">Inactive</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-value" id="blacklistedSuppliers">0</span>
+          <span class="stat-label">Blacklisted</span>
+        </div>
+      </div>
+
+      <div id="supplierList">
+        <div class="loading-card"></div>
+      </div>
+
+      <div id="supplierPagination"></div>
+
+      <div id="supplierEmptyState" style="display:none;" class="empty-state">
+        <span>🏭</span>
+        <p>No suppliers found</p>
+        <button class="btn-primary" onclick="openSupplierModal()">+ Add Supplier</button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ====================== PRODUCT MODALS ====================== -->
+<!-- Add/Edit Product Modal -->
+<div id="productModal" class="modal">
+  <div class="modal-content modal-large">
+    <div class="modal-header">
+      <h3 id="productModalTitle">Add New Product</h3>
+      <span class="close-btn" onclick="closeProductModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <form id="productForm">
+        <input type="hidden" id="productId">
+        <div class="form-grid">
+          <div class="form-section">
+            <h4>Basic Information</h4>
+            <div class="form-group">
+              <label>Product Name *</label>
+              <input type="text" id="pName" placeholder="Enter product name" required>
+            </div>
+            <div class="form-group">
+              <label>SKU</label>
+              <input type="text" id="pSku" placeholder="e.g., PRD-ABC123">
+            </div>
+            <div class="form-group">
+              <label>Description</label>
+              <textarea id="pDescription" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Brand</label>
+              <input type="text" id="pBrand" placeholder="Brand name">
+            </div>
+            <div class="form-group">
+              <label>Tags (comma separated)</label>
+              <input type="text" id="pTags" placeholder="electronics, gadgets, new">
+            </div>
+          </div>
+          <div class="form-section">
+            <h4>Category & Pricing</h4>
+            <div class="form-group">
+              <label>Category</label>
+              <select id="pCategory">
+                <option value="">Select Category</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Subcategory</label>
+              <select id="pSubcategory">
+                <option value="">Select Subcategory</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Cost Price *</label>
+                <input type="number" id="pCostPrice" placeholder="0.00" step="0.01" required>
+              </div>
+              <div class="form-group">
+                <label>Selling Price *</label>
+                <input type="number" id="pSellingPrice" placeholder="0.00" step="0.01" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Profit Margin</label>
+              <span id="profitMargin" class="profit-display">0%</span>
+            </div>
+            <div class="form-group">
+              <label>Tax %</label>
+              <input type="number" id="pTax" placeholder="0" step="0.01" value="0">
+            </div>
+          </div>
+          <div class="form-section">
+            <h4>Inventory</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Quantity</label>
+                <input type="number" id="pQuantity" placeholder="0" value="0">
+              </div>
+              <div class="form-group">
+                <label>Unit</label>
+                <select id="pUnit">
+                  <option value="pcs">Pieces</option>
+                  <option value="kg">Kilograms</option>
+                  <option value="g">Grams</option>
+                  <option value="l">Liters</option>
+                  <option value="ml">Milliliters</option>
+                  <option value="box">Box</option>
+                  <option value="pack">Pack</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Reorder Level</label>
+              <input type="number" id="pReorderLevel" placeholder="10" value="10">
+            </div>
+            <div class="form-group">
+              <label>Status</label>
+              <select id="pStatus">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="out_of_stock">Out of Stock</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-section">
+            <h4>Product Image</h4>
+            <div class="form-group">
+              <label>Upload Image</label>
+              <div class="image-upload" id="imagePreview">
+                <span>📷 Click to upload image</span>
+              </div>
+              <input type="file" id="pImage" accept="image/*" style="display:none;">
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeProductModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveProduct()">Save Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Category Modal -->
+<div id="categoryModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="categoryModalTitle">Add New Category</h3>
+      <span class="close-btn" onclick="closeCategoryModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <form id="categoryForm">
+        <input type="hidden" id="categoryId">
+        <div class="form-group">
+          <label>Category Name *</label>
+          <input type="text" id="cName" required>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="cDescription" rows="3" placeholder="Category description"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Parent Category</label>
+          <select id="cParent">
+            <option value="">None (This is a main category)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Category Image</label>
+          <div class="image-upload" id="categoryImagePreview">
+            <span>📷 Click to upload image</span>
+          </div>
+          <input type="file" id="cImage" accept="image/*" style="display:none;">
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeCategoryModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveCategory()">Save Category</button>
+    </div>
+  </div>
+</div>
+
+<!-- View Product Modal -->
+<div id="viewProductModal" class="modal">
+  <div class="modal-content modal-large">
+    <div class="modal-header">
+      <h3>Product Details</h3>
+      <span class="close-btn" onclick="closeViewProductModal()">&times;</span>
+    </div>
+    <div class="modal-body" id="viewProductContent"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeViewProductModal()">Close</button>
+      <button class="btn-secondary" id="editProductBtn">Edit Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- Quantity Update Modal -->
+<div id="quantityModal" class="modal">
+  <div class="modal-content modal-small">
+    <div class="modal-header">
+      <h3>Update Quantity</h3>
+      <span class="close-btn" onclick="closeQuantityModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="qtyProductId">
+      <p id="qtyProductName"></p>
+      <p>Current Stock: <strong id="qtyCurrentStock">0</strong></p>
+      <div class="form-group">
+        <label>Quantity Change</label>
+        <input type="number" id="qtyChange" value="0">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeQuantityModal()">Cancel</button>
+      <button class="btn-primary" onclick="updateQuantity()">Update</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== SUPPLIER MODALS ====================== -->
+<!-- Add/Edit Supplier Modal -->
+<div id="supplierModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="supplierModalTitle">Add New Supplier</h3>
+      <button class="close-btn" onclick="closeSupplierModal()">✕</button>
+    </div>
+    <form id="supplierForm" onsubmit="return false;">
+      <input type="hidden" id="supplierId">
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label>Supplier Name <span class="required">*</span></label>
+          <input type="text" id="sName" required>
+        </div>
+        <div class="form-group">
+          <label>Contact Person</label>
+          <input type="text" id="sContactPerson">
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="tel" id="sPhone">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="sEmail">
+        </div>
+        <div class="form-group">
+          <label>GST ID</label>
+          <input type="text" id="sGstId">
+        </div>
+        <div class="form-group">
+          <label>Payment Terms</label>
+          <select id="sPaymentTerms">
+            <option value="Net 30">Net 30</option>
+            <option value="Net 60">Net 60</option>
+            <option value="Net 90">Net 90</option>
+            <option value="Immediate">Immediate</option>
+            <option value="COD">COD</option>
+          </select>
+        </div>
+        <div class="form-group" id="sStatusGroup" style="display:none;">
+          <label>Status</label>
+          <select id="sStatus">
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="blacklisted">Blacklisted</option>
+          </select>
+        </div>
+        <div class="form-group full-width">
+          <label>Address</label>
+          <textarea id="sAddress" rows="3"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeSupplierModal()">Cancel</button>
+        <button type="button" class="btn-primary" onclick="saveSupplier()">Save Supplier</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- View Supplier Modal -->
+<div id="viewSupplierModal" class="modal">
+  <div class="modal-content modal-large">
+    <div class="modal-header">
+      <h3>Supplier Details</h3>
+      <button class="close-btn" onclick="closeViewSupplierModal()">✕</button>
+    </div>
+
+    <div class="supplier-detail-tabs">
+      <button class="detail-tab active" onclick="switchSupplierDetailTab('info')" id="infoTab">📋 Info</button>
+      <button class="detail-tab" onclick="switchSupplierDetailTab('products')" id="productsTab">📦 Products</button>
+      <button class="detail-tab" onclick="switchSupplierDetailTab('performance')" id="performanceTab">📊 Performance</button>
+    </div>
+
+    <div id="supplierInfoContent" class="supplier-detail-panel active"></div>
+    <div id="supplierProductsContent" class="supplier-detail-panel"></div>
+    <div id="supplierPerformanceContent" class="supplier-detail-panel"></div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeViewSupplierModal()">Close</button>
+      <button class="btn-primary" id="editSupplierBtn" style="display:none;" onclick="editCurrentSupplier()">✏️ Edit Supplier</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rating Modal -->
+<div id="ratingModal" class="modal">
+  <div class="modal-content modal-small">
+    <div class="modal-header">
+      <h3>Update Supplier Rating</h3>
+      <button class="close-btn" onclick="closeRatingModal()">✕</button>
+    </div>
+    <div class="rating-content">
+      <input type="hidden" id="ratingSupplierId">
+      <p id="ratingSupplierName"></p>
+      <div class="rating-stars" id="ratingStars">
+        <span class="star" data-value="1" onclick="setRating(1)">★</span>
+        <span class="star" data-value="2" onclick="setRating(2)">★</span>
+        <span class="star" data-value="3" onclick="setRating(3)">★</span>
+        <span class="star" data-value="4" onclick="setRating(4)">★</span>
+        <span class="star" data-value="5" onclick="setRating(5)">★</span>
+      </div>
+      <p>Selected Rating: <strong id="selectedRatingDisplay">0</strong> / 5</p>
+      <input type="hidden" id="selectedRating" value="0">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeRatingModal()">Cancel</button>
+      <button class="btn-primary" onclick="submitRating()">Save Rating</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/dashboard.js"></script>
+<script src="/js/supplier.js"></script>
+</body>
+</html>
