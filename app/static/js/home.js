@@ -94,7 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
       e.target === logoutOverlay ||
       e.target === profileOverlay ||
       e.target === detailOverlay ||
-      e.target.classList.contains("overlay-container")
+      (e.target.classList && e.target.classList.contains("overlay-container"))
     ) {
       closeAllOverlays();
     }
@@ -152,6 +152,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const renderProfile = () => {
+    if (!profileDetails) return;
     const role = localStorage.getItem("user_role") || userRole;
     let html = `
       <div class="profile-info-item"><label>Name:</label> <span>${formatText(localStorage.getItem("user_name") || userName)}</span></div>
@@ -177,11 +178,16 @@ document.addEventListener("DOMContentLoaded", () => {
     userBox.style.cursor = "pointer";
     userBox.addEventListener("click", () => {
       renderProfile();
-      profileOverlay.classList.remove("hidden");
+      profileOverlay?.classList.remove("hidden");
     });
   }
 
   const performSearch = () => {
+    if (!searchInput || !categoryFilter) {
+      renderProducts(allProducts);
+      return;
+    }
+
     const query = searchInput.value.trim().toLowerCase().replace(/\s+/g, " ");
     const selectedCategory = categoryFilter.value;
     const filtered = allProducts.filter((p) => {
@@ -270,7 +276,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (mode === "edit" && product) {
       editMode = true;
       editProductId = product._id || product.id;
-      getEl("formTitle").innerText = "Edit Product";
+      const formTitle = getEl("formTitle");
+      if (formTitle) formTitle.innerText = "Edit Product";
 
       const setVal = (id, val) => {
         const el = getEl(id);
@@ -288,7 +295,8 @@ document.addEventListener("DOMContentLoaded", () => {
       setVal("unit", product.unit || "piece");
     } else {
       editMode = false;
-      getEl("formTitle").innerText = "Add Product";
+      const formTitle = getEl("formTitle");
+      if (formTitle) formTitle.innerText = "Add Product";
       form?.reset();
     }
   };
@@ -358,14 +366,20 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
 
     if (isSupplier) {
-      getEl("detailEditBtn").addEventListener("click", () => {
-        detailOverlay.classList.add("hidden");
-        openOverlay("edit", p);
-      });
-      getEl("detailDeleteBtn").addEventListener("click", () => {
-        deleteProductId = p._id || p.id;
-        deleteOverlay.classList.remove("hidden");
-      });
+      const dEditBtn = getEl("detailEditBtn");
+      const dDelBtn = getEl("detailDeleteBtn");
+      if (dEditBtn) {
+        dEditBtn.addEventListener("click", () => {
+          detailOverlay.classList.add("hidden");
+          openOverlay("edit", p);
+        });
+      }
+      if (dDelBtn) {
+        dDelBtn.addEventListener("click", () => {
+          deleteProductId = p._id || p.id;
+          deleteOverlay.classList.remove("hidden");
+        });
+      }
     }
   };
 
@@ -458,7 +472,24 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      allProducts = Array.isArray(data) ? data : data.products || [];
+      let fetchedProducts = Array.isArray(data) ? data : data.products || [];
+
+      const currentRole = (
+        localStorage.getItem("user_role") ||
+        userRole ||
+        ""
+      ).toLowerCase();
+      const currentEmail =
+        localStorage.getItem("user_email") || userEmail || "";
+
+      if (currentRole === "supplier") {
+        fetchedProducts = fetchedProducts.filter(
+          (p) =>
+            p.supplier_details && p.supplier_details.email === currentEmail,
+        );
+      }
+
+      allProducts = fetchedProducts;
       updateCategoryDropdown(allProducts);
       performSearch();
     } catch (err) {
