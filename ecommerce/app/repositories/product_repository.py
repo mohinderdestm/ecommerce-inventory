@@ -70,6 +70,7 @@ class ProductRepository:
         skip: int = 0,
         limit: int = 20,
     ) -> tuple[list[dict], int]:
+        
         mongo_query: dict = {}
 
         # Text search across name, SKU, brand
@@ -104,11 +105,81 @@ class ProductRepository:
         return products, total
 
     async def find_by_category(self, category_id: str) -> int:
+        
         return await self.collection.count_documents({"category_id": category_id})
 
     async def create_indexes(self):
+        
         await self.collection.create_index("sku", unique=True)
         await self.collection.create_index("category_id")
         await self.collection.create_index("status")
         await self.collection.create_index("supplier_ids")
         await self.collection.create_index([("name", "text"), ("brand", "text")])
+
+
+    # Variant Operations
+
+    async def add_variants(self, product_id: str, variants: list[dict]) -> Optional[dict]:
+        
+        try:
+            await self.collection.update_one(
+                {"_id": ObjectId(product_id)},
+                {
+                    "$push": {"variants": {"$each": variants}},
+                    "$set": {"updated_at": datetime.now(timezone.utc)},
+                }
+            )
+            return await self.find_by_id(product_id)
+        except Exception as e:
+            logger.error(f"add_variants failed: {e}")
+            return None
+
+    async def update_variant(
+        self,
+        product_id: str,
+        variant_id: str,
+        update_data: dict,
+    ) -> Optional[dict]:
+        
+        set_payload = {
+            f"variants.$.{k}": v for k, v in update_data.items()
+        }
+        set_payload["updated_at"] = datetime.now(timezone.utc)
+        try:
+            await self.collection.update_one(
+                {
+                    "_id": ObjectId(product_id),
+                    "variants.variant_id": variant_id,
+                },
+                {"$set": set_payload}
+            )
+            return await self.find_by_id(product_id)
+        except Exception as e:
+            logger.error(f"update_variant failed: {e}")
+            return None
+
+    async def delete_variant(self, product_id: str, variant_id: str) -> Optional[dict]:
+        
+        try:
+            await self.collection.update_one(
+                {"_id": ObjectId(product_id)},
+                {
+                    "$pull": {"variants": {"variant_id": variant_id}},
+                    "$set": {"updated_at": datetime.now(timezone.utc)},
+                }
+            )
+            return await self.find_by_id(product_id)
+        except Exception as e:
+            logger.error(f"delete_variant failed: {e}")
+            return None
+
+    async def variant_sku_exists(
+        self,
+        sku: str,
+        exclude_product_id: Optional[str] = None
+    ) -> bool:
+        
+        query: dict = {"variants.sku": sku.upper()}
+        if exclude_product_id:
+            query["_id"] = {"$ne": ObjectId(exclude_product_id)}
+        return await self.collection.count_documents(query) > 0

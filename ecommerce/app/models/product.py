@@ -36,6 +36,7 @@ def build_category_document(
         "description": description or "",
         "parent_id": parent_id,
         "is_active": True,
+        "variants": [],
         "created_by": created_by,
         "updated_by": created_by,
         "created_at": now,
@@ -77,6 +78,7 @@ def build_product_document(
         # Image metadata
         "image_urls": image_urls or [],
         "image_metadata": image_metadata or [],
+        "variants": [],
         "created_by": created_by,
         "updated_by": created_by,
         "created_at": now,

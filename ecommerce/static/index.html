@@ -136,8 +136,84 @@ textarea{resize:vertical;min-height:70px}
 .search-summary{font-size:.8rem;color:#64748b;margin-bottom:12px}
 .search-summary strong{color:#94a3b8}
 
+/* ── Variant swatches on cards ── */
+.variant-swatches{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.swatch{width:18px;height:18px;border-radius:50%;border:2px solid #334155;cursor:default;transition:transform .15s;flex-shrink:0}
+.swatch:hover{transform:scale(1.3)}
+.swatch-more{font-size:.68rem;color:#64748b;align-self:center;margin-left:2px}
+.price-range{font-size:.78rem;color:#64748b;margin-top:2px}
+
+/* ── Modal variant section ── */
+.modal-variant-section{margin-top:20px;border-top:1px solid #334155;padding-top:16px}
+.modal-variant-title{font-size:.8rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+.modal-variant-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#0f172a;border-radius:8px;margin-bottom:8px;cursor:pointer;border:2px solid transparent;transition:border-color .15s}
+.modal-variant-row:hover{border-color:#334155}
+.modal-variant-row.selected{border-color:#38bdf8}
+.modal-variant-dot{width:24px;height:24px;border-radius:50%;flex-shrink:0;border:2px solid #1e293b}
+.modal-variant-meta{flex:1}
+.modal-variant-label{font-size:.82rem;font-weight:600;color:#e2e8f0}
+.modal-variant-attrs{font-size:.72rem;color:#64748b;margin-top:1px}
+.modal-variant-price{font-size:.9rem;font-weight:700;color:#38bdf8;white-space:nowrap}
+.modal-variant-stock-badge{font-size:.68rem;padding:2px 7px;border-radius:999px}
+.modal-variant-stock-badge.ok{background:#16a34a22;color:#4ade80}
+.modal-variant-stock-badge.low{background:#f5950022;color:#fb923c}
+.modal-variant-stock-badge.zero{background:#dc262622;color:#f87171}
+.modal-no-variants{font-size:.8rem;color:#475569;text-align:center;padding:12px}
+
+/* ── Variants ── */
+.variant-card{background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px;margin-bottom:10px;display:flex;gap:14px;align-items:flex-start}
+.variant-color-dot{width:28px;height:28px;border-radius:50%;flex-shrink:0;border:2px solid #334155;margin-top:2px}
+.variant-info{flex:1}
+.variant-sku{font-size:.72rem;font-family:monospace;color:#64748b;margin-bottom:4px}
+.variant-name{font-size:.85rem;font-weight:600;color:#f1f5f9;margin-bottom:6px}
+.variant-attrs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.attr-chip{background:#1e293b;border:1px solid #334155;border-radius:4px;padding:2px 8px;font-size:.72rem;color:#94a3b8}
+.attr-chip strong{color:#e2e8f0}
+.variant-prices{display:flex;gap:12px;font-size:.8rem;align-items:baseline}
+.variant-sell-price{font-weight:700;color:#38bdf8;font-size:.95rem}
+.variant-stock{font-size:.72rem;padding:2px 8px;border-radius:4px;margin-left:auto}
+.variant-stock.ok{background:#16a34a22;color:#4ade80}
+.variant-stock.low{background:#f5950022;color:#fb923c}
+.variant-stock.zero{background:#dc262622;color:#f87171}
+.variant-actions{display:flex;gap:6px;margin-top:8px}
+.attr-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.attr-row input{flex:1}
+.attr-row .btn{flex-shrink:0}
+
 /* ── Divider ── */
 .divider{border:none;border-top:1px solid #334155;margin:16px 0}
+
+/* ── Stock badge ── */
+.stock-badge{display:inline-flex;align-items:center;gap:4px;font-size:.7rem;font-weight:600;padding:2px 8px;border-radius:999px}
+.stock-badge.ok{background:#16a34a22;color:#4ade80;border:1px solid #16a34a44}
+.stock-badge.low{background:#f5950022;color:#fb923c;border:1px solid #f5950055}
+.stock-badge.critical{background:#dc262622;color:#f87171;border:1px solid #dc262655}
+
+/* ── Card action buttons ── */
+.card-actions{display:flex;gap:6px;padding:10px 14px;border-top:1px solid #0f172a55}
+.card-actions .btn{flex:1;padding:6px 10px;font-size:.75rem;font-weight:600}
+
+/* ── Modal ── */
+.modal-overlay{position:fixed;inset:0;background:#00000088;z-index:999;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:#1e293b;border:1px solid #334155;border-radius:12px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;transform:translateY(20px);transition:transform .2s}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-header{padding:20px 24px 0;display:flex;justify-content:space-between;align-items:flex-start}
+.modal-header h2{font-size:1rem;font-weight:700;color:#f1f5f9;line-height:1.3}
+.modal-close{background:transparent;border:none;color:#64748b;font-size:1.2rem;cursor:pointer;padding:2px 6px;border-radius:4px;transition:color .15s}
+.modal-close:hover{color:#f1f5f9}
+.modal-body{padding:20px 24px 24px}
+.modal-img{width:100%;height:220px;object-fit:cover;border-radius:8px;background:#0f172a;display:flex;align-items:center;justify-content:center;font-size:3rem;margin-bottom:16px;overflow:hidden}
+.modal-img img{width:100%;height:100%;object-fit:cover}
+.detail-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #0f172a}
+.detail-row:last-child{border-bottom:none}
+.detail-label{font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;margin-right:16px}
+.detail-value{font-size:.85rem;color:#e2e8f0;text-align:right;word-break:break-word}
+.modal-actions{display:flex;gap:10px;margin-top:20px}
+.modal-actions .btn{flex:1}
+.img-thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.img-thumb{width:56px;height:56px;border-radius:6px;object-fit:cover;border:2px solid #334155;cursor:pointer;transition:border-color .15s}
+.img-thumb:hover,.img-thumb.active{border-color:#38bdf8}
 </style>
 </head>
 <body>
@@ -182,6 +258,7 @@ textarea{resize:vertical;min-height:70px}
       <button class="nav-btn" data-panel="create-supplier" onclick="switchTab(this,'create-supplier')">Create Supplier</button>
       <button class="nav-btn" data-panel="list-suppliers" onclick="switchTab(this,'list-suppliers')">List Suppliers</button>
       <button class="nav-btn" data-panel="supplier-products" onclick="switchTab(this,'supplier-products')">Link Products</button>
+      <button class="nav-btn" data-panel="supplier-product-list" onclick="switchTab(this,'supplier-product-list')">Supplier Products</button>
     </div>
     <div>
       <div class="sidebar-label">Products</div>
@@ -190,6 +267,7 @@ textarea{resize:vertical;min-height:70px}
       <button class="nav-btn" data-panel="get-product" onclick="switchTab(this,'get-product')">Get by ID / SKU</button>
       <button class="nav-btn" data-panel="update-product" onclick="switchTab(this,'update-product')">Update Product</button>
       <button class="nav-btn" data-panel="delete-product" onclick="switchTab(this,'delete-product')">Delete Product</button>
+      <button class="nav-btn" data-panel="variants" onclick="switchTab(this,'variants')">Variants</button>
     </div>
   </nav>
 
@@ -459,6 +537,51 @@ textarea{resize:vertical;min-height:70px}
     </div>
 
 
+    <!-- ── SUPPLIER PRODUCT LIST ── -->
+    <div id="panel-supplier-product-list" class="panel">
+      <div class="panel-title">Products by Supplier</div>
+      <div class="card" style="padding:16px;margin-bottom:16px">
+        <div class="filter-row">
+          <div class="form-group" style="flex:2"><label>Supplier ID</label><input id="sup-prod-list-id" placeholder="MongoDB ObjectId of supplier"/></div>
+          <button class="btn btn-primary" style="align-self:flex-end" onclick="handleSupplierProductList()">Fetch Products</button>
+        </div>
+      </div>
+      <div id="sup-prod-summary" class="search-summary" style="display:none"></div>
+      <div id="sup-prod-grid" class="products-grid"></div>
+    </div>
+
+    <!-- ── VARIANTS ── -->
+    <div id="panel-variants" class="panel">
+      <div class="panel-title">Product Variants</div>
+
+      <!-- Fetch product variants -->
+      <div class="card" style="padding:16px;margin-bottom:16px">
+        <div class="filter-row">
+          <div class="form-group" style="flex:2"><label>Product ID</label>
+            <input id="var-product-id" placeholder="MongoDB ObjectId of the product"/>
+          </div>
+          <button class="btn btn-primary" style="align-self:flex-end" onclick="handleFetchVariants()">Fetch Variants</button>
+        </div>
+      </div>
+
+      <!-- Variant list -->
+      <div id="variants-list" style="margin-bottom:20px"></div>
+
+      <!-- Add variants form — Admin/Supplier only -->
+      <div id="add-variant-section" style="display:none">
+        <div class="card">
+          <h3 style="font-size:.9rem;font-weight:600;color:#f1f5f9;margin-bottom:16px">Add New Variants</h3>
+          <p class="hint">Add one or more variants at once. Each variant can have its own color, attributes (RAM/ROM/Size etc.), price and stock.</p>
+
+          <div id="variant-forms-container"></div>
+
+          <button class="btn btn-ghost btn-full" onclick="addVariantForm()" style="margin-bottom:12px">+ Add Another Variant</button>
+          <button class="btn btn-success btn-full" onclick="handleSubmitVariants()">Save All Variants</button>
+          <div id="variant-submit-result" class="result"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── CREATE SUPPLIER ── -->
     <div id="panel-create-supplier" class="panel">
       <div class="panel-title">Create Supplier</div>
@@ -548,11 +671,43 @@ textarea{resize:vertical;min-height:70px}
   </main>
 </div>
 
+<!-- ── PRODUCT DETAIL MODAL ── -->
+<div id="prod-modal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-prod-name">Product Details</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Main image -->
+      <div class="modal-img" id="modal-main-img">
+        <span>📦</span>
+      </div>
+      <!-- Thumbnail strip -->
+      <div id="modal-thumbs" class="img-thumbs"></div>
+
+      <!-- Details grid -->
+      <div id="modal-details"></div>
+
+      <!-- Variants section -->
+      <div id="modal-variants" class="modal-variant-section" style="display:none"></div>
+
+      <!-- Admin/Supplier actions inside modal -->
+      <div id="modal-actions" class="modal-actions" style="display:none">
+        <button class="btn btn-primary" onclick="openEditFromModal()">✏️ Edit Product</button>
+        <button class="btn btn-danger"  onclick="deleteFromModal()">🗑️ Delete Product</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 const BASE = '/api/v1';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let currentStatusFilter = '';
+let currentUserRole = '';       // set on login/me, controls edit-delete visibility
+let modalProduct = null;        // product currently shown in modal
 let currentSearchPage = 1;
 const imageStore = { create: [], update: [] }; // {url, alt_text, is_primary}
 
@@ -586,8 +741,13 @@ async function apiFetch(path, options = {}) {
 
 function updateUserDisplay(user) {
   if (!user) return;
+  currentUserRole = user.role;
   document.getElementById('userBadge').innerHTML = `<span class="badge ${user.role}">${user.role}</span>`;
   document.getElementById('usernameLabel').textContent = user.username || user.email;
+}
+
+function canEditProducts() {
+  return currentUserRole === 'admin' || currentUserRole === 'supplier';
 }
 
 // ── Image handling ────────────────────────────────────────────────────────────
@@ -688,6 +848,9 @@ function renderProductCards(products, total, page, pageSize) {
 
   grid.innerHTML = '';
   products.forEach(p => {
+    // ── stock indicator using reorder_level as threshold ──
+    // Real stock comes from Inventory module (Module 5), 
+    // for now we use reorder_level as a low-stock threshold indicator
     const primaryImg = p.image_metadata && p.image_metadata.find(i => i.is_primary);
     const imgData = primaryImg || (p.image_metadata && p.image_metadata[0]);
 
@@ -878,6 +1041,406 @@ async function handleDeleteProduct() {
   showResult('del-prod-result', data, !ok);
 }
 
+// ── Variants ──────────────────────────────────────────────────────────────────
+let variantFormCount = 0;
+const COLOR_MAP = {
+  black:'#1a1a1a', white:'#f8fafc', red:'#ef4444', blue:'#3b82f6',
+  green:'#22c55e', yellow:'#eab308', purple:'#a855f7', pink:'#ec4899',
+  orange:'#f97316', grey:'#6b7280', gray:'#6b7280', gold:'#d97706',
+  silver:'#94a3b8', brown:'#92400e', navy:'#1e3a5f', cyan:'#06b6d4',
+};
+
+function colorToDot(color) {
+  const key = (color || '').toLowerCase().trim();
+  const hex = COLOR_MAP[key] || '#475569';
+  return `background:${hex}`;
+}
+
+async function handleFetchVariants() {
+  const pid = val('var-product-id');
+  if (!pid) return alert('Product ID is required');
+
+  const { ok, data } = await apiFetch(`/products/${pid}`);
+  const listEl = document.getElementById('variants-list');
+  const addSection = document.getElementById('add-variant-section');
+
+  if (!ok) {
+    listEl.innerHTML = `<div class="result error" style="display:block">${escHtml(data.detail || 'Product not found')}</div>`;
+    addSection.style.display = 'none';
+    return;
+  }
+
+  const product = data;
+  const variants = product.variants || [];
+
+  // Show add section for admin/supplier
+  addSection.style.display = canEditProducts() ? 'block' : 'none';
+  if (canEditProducts()) {
+    // Init with one empty form if no variants yet
+    if (variantFormCount === 0) addVariantForm();
+  }
+
+  // Product header
+  listEl.innerHTML = `
+    <div style="margin-bottom:14px;padding:12px 16px;background:#1e293b;border-radius:8px;border:1px solid #334155">
+      <div style="font-size:.75rem;color:#64748b;margin-bottom:4px">Product</div>
+      <div style="font-weight:600;color:#f1f5f9">${escHtml(product.name)}</div>
+      <div style="font-size:.75rem;font-family:monospace;color:#64748b">${escHtml(product.sku)}</div>
+    </div>
+    <div style="font-size:.8rem;color:#64748b;margin-bottom:12px">
+      ${variants.length === 0
+        ? '<span style="color:#475569">No variants yet. Add some below.</span>'
+        : `<strong style="color:#94a3b8">${variants.length}</strong> variant(s)`}
+    </div>
+    ${variants.map(v => renderVariantCard(v, pid)).join('')}
+  `;
+}
+
+function renderVariantCard(v, productId) {
+  const stockClass = v.stock === 0 ? 'zero' : v.stock <= 5 ? 'low' : 'ok';
+  const stockLabel = v.stock === 0 ? 'Out of Stock' : `Stock: ${v.stock}`;
+  const attrs = Object.entries(v.attributes || {})
+    .map(([k, val]) => `<span class="attr-chip"><strong>${escHtml(k)}:</strong> ${escHtml(String(val))}</span>`)
+    .join('');
+
+  const editBtn = canEditProducts()
+    ? `<button class="btn btn-ghost btn-sm" onclick="openVariantEditModal('${escHtml(productId)}','${escHtml(v.variant_id)}')">✏️ Edit</button>`
+    : '';
+  const delBtn = canEditProducts()
+    ? `<button class="btn btn-danger btn-sm" onclick="handleDeleteVariant('${escHtml(productId)}','${escHtml(v.variant_id)}','${escHtml(v.color || v.sku)}')">🗑️</button>`
+    : '';
+
+  const imgHtml = v.image_metadata && v.image_metadata[0]
+    ? `<img src="${escHtml(v.image_metadata[0].url)}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid #334155;flex-shrink:0" onerror="this.style.display='none'"/>`
+    : '';
+
+  return `
+    <div class="variant-card">
+      <div class="variant-color-dot" style="${colorToDot(v.color)}" title="${escHtml(v.color)}"></div>
+      ${imgHtml}
+      <div class="variant-info">
+        <div class="variant-sku">${escHtml(v.sku)}</div>
+        <div class="variant-name">${escHtml(v.color) || 'Default'}</div>
+        ${attrs ? `<div class="variant-attrs">${attrs}</div>` : ''}
+        <div class="variant-prices">
+          <span class="variant-sell-price">₹${Number(v.selling_price).toLocaleString('en-IN')}</span>
+          <span class="variant-stock ${stockClass}">${stockLabel}</span>
+        </div>
+        ${canEditProducts() ? `<div class="variant-actions">${editBtn}${delBtn}</div>` : ''}
+      </div>
+    </div>`;
+}
+
+// ── Add variant form ──────────────────────────────────────────────────────────
+function addVariantForm() {
+  variantFormCount++;
+  const id = variantFormCount;
+  const container = document.getElementById('variant-forms-container');
+
+  const div = document.createElement('div');
+  div.id = `vform-${id}`;
+  div.style.cssText = 'background:#0f172a;border:1px solid #334155;border-radius:8px;padding:16px;margin-bottom:12px;position:relative';
+  div.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <span style="font-size:.8rem;font-weight:600;color:#94a3b8">Variant #${id}</span>
+      ${id > 1 ? `<button class="btn btn-ghost btn-sm" onclick="removeVariantForm(${id})">✕ Remove</button>` : ''}
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Color</label>
+        <input id="vf-color-${id}" placeholder="e.g. Midnight Black" oninput="updateColorPreview(${id})"/>
+      </div>
+      <div class="form-group">
+        <label>SKU (leave empty to auto-generate)</label>
+        <input id="vf-sku-${id}" placeholder="Auto-generated from parent SKU"/>
+      </div>
+      <div class="form-group">
+        <label>Selling Price (₹)</label>
+        <input type="number" id="vf-sell-${id}" placeholder="79999"/>
+      </div>
+      <div class="form-group">
+        <label>Cost Price (₹)</label>
+        <input type="number" id="vf-cost-${id}" placeholder="55000"/>
+      </div>
+      <div class="form-group">
+        <label>Stock</label>
+        <input type="number" id="vf-stock-${id}" placeholder="50" value="0"/>
+      </div>
+      <div class="form-group">
+        <label>Color Preview</label>
+        <div id="vf-color-dot-${id}" style="width:32px;height:32px;border-radius:50%;background:#475569;border:2px solid #334155;margin-top:4px"></div>
+      </div>
+    </div>
+
+    <!-- Dynamic attributes -->
+    <label style="margin-bottom:8px;display:block">Attributes (RAM, ROM, Size, etc.)</label>
+    <div id="vf-attrs-${id}"></div>
+    <button class="btn btn-ghost btn-sm" onclick="addAttrRow(${id})" style="margin-bottom:12px">+ Add Attribute</button>
+
+    <!-- Image URL -->
+    <label style="margin-bottom:6px;display:block">Image URL (optional)</label>
+    <div class="attr-row">
+      <input id="vf-img-${id}" placeholder="https://example.com/image.jpg"/>
+    </div>
+  `;
+  container.appendChild(div);
+}
+
+function removeVariantForm(id) {
+  const el = document.getElementById(`vform-${id}`);
+  if (el) el.remove();
+}
+
+function updateColorPreview(id) {
+  const color = document.getElementById(`vf-color-${id}`).value;
+  const dot = document.getElementById(`vf-color-dot-${id}`);
+  if (dot) dot.style.background = COLOR_MAP[color.toLowerCase().trim()] || '#475569';
+}
+
+let attrRowCount = 0;
+function addAttrRow(vfId) {
+  attrRowCount++;
+  const rowId = `attr-${vfId}-${attrRowCount}`;
+  const container = document.getElementById(`vf-attrs-${vfId}`);
+  const row = document.createElement('div');
+  row.className = 'attr-row';
+  row.id = rowId;
+  row.innerHTML = `
+    <input placeholder="Key (e.g. RAM)" id="${rowId}-key" style="flex:1"/>
+    <input placeholder="Value (e.g. 8GB)" id="${rowId}-val" style="flex:1"/>
+    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('${rowId}').remove()">✕</button>
+  `;
+  container.appendChild(row);
+}
+
+function collectVariantForms() {
+  const variants = [];
+  document.querySelectorAll('[id^="vform-"]').forEach(form => {
+    const id = form.id.replace('vform-', '');
+    const color = document.getElementById(`vf-color-${id}`)?.value.trim() || '';
+    const sku = document.getElementById(`vf-sku-${id}`)?.value.trim() || null;
+    const sell = parseFloat(document.getElementById(`vf-sell-${id}`)?.value);
+    const cost = parseFloat(document.getElementById(`vf-cost-${id}`)?.value);
+    const stock = parseInt(document.getElementById(`vf-stock-${id}`)?.value) || 0;
+    const imgUrl = document.getElementById(`vf-img-${id}`)?.value.trim();
+
+    if (!sell || !cost) return; // skip incomplete forms
+
+    // Collect attributes
+    const attributes = {};
+    form.querySelectorAll('[id^="attr-"]').forEach(row => {
+      const parts = row.id.split('-');
+      if (parts.length < 3) return;
+      const keyEl = document.getElementById(row.id + '-key');
+      const valEl = document.getElementById(row.id + '-val');
+      if (keyEl && valEl && keyEl.value.trim()) {
+        attributes[keyEl.value.trim()] = valEl.value.trim();
+      }
+    });
+
+    const variant = { color, selling_price: sell, cost_price: cost, stock, attributes };
+    if (sku) variant.sku = sku;
+    if (imgUrl) variant.image_metadata = [{ url: imgUrl, alt_text: color, is_primary: true }];
+    variants.push(variant);
+  });
+  return variants;
+}
+
+async function handleSubmitVariants() {
+  const pid = val('var-product-id');
+  if (!pid) return alert('Product ID is required — fetch a product first');
+
+  const variants = collectVariantForms();
+  if (variants.length === 0) return alert('Fill in at least one variant with selling and cost price');
+
+  const { ok, data } = await apiFetch(
+    `/products/${pid}/variants/`,
+    { method: 'POST', body: JSON.stringify({ variants }) }
+  );
+  const resultEl = document.getElementById('variant-submit-result');
+  resultEl.style.display = 'block';
+  resultEl.className = 'result ' + (ok ? 'success' : 'error');
+  resultEl.textContent = ok
+    ? `✓ ${variants.length} variant(s) added successfully!`
+    : JSON.stringify(data, null, 2);
+
+  if (ok) {
+    // Refresh the variant list
+    handleFetchVariants();
+    // Reset forms
+    document.getElementById('variant-forms-container').innerHTML = '';
+    variantFormCount = 0;
+    addVariantForm();
+  }
+}
+
+// ── Delete variant ────────────────────────────────────────────────────────────
+async function handleDeleteVariant(productId, variantId, label) {
+  if (!confirm(`Delete variant "${label}"? This cannot be undone.`)) return;
+  const { ok, data } = await apiFetch(
+    `/products/${productId}/variants/${variantId}`,
+    { method: 'DELETE' }
+  );
+  if (ok) handleFetchVariants();
+  else alert(`Error: ${data.detail || 'Could not delete variant'}`);
+}
+
+// ── Edit variant modal (inline quick edit) ────────────────────────────────────
+function openVariantEditModal(productId, variantId) {
+  // Switch to Update Product tab and show a quick message for now
+  // Full inline edit can be added as enhancement
+  const pid = document.getElementById('var-product-id').value;
+  alert(`To edit variant ${variantId}, use the Swagger UI at /api/docs\nPUT /api/v1/products/${pid}/variants/${variantId}`);
+}
+
+// ── Supplier Product List ─────────────────────────────────────────────────────
+async function handleSupplierProductList() {
+  const suppId = val('sup-prod-list-id');
+  if (!suppId) return alert('Supplier ID is required');
+
+  // First get supplier details to show name
+  const supRes = await apiFetch(`/suppliers/${suppId}`);
+  if (!supRes.ok) {
+    document.getElementById('sup-prod-summary').style.display = 'block';
+    document.getElementById('sup-prod-summary').textContent = supRes.data.detail || 'Supplier not found';
+    document.getElementById('sup-prod-grid').innerHTML = '';
+    return;
+  }
+
+  const supplier = supRes.data;
+  const productIds = supplier.product_ids || [];
+
+  const summary = document.getElementById('sup-prod-summary');
+  const grid = document.getElementById('sup-prod-grid');
+  summary.style.display = 'block';
+
+  if (productIds.length === 0) {
+    summary.innerHTML = `Supplier <strong>${escHtml(supplier.name)}</strong> has no products linked yet.`;
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="icon">📦</div><p>No products linked to this supplier.<br>Use <strong>Link Products</strong> to add some.</p></div>`;
+    return;
+  }
+
+  summary.innerHTML = `Fetching <strong>${productIds.length}</strong> product(s) for supplier <strong>${escHtml(supplier.name)}</strong>...`;
+
+  // Fetch each product by ID
+  const products = [];
+  const failed = [];
+  for (const pid of productIds) {
+    const res = await apiFetch(`/products/${pid}`);
+    if (res.ok) products.push(res.data);
+    else failed.push(pid);
+  }
+
+  summary.innerHTML = `Showing <strong>${products.length}</strong> product(s) for supplier <strong>${escHtml(supplier.name)}</strong>` +
+    (failed.length > 0 ? ` <span style="color:#f87171">(${failed.length} could not be loaded)</span>` : '');
+
+  if (products.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="icon">📦</div><p>No products could be loaded.</p></div>`;
+    return;
+  }
+
+  // Reuse the same card renderer
+  renderSupplierProductCards(products, grid);
+}
+
+function renderSupplierProductCards(products, grid) {
+  grid.innerHTML = '';
+  products.forEach(p => {
+    const primaryImg = p.image_metadata && p.image_metadata.find(i => i.is_primary);
+    const imgData = primaryImg || (p.image_metadata && p.image_metadata[0]);
+
+    const card = document.createElement('div');
+    card.className = 'prod-card';
+
+    const imgWrap = document.createElement('div');
+    imgWrap.className = 'prod-img';
+    imgWrap.style.cursor = 'pointer';
+    imgWrap.onclick = () => openProductModal(p);
+    if (imgData && imgData.url) {
+      const img = document.createElement('img');
+      img.src = imgData.url;
+      img.alt = imgData.alt_text || p.name;
+      img.style.cssText = 'width:100%;height:160px;object-fit:cover';
+      img.onerror = () => { imgWrap.innerHTML = '<div style="font-size:2rem;color:#334155">📦</div>'; };
+      imgWrap.appendChild(img);
+    } else {
+      imgWrap.innerHTML = '<div style="font-size:2rem;color:#334155">📦</div>';
+    }
+
+    const stockBadge = p.reorder_level > 0
+      ? `<span class="stock-badge low">⚠ Reorder ≤ ${escHtml(String(p.reorder_level))}</span>` : '';
+
+    const body = document.createElement('div');
+    body.className = 'prod-body';
+    body.style.cursor = 'pointer';
+    body.onclick = () => openProductModal(p);
+    // Variant swatches and price range
+    const variants = p.variants || [];
+    const activeVariants = variants.filter(v => v.is_active !== false);
+    let swatchHtml = '';
+    let priceHtml = `<span class="prod-sell">₹${Number(p.selling_price).toLocaleString('en-IN')}</span>`;
+
+    if (activeVariants.length > 0) {
+      // Price range from variants
+      const prices = activeVariants.map(v => v.selling_price).filter(Boolean);
+      if (prices.length > 0) {
+        const minP = Math.min(...prices);
+        const maxP = Math.max(...prices);
+        priceHtml = minP === maxP
+          ? `<span class="prod-sell">₹${Number(minP).toLocaleString('en-IN')}</span>`
+          : `<span class="prod-sell">₹${Number(minP).toLocaleString('en-IN')}</span><span class="price-range"> – ₹${Number(maxP).toLocaleString('en-IN')}</span>`;
+      }
+
+      // Color swatches — max 6 shown
+      const withColors = activeVariants.filter(v => v.color);
+      const shown = withColors.slice(0, 6);
+      const extra = withColors.length - shown.length;
+      if (shown.length > 0) {
+        const dots = shown.map(v =>
+          `<span class="swatch" style="background:${COLOR_MAP[v.color.toLowerCase().trim()]||'#475569'}" title="${escHtml(v.color)}"></span>`
+        ).join('');
+        swatchHtml = `<div class="variant-swatches">${dots}${extra > 0 ? `<span class="swatch-more">+${extra}</span>` : ''}</div>`;
+      }
+    }
+
+    body.innerHTML = `
+      <div class="prod-name">${escHtml(p.name)}</div>
+      <div class="prod-sku">SKU: ${escHtml(p.sku)}</div>
+      ${p.brand ? `<div class="prod-brand">${escHtml(p.brand)}</div>` : ''}
+      <div class="prod-price">${priceHtml}</div>
+      ${activeVariants.length > 0 ? `<div style="font-size:.72rem;color:#475569">${activeVariants.length} variant${activeVariants.length>1?'s':''}</div>` : ''}
+      ${p.tax_percentage > 0 ? `<div style="font-size:.72rem;color:#475569">Tax: ${escHtml(String(p.tax_percentage))}%</div>` : ''}
+      ${swatchHtml}
+      ${stockBadge}
+    `;
+
+    const footer = document.createElement('div');
+    footer.className = 'prod-footer';
+    footer.innerHTML = `
+      <span class="status-dot ${escHtml(p.status)}">
+        ${ {'active':'Available','inactive':'Unavailable','discontinued':'Discontinued','out_of_stock':'Out of Stock'}[p.status] || p.status }
+      </span>
+      <span class="prod-unit">${escHtml(p.unit)}</span>
+    `;
+
+    card.appendChild(imgWrap);
+    card.appendChild(body);
+    card.appendChild(footer);
+
+    if (canEditProducts()) {
+      const actions = document.createElement('div');
+      actions.className = 'card-actions';
+      actions.innerHTML = `
+        <button class="btn btn-ghost" onclick="event.stopPropagation();prefillEditForm('${escHtml(p._id)}')">✏️ Edit</button>
+        <button class="btn btn-danger" onclick="event.stopPropagation();quickDeleteProduct('${escHtml(p._id)}','${escHtml(p.name)}')">🗑️ Delete</button>
+      `;
+      card.appendChild(actions);
+    }
+
+    grid.appendChild(card);
+  });
+}
+
 // ── Suppliers ─────────────────────────────────────────────────────────────────
 async function handleCreateSupplier() {
   const body = {
@@ -937,6 +1500,190 @@ async function handleUpdateRating() {
   const { ok, data } = await apiFetch(`/suppliers/${id}/rating`, { method: 'PATCH', body: JSON.stringify({ rating }) });
   showResult('rate-result', data, !ok);
 }
+
+// ── Product Detail Modal ──────────────────────────────────────────────────────
+function openProductModal(p) {
+  modalProduct = p;
+
+  // Title
+  document.getElementById('modal-prod-name').textContent = p.name;
+
+  // Main image
+  const mainImgEl = document.getElementById('modal-main-img');
+  const primaryImg = p.image_metadata && (p.image_metadata.find(i => i.is_primary) || p.image_metadata[0]);
+  if (primaryImg && primaryImg.url) {
+    mainImgEl.innerHTML = `<img src="${primaryImg.url}" alt="${escHtml(primaryImg.alt_text || p.name)}" onerror="this.parentElement.innerHTML='<span>📦</span>'"/>`;
+  } else {
+    mainImgEl.innerHTML = '<span>📦</span>';
+  }
+
+  // Thumbnail strip (if multiple images)
+  const thumbsEl = document.getElementById('modal-thumbs');
+  thumbsEl.innerHTML = '';
+  if (p.image_metadata && p.image_metadata.length > 1) {
+    p.image_metadata.forEach((img, i) => {
+      const t = document.createElement('img');
+      t.src = img.url;
+      t.alt = img.alt_text || '';
+      t.className = 'img-thumb' + (img.is_primary ? ' active' : '');
+      t.onclick = () => {
+        mainImgEl.innerHTML = `<img src="${img.url}" alt="${escHtml(img.alt_text || p.name)}" onerror="this.parentElement.innerHTML='<span>📦</span>'"/>`;
+        thumbsEl.querySelectorAll('.img-thumb').forEach(t => t.classList.remove('active'));
+        t.classList.add('active');
+      };
+      thumbsEl.appendChild(t);
+    });
+  }
+
+  // Details
+  const statusLabels = {'active':'Available','inactive':'Unavailable','discontinued':'Discontinued','out_of_stock':'Out of Stock'};
+  const details = [
+    ['SKU',           p.sku],
+    ['Brand',         p.brand || '—'],
+    ['Category ID',   p.category_id],
+    ['Selling Price', `₹${Number(p.selling_price).toLocaleString('en-IN')}`],
+    ['Tax',           p.tax_percentage > 0 ? `${p.tax_percentage}%` : 'None'],
+    ['Unit',          p.unit],
+    ['Reorder Level', p.reorder_level || 0],
+    ['Status',        statusLabels[p.status] || p.status],
+    ['Description',   p.description || '—'],
+    ['Created by',    p.created_by],
+    ['Last updated',  new Date(p.updated_at).toLocaleString('en-IN')],
+  ];
+
+  document.getElementById('modal-details').innerHTML = details.map(([label, value]) => `
+    <div class="detail-row">
+      <span class="detail-label">${label}</span>
+      <span class="detail-value">${escHtml(String(value))}</span>
+    </div>
+  `).join('');
+
+  // Show edit/delete inside modal only for admin/supplier
+  const modalActions = document.getElementById('modal-actions');
+  modalActions.style.display = canEditProducts() ? 'flex' : 'none';
+
+  // ── Variants section ──────────────────────────────────────────────────────
+  const variantsEl = document.getElementById('modal-variants');
+  const variants = (p.variants || []).filter(v => v.is_active !== false);
+
+  if (variants.length > 0) {
+    variantsEl.style.display = 'block';
+    let selectedVariant = variants[0];
+
+    const renderVariantRows = () => {
+      variantsEl.innerHTML = `<div class="modal-variant-title">Variants (${variants.length})</div>` +
+        variants.map(v => {
+          const stockClass = v.stock === 0 ? 'zero' : v.stock <= 5 ? 'low' : 'ok';
+          const stockLabel = v.stock === 0 ? 'Out of Stock' : `Stock: ${v.stock}`;
+          const attrStr = Object.entries(v.attributes || {})
+            .map(([k, val]) => `${k}: ${val}`).join(' · ');
+          const isSelected = v.variant_id === selectedVariant.variant_id;
+          const dotColor = COLOR_MAP[(v.color||'').toLowerCase().trim()] || '#475569';
+
+          return `<div class="modal-variant-row${isSelected ? ' selected' : ''}"
+              onclick="handleVariantSelect('${escHtml(p._id)}', '${escHtml(v.variant_id)}')">
+            <div class="modal-variant-dot" style="background:${dotColor}"></div>
+            <div class="modal-variant-meta">
+              <div class="modal-variant-label">${escHtml(v.color || 'Default')}</div>
+              ${attrStr ? `<div class="modal-variant-attrs">${escHtml(attrStr)}</div>` : ''}
+              <div style="font-size:.68rem;font-family:monospace;color:#475569;margin-top:2px">${escHtml(v.sku)}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+              <span class="modal-variant-price">₹${Number(v.selling_price).toLocaleString('en-IN')}</span>
+              <span class="modal-variant-stock-badge ${stockClass}">${stockLabel}</span>
+            </div>
+          </div>`;
+        }).join('');
+    };
+
+    // Store reference so handleVariantSelect can update image
+    window._modalVariants = variants;
+    window._modalProduct = p;
+    renderVariantRows();
+  } else {
+    variantsEl.style.display = 'none';
+  }
+
+  document.getElementById('prod-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function handleVariantSelect(productId, variantId) {
+  const variants = window._modalVariants || [];
+  const v = variants.find(v => v.variant_id === variantId);
+  if (!v) return;
+
+  // Update selected border
+  document.querySelectorAll('.modal-variant-row').forEach(row => row.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+
+  // If variant has its own image, swap the main modal image
+  const mainImgEl = document.getElementById('modal-main-img');
+  const vImg = v.image_metadata && v.image_metadata[0];
+  if (vImg && vImg.url) {
+    mainImgEl.innerHTML = `<img src="${vImg.url}" alt="${escHtml(vImg.alt_text || v.color)}" onerror="this.parentElement.innerHTML='<span>📦</span>'"/>`;
+  }
+}
+
+function closeModal() {
+  document.getElementById('prod-modal').classList.remove('open');
+  document.body.style.overflow = '';
+  modalProduct = null;
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+function openEditFromModal() {
+  if (!modalProduct) return;
+  closeModal();
+  prefillEditForm(modalProduct._id);
+}
+
+function deleteFromModal() {
+  if (!modalProduct) return;
+  quickDeleteProduct(modalProduct._id, modalProduct.name);
+}
+
+// ── Quick actions from cards ──────────────────────────────────────────────────
+function prefillEditForm(productId) {
+  // Switch to Update Product panel
+  const btn = document.querySelector('[data-panel="update-product"]');
+  if (btn) switchTab(btn, 'update-product');
+
+  // Pre-fill the product ID field
+  document.getElementById('upd-prod-id').value = productId;
+
+  // If modal was open, prefill fields from modalProduct
+  const p = modalProduct;
+  if (p && p._id === productId) {
+    if (p.name)           document.getElementById('upd-prod-name').value = p.name;
+    if (p.brand)          document.getElementById('upd-prod-brand').value = p.brand;
+    if (p.category_id)    document.getElementById('upd-prod-cat').value = p.category_id;
+    if (p.selling_price)  document.getElementById('upd-prod-sell').value = p.selling_price;
+    if (p.reorder_level !== undefined) document.getElementById('upd-prod-reorder').value = p.reorder_level;
+    if (p.tax_percentage !== undefined) document.getElementById('upd-prod-tax').value = p.tax_percentage;
+    if (p.unit)           document.getElementById('upd-prod-unit').value = p.unit;
+    if (p.status)         document.getElementById('upd-prod-status').value = p.status;
+    if (p.description)    document.getElementById('upd-prod-desc').value = p.description;
+  }
+
+  // Scroll to top of form
+  document.getElementById('upd-prod-id').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+async function quickDeleteProduct(productId, productName) {
+  if (!confirm(`Delete "${productName}"?\nThis cannot be undone.`)) return;
+  const { ok, data } = await apiFetch(`/products/${productId}`, { method: 'DELETE' });
+  closeModal();
+  if (ok) {
+    alert(`"${productName}" deleted successfully.`);
+    searchProducts(currentSearchPage); // refresh grid
+  } else {
+    alert(`Error: ${data.detail || 'Could not delete product'}`);
+  }
+}
+
 </script>
 </body>
 </html>

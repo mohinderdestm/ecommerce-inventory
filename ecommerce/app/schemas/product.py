@@ -114,6 +114,7 @@ class ProductResponse(BaseModel):
     unit: str
     status: str
     image_metadata: list[ImageMetadata]
+    variants: list[dict] = Field(default=[])
     created_by: str
     updated_by: str
     created_at: datetime
