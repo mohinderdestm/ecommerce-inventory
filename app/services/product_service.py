@@ -9,24 +9,35 @@ from app.core.websocket_manager import manager
 class ProductService:
 
     @staticmethod
-    def generate_sku():
-        return "PROD-" + "".join(
+    def generate_sku(prefix="PROD"):
+        """Generates a random unique SKU."""
+        return f"{prefix}-" + "".join(
             random.choices(string.ascii_uppercase + string.digits, k=6)
         )
 
     @classmethod
     async def create_product(cls, data: dict, user: dict):
-        data["sku"] = cls.generate_sku()
+
+        main_sku = cls.generate_sku()
+        data["sku"] = main_sku
         data["status"] = "active"
         data["created_by"] = user.get("id")
-
         data["supplier_email"] = user.get("email")
+
+        variants = data.get("variants", [])
+        if isinstance(variants, list):
+            for variant in variants:
+                if not variant.get("sku"):
+
+                    variant_suffix = (
+                        variant.get("name", "VAR").replace(" ", "").upper()[:3]
+                    )
+                    variant["sku"] = f"{main_sku}-{variant_suffix}"
 
         if "image" not in data:
             data["image"] = None
 
         product = await ProductRepository.create_product(data)
-
         return product
 
     @classmethod
@@ -35,6 +46,19 @@ class ProductService:
 
     @classmethod
     async def update_product(cls, product_id: str, data: dict):
+
+        if "variants" in data and isinstance(data["variants"], list):
+
+            existing = await ProductRepository.get_product_by_id(product_id)
+            base_sku = existing.get("sku", "PROD-GEN") if existing else "PROD-GEN"
+
+            for variant in data["variants"]:
+                if not variant.get("sku"):
+                    variant_suffix = (
+                        variant.get("name", "VAR").replace(" ", "").upper()[:3]
+                    )
+                    variant["sku"] = f"{base_sku}-{variant_suffix}"
+
         result = await ProductRepository.update_product(product_id, data)
 
         if not result or result.matched_count == 0:

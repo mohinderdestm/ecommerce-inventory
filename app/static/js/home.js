@@ -40,6 +40,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const detailBody = getEl("productDetailBody");
 
   const form = getEl("productForm");
+  const variantsContainer = getEl("variantsContainer");
+  const addVariantBtn = getEl("addVariantBtn");
   const profileDetails = getEl("profileDetails");
   const userBox = document.querySelector(".user-box");
 
@@ -83,6 +85,7 @@ document.addEventListener("DOMContentLoaded", () => {
       detailOverlay,
     ].forEach((ov) => ov?.classList.add("hidden"));
     if (form) form.reset();
+    if (variantsContainer) variantsContainer.innerHTML = "";
     editMode = false;
     deleteProductId = null;
   };
@@ -269,9 +272,42 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
+  const createVariantInput = (
+    variant = { name: "", additional_price: null, reorder_level: null },
+  ) => {
+    if (!variantsContainer) return;
+    const div = document.createElement("div");
+    div.className = "variant-item";
+
+    const priceVal =
+      variant.additional_price === 0 || variant.additional_price === null
+        ? ""
+        : variant.additional_price;
+    const qtyVal =
+      variant.reorder_level === 0 || variant.reorder_level === null
+        ? ""
+        : variant.reorder_level;
+
+    div.innerHTML = `
+      <input type="text" class="v-name" placeholder="Variant Name" value="${variant.name || ""}" required />
+      <input type="number" class="v-price" placeholder="Price" value="${priceVal}" required />
+      <input type="number" class="v-qty" placeholder="Stock" value="${qtyVal}" required />
+      <button type="button" class="remove-variant-btn">&times;</button>
+    `;
+    div
+      .querySelector(".remove-variant-btn")
+      .addEventListener("click", () => div.remove());
+    variantsContainer.appendChild(div);
+  };
+
+  if (addVariantBtn) {
+    addVariantBtn.addEventListener("click", () => createVariantInput());
+  }
+
   const openOverlay = (mode = "add", product = null) => {
     if (!overlay || userRole !== "supplier") return;
     overlay.classList.remove("hidden");
+    if (variantsContainer) variantsContainer.innerHTML = "";
 
     if (mode === "edit" && product) {
       editMode = true;
@@ -293,6 +329,10 @@ document.addEventListener("DOMContentLoaded", () => {
       setVal("quantity", product.reorder_level);
       setVal("tax", product.tax);
       setVal("unit", product.unit || "piece");
+
+      if (product.variants && Array.isArray(product.variants)) {
+        product.variants.forEach((v) => createVariantInput(v));
+      }
     } else {
       editMode = false;
       const formTitle = getEl("formTitle");
@@ -301,17 +341,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  const openDetailOverlay = (p) => {
-    if (!detailOverlay || !detailBody) return;
-    detailOverlay.classList.remove("hidden");
+  const renderVariantDetails = (p, index) => {
+    const isBase = index === -1;
+    const variantData = isBase ? null : p.variants[index];
 
-    const currentRole = (
-      localStorage.getItem("user_role") || userRole
-    ).toLowerCase();
-    const isSupplier = currentRole === "supplier";
+    const displayPrice = isBase
+      ? p.selling_price
+      : variantData.additional_price || 0;
+    const displayStock = isBase
+      ? p.reorder_level
+      : variantData.reorder_level || 0;
+    const displayTitle = isBase ? p.name : `${p.name} (${variantData.name})`;
 
     const supplier = p.supplier_details || null;
-
     let supplierHtml = `<p class="no-supplier">No supplier information available.</p>`;
     if (supplier && supplier.name) {
       supplierHtml = `
@@ -330,11 +372,35 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     let managementHtml = "";
-    if (isSupplier) {
+    const currentRole = (
+      localStorage.getItem("user_role") || userRole
+    ).toLowerCase();
+    if (currentRole === "supplier") {
       managementHtml = `
         <div class="detail-management-actions">
             <button class="btn edit-btn-large" id="detailEditBtn">Edit Product</button>
             <button class="btn delete-btn-large" id="detailDeleteBtn">Delete Product</button>
+        </div>
+      `;
+    }
+
+    let switcherHtml = "";
+    if (p.variants && p.variants.length > 0) {
+      const totalVariants = p.variants.length;
+
+      let dots = `<button class="variant-dot ${index === -1 ? "active" : ""}" data-idx="-1"></button>`;
+      p.variants.forEach((v, i) => {
+        dots += `<button class="variant-dot ${index === i ? "active" : ""}" data-idx="${i}"></button>`;
+      });
+
+      const prevIdx = index === -1 ? totalVariants - 1 : index - 1;
+      const nextIdx = index === totalVariants - 1 ? -1 : index + 1;
+
+      switcherHtml = `
+        <div class="variant-nav-container">
+          <button class="nav-arrow" data-idx="${prevIdx}">&#10094;</button>
+          <div class="variant-switcher">${dots}</div>
+          <button class="nav-arrow" data-idx="${nextIdx}">&#10095;</button>
         </div>
       `;
     }
@@ -346,17 +412,18 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
         <div class="detail-info">
           <span class="detail-category">${p.category || "Uncategorized"}</span>
-          <h2 class="detail-title">${p.name}</h2>
+          <h2 class="detail-title">${displayTitle}</h2>
           <p class="detail-brand">Brand: ${p.brand || "Generic"}</p>
           <div class="detail-pricing">
-             <span class="detail-price">₹ ${p.selling_price}</span>
+             <span class="detail-price">₹ ${displayPrice}</span>
              <span class="detail-tax">+ ${p.tax}% Tax</span>
           </div>
-          <p class="detail-stock">Available Stock: <strong>${p.reorder_level} ${p.unit || "piece"}</strong></p>
+          <p class="detail-stock">Available Stock: <strong>${displayStock} ${p.unit || "piece"}</strong></p>
           <div class="detail-desc">
             <label>Description</label>
             <p>${p.description || "No description provided."}</p>
           </div>
+          ${switcherHtml}
         </div>
       </div>
       <div class="detail-footer">
@@ -365,22 +432,29 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `;
 
-    if (isSupplier) {
-      const dEditBtn = getEl("detailEditBtn");
-      const dDelBtn = getEl("detailDeleteBtn");
-      if (dEditBtn) {
-        dEditBtn.addEventListener("click", () => {
-          detailOverlay.classList.add("hidden");
-          openOverlay("edit", p);
-        });
-      }
-      if (dDelBtn) {
-        dDelBtn.addEventListener("click", () => {
-          deleteProductId = p._id || p.id;
-          deleteOverlay.classList.remove("hidden");
-        });
-      }
+    document.querySelectorAll(".variant-dot, .nav-arrow").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        renderVariantDetails(p, parseInt(btn.dataset.idx));
+      });
+    });
+
+    if (currentRole === "supplier") {
+      getEl("detailEditBtn")?.addEventListener("click", () => {
+        detailOverlay.classList.add("hidden");
+        openOverlay("edit", p);
+      });
+      getEl("detailDeleteBtn")?.addEventListener("click", () => {
+        deleteProductId = p._id || p.id;
+        deleteOverlay.classList.remove("hidden");
+      });
     }
+  };
+
+  const openDetailOverlay = (p) => {
+    if (!detailOverlay || !detailBody) return;
+    detailOverlay.classList.remove("hidden");
+    renderVariantDetails(p, -1);
   };
 
   window.openOverlay = openOverlay;
@@ -397,6 +471,16 @@ document.addEventListener("DOMContentLoaded", () => {
       isSubmitting = true;
 
       const getVal = (id) => getEl(id)?.value || "";
+
+      const variants = [];
+      document.querySelectorAll(".variant-item").forEach((item) => {
+        variants.push({
+          name: item.querySelector(".v-name").value,
+          additional_price: Number(item.querySelector(".v-price").value) || 0,
+          reorder_level: Number(item.querySelector(".v-qty").value) || 0,
+        });
+      });
+
       const payload = {
         name: getVal("name"),
         description: getVal("description"),
@@ -407,6 +491,7 @@ document.addEventListener("DOMContentLoaded", () => {
         reorder_level: Number(getVal("quantity")),
         tax: Number(getVal("tax")),
         unit: getVal("unit"),
+        variants: JSON.stringify(variants),
       };
 
       const img = getEl("image");

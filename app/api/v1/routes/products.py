@@ -4,6 +4,7 @@ from app.services.product_service import ProductService
 from app.utils.dependencies import get_current_user
 import os
 import uuid
+import json
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
@@ -11,7 +12,6 @@ UPLOAD_DIR = "uploads/products"
 
 
 def verify_supplier_role(user):
-
     if user.get("role") != "supplier":
         raise HTTPException(
             status_code=403,
@@ -21,8 +21,8 @@ def verify_supplier_role(user):
 
 @router.post("/json")
 async def create_product_json(product: ProductCreate, user=Depends(get_current_user)):
-
     verify_supplier_role(user)
+
     return await ProductService.create_product(product.dict(), user)
 
 
@@ -37,11 +37,16 @@ async def create_product(
     reorder_level: int = Form(0),
     tax: float = Form(0),
     unit: str = Form("piece"),
+    variants: str = Form("[]"),
     image: UploadFile = File(None),
     user=Depends(get_current_user),
 ):
-
     verify_supplier_role(user)
+
+    try:
+        parsed_variants = json.loads(variants)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=422, detail="Invalid JSON format for variants")
 
     data = {
         "name": name,
@@ -53,6 +58,7 @@ async def create_product(
         "reorder_level": reorder_level,
         "tax": tax,
         "unit": unit,
+        "variants": parsed_variants,
     }
 
     if image:
@@ -78,11 +84,16 @@ async def update_product(
     reorder_level: int = Form(0),
     tax: float = Form(0),
     unit: str = Form("piece"),
+    variants: str = Form("[]"),
     image: UploadFile = File(None),
     user=Depends(get_current_user),
 ):
-
     verify_supplier_role(user)
+
+    try:
+        parsed_variants = json.loads(variants)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=422, detail="Invalid JSON format for variants")
 
     data = {
         "name": name,
@@ -94,6 +105,7 @@ async def update_product(
         "reorder_level": reorder_level,
         "tax": tax,
         "unit": unit,
+        "variants": parsed_variants,
     }
 
     if image:
@@ -109,12 +121,10 @@ async def update_product(
 
 @router.get("/")
 async def get_products(user=Depends(get_current_user)):
-
     return await ProductService.get_products()
 
 
 @router.delete("/{product_id}")
 async def delete_product(product_id: str, user=Depends(get_current_user)):
-
     verify_supplier_role(user)
     return await ProductService.delete_product(product_id)
