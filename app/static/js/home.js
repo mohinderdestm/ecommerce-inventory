@@ -7,11 +7,20 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   let allProducts = [];
+
+  let currentPage = 1;
+  const itemsPerPage = 10;
+  let filteredProducts = [];
+
   const getEl = (id) => document.getElementById(id);
 
   const searchInput = getEl("searchInput");
   const categoryFilter = getEl("categoryFilter");
   const searchBtn = getEl("searchBtn");
+
+  const prevPageBtn = getEl("prevPage");
+  const nextPageBtn = getEl("nextPage");
+  const pageNumbersContainer = getEl("pageNumbers");
 
   const getSafeValue = (key, fallback = "N/A") => {
     const value = localStorage.getItem(key);
@@ -185,23 +194,77 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  const updatePaginationUI = () => {
+    if (!pageNumbersContainer) return;
+    const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+
+    if (prevPageBtn) prevPageBtn.disabled = currentPage === 1;
+    if (nextPageBtn)
+      nextPageBtn.disabled = currentPage === totalPages || totalPages === 0;
+
+    pageNumbersContainer.innerHTML = "";
+    for (let i = 1; i <= totalPages; i++) {
+      const span = document.createElement("span");
+      span.className = `page-num ${i === currentPage ? "active" : ""}`;
+      span.innerText = i;
+      span.addEventListener("click", () => {
+        currentPage = i;
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        renderProducts(filteredProducts.slice(start, end));
+        updatePaginationUI();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+      pageNumbersContainer.appendChild(span);
+    }
+  };
+
+  if (prevPageBtn) {
+    prevPageBtn.addEventListener("click", () => {
+      if (currentPage > 1) {
+        currentPage--;
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        renderProducts(filteredProducts.slice(start, end));
+        updatePaginationUI();
+      }
+    });
+  }
+
+  if (nextPageBtn) {
+    nextPageBtn.addEventListener("click", () => {
+      const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+      if (currentPage < totalPages) {
+        currentPage++;
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        renderProducts(filteredProducts.slice(start, end));
+        updatePaginationUI();
+      }
+    });
+  }
+
   const performSearch = () => {
     if (!searchInput || !categoryFilter) {
-      renderProducts(allProducts);
-      return;
+      filteredProducts = allProducts;
+    } else {
+      const query = searchInput.value.trim().toLowerCase().replace(/\s+/g, " ");
+      const selectedCategory = categoryFilter.value;
+      filteredProducts = allProducts.filter((p) => {
+        const pName = (p.name || "").toLowerCase().replace(/\s+/g, " ");
+        const pCat = p.category || "";
+        return (
+          pName.includes(query) &&
+          (selectedCategory === "all" || pCat === selectedCategory)
+        );
+      });
     }
 
-    const query = searchInput.value.trim().toLowerCase().replace(/\s+/g, " ");
-    const selectedCategory = categoryFilter.value;
-    const filtered = allProducts.filter((p) => {
-      const pName = (p.name || "").toLowerCase().replace(/\s+/g, " ");
-      const pCat = p.category || "";
-      return (
-        pName.includes(query) &&
-        (selectedCategory === "all" || pCat === selectedCategory)
-      );
-    });
-    renderProducts(filtered);
+    currentPage = 1;
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    renderProducts(filteredProducts.slice(start, end));
+    updatePaginationUI();
   };
 
   if (searchInput) searchInput.addEventListener("input", performSearch);
@@ -273,11 +336,17 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
   const createVariantInput = (
-    variant = { name: "", additional_price: null, reorder_level: null },
+    variant = {
+      name: "",
+      additional_price: null,
+      reorder_level: null,
+      image: "",
+    },
   ) => {
     if (!variantsContainer) return;
     const div = document.createElement("div");
     div.className = "variant-item";
+    div.dataset.existingImage = variant.image || "";
 
     const priceVal =
       variant.additional_price === 0 || variant.additional_price === null
@@ -289,10 +358,16 @@ document.addEventListener("DOMContentLoaded", () => {
         : variant.reorder_level;
 
     div.innerHTML = `
-      <input type="text" class="v-name" placeholder="Variant Name" value="${variant.name || ""}" required />
-      <input type="number" class="v-price" placeholder="Price" value="${priceVal}" required />
-      <input type="number" class="v-qty" placeholder="Stock" value="${qtyVal}" required />
-      <button type="button" class="remove-variant-btn">&times;</button>
+      <div style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
+        <div style="display: flex; gap: 5px; align-items: center;">
+            <input type="text" class="v-name" placeholder="Variant Name" value="${variant.name || ""}" required />
+            <input type="number" class="v-price" placeholder="Price" value="${priceVal}" required />
+            <input type="number" class="v-qty" placeholder="Stock" value="${qtyVal}" required />
+            <button type="button" class="remove-variant-btn">&times;</button>
+        </div>
+        <input type="file" class="v-image" accept="image/*" />
+        ${variant.image ? `<small style="color: #38bdf8; font-size: 10px;">Current: ${variant.image.split("/").pop()}</small>` : ""}
+      </div>
     `;
     div
       .querySelector(".remove-variant-btn")
@@ -353,6 +428,11 @@ document.addEventListener("DOMContentLoaded", () => {
       : variantData.reorder_level || 0;
     const displayTitle = isBase ? p.name : `${p.name} (${variantData.name})`;
 
+    const displayImg =
+      !isBase && variantData.image
+        ? variantData.image
+        : p.image || "https://via.placeholder.com/300";
+
     const supplier = p.supplier_details || null;
     let supplierHtml = `<p class="no-supplier">No supplier information available.</p>`;
     if (supplier && supplier.name) {
@@ -408,7 +488,7 @@ document.addEventListener("DOMContentLoaded", () => {
     detailBody.innerHTML = `
       <div class="detail-grid">
         <div class="detail-img-box">
-          <img src="${p.image || "https://via.placeholder.com/300"}" />
+          <img src="${displayImg}" />
         </div>
         <div class="detail-info">
           <span class="detail-category">${p.category || "Uncategorized"}</span>
@@ -471,14 +551,21 @@ document.addEventListener("DOMContentLoaded", () => {
       isSubmitting = true;
 
       const getVal = (id) => getEl(id)?.value || "";
+      const formData = new FormData();
 
       const variants = [];
+      const variantImages = [];
+
       document.querySelectorAll(".variant-item").forEach((item) => {
         variants.push({
           name: item.querySelector(".v-name").value,
           additional_price: Number(item.querySelector(".v-price").value) || 0,
           reorder_level: Number(item.querySelector(".v-qty").value) || 0,
+          image: item.dataset.existingImage || "",
         });
+
+        const vImgFile = item.querySelector(".v-image").files[0];
+        variantImages.push(vImgFile || null);
       });
 
       const payload = {
@@ -494,10 +581,19 @@ document.addEventListener("DOMContentLoaded", () => {
         variants: JSON.stringify(variants),
       };
 
-      const img = getEl("image");
-      const formData = new FormData();
       Object.keys(payload).forEach((key) => formData.append(key, payload[key]));
-      if (img?.files?.[0]) formData.append("image", img.files[0]);
+
+      const mainImg = getEl("image");
+      if (mainImg?.files?.[0]) formData.append("image", mainImg.files[0]);
+
+      variantImages.forEach((file) => {
+        if (file) {
+          formData.append("variant_images", file);
+        } else {
+          const blob = new Blob([""], { type: "application/octet-stream" });
+          formData.append("variant_images", blob, "no_image.txt");
+        }
+      });
 
       try {
         let url = editMode
@@ -515,6 +611,9 @@ document.addEventListener("DOMContentLoaded", () => {
           showToast(editMode ? "Updated" : "Added");
           closeAllOverlays();
           loadProducts();
+        } else {
+          const errorData = await res.json();
+          showToast(errorData.detail || "Upload failed");
         }
       } catch (err) {
         showToast("Server error ❌");

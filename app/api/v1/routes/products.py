@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from app.schemas.product import ProductCreate
 from app.services.product_service import ProductService
 from app.utils.dependencies import get_current_user
+from typing import List
 import os
 import uuid
 import json
@@ -9,6 +10,7 @@ import json
 router = APIRouter(prefix="/products", tags=["Products"])
 
 UPLOAD_DIR = "uploads/products"
+VARIANT_UPLOAD_DIR = "uploads/variants"
 
 
 def verify_supplier_role(user):
@@ -19,10 +21,19 @@ def verify_supplier_role(user):
         )
 
 
+async def save_upload_file(file: UploadFile, directory: str) -> str:
+
+    os.makedirs(directory, exist_ok=True)
+    filename = f"{uuid.uuid4()}_{file.filename}"
+    filepath = os.path.join(directory, filename)
+    with open(filepath, "wb") as buffer:
+        buffer.write(await file.read())
+    return f"/{directory}/{filename}"
+
+
 @router.post("/json")
 async def create_product_json(product: ProductCreate, user=Depends(get_current_user)):
     verify_supplier_role(user)
-
     return await ProductService.create_product(product.dict(), user)
 
 
@@ -39,6 +50,7 @@ async def create_product(
     unit: str = Form("piece"),
     variants: str = Form("[]"),
     image: UploadFile = File(None),
+    variant_images: List[UploadFile] = File(None),
     user=Depends(get_current_user),
 ):
     verify_supplier_role(user)
@@ -62,12 +74,20 @@ async def create_product(
     }
 
     if image:
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-        filename = f"{uuid.uuid4()}_{image.filename}"
-        filepath = os.path.join(UPLOAD_DIR, filename)
-        with open(filepath, "wb") as buffer:
-            buffer.write(await image.read())
-        data["image"] = f"/uploads/products/{filename}"
+        data["image"] = await save_upload_file(image, UPLOAD_DIR)
+
+    if variant_images:
+        for idx, v_file in enumerate(variant_images):
+            if idx < len(data["variants"]):
+
+                content = await v_file.read()
+                if content:
+                    await v_file.seek(0)
+                    path = await save_upload_file(v_file, VARIANT_UPLOAD_DIR)
+                    data["variants"][idx]["image"] = path
+                else:
+
+                    pass
 
     return await ProductService.create_product(data, user)
 
@@ -86,6 +106,7 @@ async def update_product(
     unit: str = Form("piece"),
     variants: str = Form("[]"),
     image: UploadFile = File(None),
+    variant_images: List[UploadFile] = File(None),
     user=Depends(get_current_user),
 ):
     verify_supplier_role(user)
@@ -109,12 +130,18 @@ async def update_product(
     }
 
     if image:
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-        filename = f"{uuid.uuid4()}_{image.filename}"
-        filepath = os.path.join(UPLOAD_DIR, filename)
-        with open(filepath, "wb") as buffer:
-            buffer.write(await image.read())
-        data["image"] = f"/uploads/products/{filename}"
+
+        if hasattr(image, "filename"):
+            data["image"] = await save_upload_file(image, UPLOAD_DIR)
+
+    if variant_images:
+        for idx, v_file in enumerate(variant_images):
+            if idx < len(data["variants"]):
+                content = await v_file.read()
+                if content:
+                    await v_file.seek(0)
+                    path = await save_upload_file(v_file, VARIANT_UPLOAD_DIR)
+                    data["variants"][idx]["image"] = path
 
     return await ProductService.update_product(product_id, data)
 

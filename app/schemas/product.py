@@ -8,6 +8,7 @@ class ProductVariant(BaseModel):
     sku: Optional[str] = None
     additional_price: float = Field(default=0.0, ge=0)
     reorder_level: int = Field(default=0, ge=0)
+    stock: int = Field(default=0, ge=0)
     image: Optional[str] = None
 
 

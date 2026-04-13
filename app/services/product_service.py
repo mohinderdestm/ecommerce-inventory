@@ -10,7 +10,7 @@ class ProductService:
 
     @staticmethod
     def generate_sku(prefix="PROD"):
-        """Generates a random unique SKU."""
+
         return f"{prefix}-" + "".join(
             random.choices(string.ascii_uppercase + string.digits, k=6)
         )
