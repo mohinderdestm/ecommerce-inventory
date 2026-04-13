@@ -2,6 +2,10 @@ from fastapi import HTTPException, status
 from app.repositories.auth_repository import AuthRepository
 from app.core.security import hash_password, verify_password, create_access_token
 
+from app.repositories.supplier_repository import SupplierRepository
+from app.services.supplier_service import SupplierService
+from app.core.database import db
+
 
 class AuthService:
 
@@ -22,6 +26,20 @@ class AuthService:
         user_dict["password"] = hash_password(user.password)
 
         user_id = await self.repo.create_user(user_dict)
+        
+        # ✅ CREATE SUPPLIER ROLE 
+        if user.role == "supplier":
+            supplier_repo = SupplierRepository(db)
+            supplier_service = SupplierService(supplier_repo)
+
+            await supplier_service.create_supplier_for_user(
+                user_id,
+                {
+                     "name": user.name,
+                      "email": user.email
+                }
+                
+            )
 
         token = create_access_token({
         "user_id": str(user_id),

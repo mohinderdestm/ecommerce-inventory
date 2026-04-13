@@ -9,6 +9,12 @@ class ProductRepository:
     async def create(self,product_data):
         product_data["created_at"] = datetime.utcnow()
         product_data["updated_at"] = datetime.utcnow()
+        
+      
+        product_data["status"] = product_data.get("status", "active")
+        product_data["is_deleted"] = False
+
+        
         result = await self.collection.insert_one(product_data)
         return str(result.inserted_id)
     

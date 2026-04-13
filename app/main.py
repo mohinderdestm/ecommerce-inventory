@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from app.routes.auth import router as auth_router
 from app.routes.products import router as product_router 
+from app.routes.suppliers import router as supplier_router
 from fastapi.middleware.cors import CORSMiddleware
 import app.core.cloudinary_config
 
@@ -16,7 +17,8 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
-app.include_router(product_router) 
+app.include_router(product_router)
+app.include_router(supplier_router) 
 
 
 @app.get("/")

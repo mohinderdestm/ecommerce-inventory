@@ -14,6 +14,7 @@ client = AsyncIOMotorClient(MONGO_URI)
 db = client[DB_NAME]
 users_collection = db["users"]
 products_collection = db["products"]
+suppliers_collection = db["suppliers"]
 
 
 # Dependency function

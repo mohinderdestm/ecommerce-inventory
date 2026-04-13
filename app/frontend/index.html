@@ -50,6 +50,11 @@
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       }
 
+      .header-actions {
+        display: flex;
+        gap: 10px;
+      }
+
       .add-product-btn {
         margin: 10px 20px;
         padding: 10px 15px;
@@ -152,7 +157,14 @@
         color: gray;
       }
 
-      /* MODAL */
+       .variant-box {
+        background: #f9fafb;
+       }
+
+      .attr-row input {
+         flex: 1;
+      }
+
       .modal {
         display: none;
         position: fixed;
@@ -161,20 +173,35 @@
         width: 100%;
         height: 100%;
         background: rgba(0, 0, 0, 0.5);
+
+        overflow-y: auto; 
       }
 
       .modal-content {
         background: white;
-        width: 400px;
-        margin: 100px auto;
+        width: 700px; 
+        max-width: 95%; 
+        margin: 50px auto;
         padding: 20px;
         border-radius: 10px;
+
+        max-height: 90vh;
+        overflow-y: auto;
       }
 
       .modal-content input {
         width: 90%;
         padding: 10px;
         margin: 8px 0;
+      }
+
+      .form-row {
+        display: flex;
+        gap: 10px;
+      }
+
+      .form-row input {
+        width: 100%;
       }
 
       .variants {
@@ -212,12 +239,14 @@
 
       <input id="nameInput" placeholder="Name" style="display: none" />
       <input id="emailInput" placeholder="Email" />
+
       <input id="passwordInput" type="password" placeholder="Password" />
 
       <select id="roleInput" style="display: none">
         <option value="admin">Admin</option>
         <option value="inventory_manager">Inventory Manager</option>
         <option value="staff">Staff</option>
+        <option value="supplier">Supplier</option>
       </select>
 
       <button onclick="handleAuth()" id="authBtn">Login</button>
@@ -235,7 +264,16 @@
         <div>
           Welcome, <span id="nameTop"></span> (<span id="roleDisplay"></span>)
         </div>
-        <button onclick="logout()">Logout</button>
+        <div class="header-actions">
+          <button
+            id="editProfileBtn"
+            onclick="openProfileModal()"
+            style="display: none"
+          >
+            Edit Profile
+          </button>
+          <button onclick="logout()">Logout</button>
+        </div>
       </div>
 
       <button class="add-product-btn" id="addBtn" onclick="openAddModal()">
@@ -254,18 +292,48 @@
       <div class="products-grid" id="grid"></div>
     </div>
 
-    <!-- MODAL -->
+    <!-- Product MODAL -->  
     <div class="modal" id="productModal">
       <div class="modal-content">
         <h3 id="modalTitle">Add Product</h3>
 
         <input type="hidden" id="productId" />
+        <div class="form-row">
+          <input id="name" placeholder="name" />
+          <input id="category" placeholder="category" />
+        </div>
+        <div class="form-row">
+          <input id="description" placeholder="description" />
+          <input id="subcategory" placeholder="subcategory" />
+        </div>
+        <div class="form-row">
+          <input id="brand" placeholder="brand" />
+          <input id="cost_price" type="number" placeholder="cost_price" />
+        </div>
+        <div class="form-row">
+          <input id="selling_price" type="number" placeholder="selling_price" />
+          <input id="reorder_level" type="number" placeholder="reorder_level" />
+        </div>
+        <div class="form-row">
+         <select id="status">
+         <option value="active">Active</option>
+         <option value="inactive">Inactive</option>
+         </select>
+        </div>
+        <div class="form-row">
+          <input
+            id="tax_percentage"
+            type="number"
+            placeholder="tax_percentage"
+          />
+          <input id="unit" placeholder="unit" />
 
-        <input id="name" placeholder="Name" />
-        <input id="category" placeholder="Category" />
-        <input id="price" type="number" placeholder="Selling Price" />
-        <!-- <input id="image" placeholder="Image URL" /> -->
-        <div style="text-align: center">
+        </div>
+        <h4>Variant</h4>
+        <div id="variantsContainer"></div>
+        <button type="button" style="margin-left:0.5rem" onclick="addVariant()">➕ Add Variant</button>
+
+        <div>
           <img
             id="previewImage"
             style="
@@ -285,526 +353,694 @@
       </div>
     </div>
 
+    <!-- supplier profile edit MODAL -->
+
+    <div class="modal" id="profileModal">
+      <div class="modal-content">
+        <h3>Edit Supplier Profile</h3>
+
+        <input id="s_name" placeholder="Name" />
+        <input id="s_contact" placeholder="Contact Person" />
+        <input id="s_phone" placeholder="Phone" />
+        <input id="s_email" placeholder="Email" />
+        <input id="s_address" placeholder="Address" />
+        <input id="s_gst" placeholder="GST Number" />
+
+        <button onclick="updateSupplier()">Save</button>
+        <button onclick="closeProfileModal()">Cancel</button>
+      </div>
+    </div>
+
     <script>
-      const BASE_URL = "http://127.0.0.1:8000";
+                  const BASE_URL = "http://127.0.0.1:8000";
 
-      let editMode = false;
-      let currentUserRole = "";
+                  let editMode = false;
+                  let currentUserRole = "";
 
-      /* ================= NORMALIZE ROLE ================= */
-      function normalizeRole(role) {
-        return (role || "").toLowerCase().trim();
-      }
+                  /* ================= NORMALIZE ROLE ================= */
+                  function normalizeRole(role) {
+                    return (role || "").toLowerCase().trim();
+                  }
 
-      /* ================= PERMISSION CHECK ================= */
-      function hasPermission(roles) {
-        return roles.includes(currentUserRole);
-      }
+                  /* ================= PERMISSION CHECK ================= */
+                  function hasPermission(roles) {
+                    return roles.includes(currentUserRole);
+                  }
 
-      /* ================= UPDATE UI ================= */
-      function updateUIBasedOnRole() {
-        const addBtn = document.getElementById("addBtn");
+                  /* ================= UPDATE UI ================= */
+                  function updateUIBasedOnRole() {
+                    const addBtn = document.getElementById("addBtn");
 
-        console.log("🔐 Current Role:", currentUserRole);
+                    console.log("🔐 Current Role:", currentUserRole);
 
-        if (hasPermission(["admin", "inventory_manager"])) {
-          addBtn.style.display = "block";
-        } else {
-          addBtn.style.display = "none";
-        }
-      }
+                    if (hasPermission(["admin", "inventory_manager", "supplier"])) {
+                      addBtn.style.display = "block";
+                    } else {
+                      addBtn.style.display = "none";
+                    }
+                    //  ONLY SUPPLIER
+                    if (currentUserRole === "supplier") {
+                      editProfileBtn.style.display = "inline-block";
+                    } else {
+                      editProfileBtn.style.display = "none";
+                    }
+                  }
 
-      function isValidEmail(email) {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-      }
+                  function isValidEmail(email) {
+                    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+                  }
 
-      function isStrongPassword(password) {
-        return password.length >= 6;
-      }
+                  function isStrongPassword(password) {
+                    return password.length >= 6;
+                  }
 
-      let isRegister = false;
+                  let isRegister = false;
 
-      authToggle.onclick = () => {
-        isRegister = !isRegister;
+                  authToggle.onclick = () => {
+                    isRegister = !isRegister;
 
-        authTitle.innerText = isRegister ? "Register" : "Login";
-        authBtn.innerText = isRegister ? "Register" : "Login";
+                    authTitle.innerText = isRegister ? "Register" : "Login";
+                    authBtn.innerText = isRegister ? "Register" : "Login";
 
-        nameInput.style.display = isRegister ? "block" : "none";
-        roleInput.style.display = isRegister ? "block" : "none";
+                    nameInput.style.display = isRegister ? "block" : "none";
+                    roleInput.style.display = isRegister ? "block" : "none";
 
-        authToggle.innerText = isRegister
-          ? "Already have an account? Login"
-          : "Don't have an account? Register";
+                    authToggle.innerText = isRegister
+                      ? "Already have an account? Login"
+                      : "Don't have an account? Register";
 
-        authMsg.innerText = "";
-      };
+                    authMsg.innerText = "";
+                  };
 
-      async function handleAuth() {
-        const email = emailInput.value.trim();
-        const password = passwordInput.value.trim();
+                  async function handleAuth() {
+                    const email = emailInput.value.trim();
+                    const password = passwordInput.value.trim();
 
-        //  VALIDATION
-        if (!email) {
-          authMsg.innerText = "Email required";
-          return;
-        }
+                    //  VALIDATION
+                    if (!email) {
+                      authMsg.innerText = "Email required";
+                      return;
+                    }
 
-        if (!isValidEmail(email)) {
-          authMsg.innerText = "Invalid email format";
-          return;
-        }
+                    if (!isValidEmail(email)) {
+                      authMsg.innerText = "Invalid email format";
+                      return;
+                    }
 
-        if (!password) {
-          authMsg.innerText = "Password required";
-          return;
-        }
+                    if (!password) {
+                      authMsg.innerText = "Password required";
+                      return;
+                    }
 
-        if (!isStrongPassword(password)) {
-          authMsg.innerText = "Password must be at least 6 characters";
-          return;
-        }
+                    if (!isStrongPassword(password)) {
+                      authMsg.innerText = "Password must be at least 6 characters";
+                      return;
+                    }
 
-        // ================= REGISTER =================
-        if (isRegister) {
-          const name = nameInput.value.trim();
-          const role = roleInput.value;
+                    // ================= REGISTER =================
+                    if (isRegister) {
+                      const name = nameInput.value.trim();
+                      const role = roleInput.value;
 
-          if (!name) {
-            authMsg.innerText = "Name required";
-            return;
-          }
+                      if (!name) {
+                        authMsg.innerText = "Name required";
+                        return;
+                      }
 
-          if (!role) {
-            authMsg.innerText = "Select role";
-            return;
-          }
+                      if (!role) {
+                        authMsg.innerText = "Select role";
+                        return;
+                      }
 
-          authMsg.innerText = "Creating account...";
+                      authMsg.innerText = "Creating account...";
 
-          try {
-            const res = await fetch(`${BASE_URL}/auth/register`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ name, email, password, role }),
-            });
+                      try {
+                        const res = await fetch(`${BASE_URL}/auth/register`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ name, email, password, role }),
+                        });
 
-            const data = await res.json();
+                        const data = await res.json();
 
-            if (res.ok) {
-              authMsg.innerText = " Registered successfully! Please login.";
+                        if (res.ok) {
+                          authMsg.innerText = " Registered successfully! Please login.";
 
-              // switch back to login
-              isRegister = false;
-              authToggle.click();
-            } else {
-              authMsg.innerText = data.detail || "Registration failed";
-            }
-          } catch (err) {
-            authMsg.innerText = "Network error";
-          }
-        }
+                          
+                          isRegister = false;
+                          authToggle.click();
+                        } else {
+                          authMsg.innerText = data.detail || "Registration failed";
+                        }
+                      } catch (err) {
+                        authMsg.innerText = "Network error";
+                      }
+                    }
 
-        // ================= LOGIN =================
-        else {
-          authMsg.innerText = "Signing in...";
+                    // ================= LOGIN =================
+                    else {
+                      authMsg.innerText = "Signing in...";
 
-          try {
-            const res = await fetch(`${BASE_URL}/auth/login`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ email, password }),
-            });
+                      try {
+                        const res = await fetch(`${BASE_URL}/auth/login`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ email, password }),
+                        });
 
-            const data = await res.json();
+                        const data = await res.json();
 
-            if (res.ok) {
-              localStorage.setItem("token", data.access_token);
+                        if (res.ok) {
+                          localStorage.setItem("token", data.access_token);
 
-              loadDashboard();
-            } else {
-              authMsg.innerText = data.detail || "Login failed";
-            }
-          } catch (err) {
-            authMsg.innerText = "Network error";
-          }
-          emailInput.addEventListener("input", () => (authMsg.innerText = ""));
-          passwordInput.addEventListener(
-            "input",
-            () => (authMsg.innerText = ""),
-          );
-          nameInput.addEventListener("input", () => (authMsg.innerText = ""));
-        }
-      }
+                          loadDashboard();
+                        } else {
+                          authMsg.innerText = data.detail || "Login failed";
+                        }
+                      } catch (err) {
+                        authMsg.innerText = "Network error";
+                      }
+                      emailInput.addEventListener("input", () => (authMsg.innerText = ""));
+                      passwordInput.addEventListener(
+                        "input",
+                        () => (authMsg.innerText = ""),
+                      );
+                      nameInput.addEventListener("input", () => (authMsg.innerText = ""));
+                    }
+                  }
 
-      /* ================= image upload ================= */
+                  /* ================= image upload ================= */
 
-      async function uploadProductImage(productId, file) {
-        const token = localStorage.getItem("token");
+                  async function uploadProductImage(productId, file) {
+                    const token = localStorage.getItem("token");
 
-        const formData = new FormData();
-        formData.append("file", file);
+                    const formData = new FormData();
+                    formData.append("file", file);
 
-        const res = await fetch(
-          `${BASE_URL}/products/${productId}/upload-image`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            body: formData,
-          },
-        );
+                    const res = await fetch(
+                      `${BASE_URL}/products/${productId}/upload-image`,
+                      {
+                        method: "POST",
+                        headers: {
+                          Authorization: `Bearer ${token}`,
+                        },
+                        body: formData,
+                      },
+                    );
 
-        const data = await res.json();
-        return data.image_url;
-      }
+                    const data = await res.json();
+                    return data.image_url;
+                  }
 
-      let selectedFile = null;
+                  let selectedFile = null;
 
-      document.getElementById("imageFile").addEventListener("change", (e) => {
-        selectedFile = e.target.files[0];
+                  document.getElementById("imageFile").addEventListener("change", (e) => {
+                    selectedFile = e.target.files[0];
 
-        const preview = document.getElementById("previewImage");
+                    const preview = document.getElementById("previewImage");
 
-        if (selectedFile) {
-          preview.src = URL.createObjectURL(selectedFile);
-          preview.style.display = "block";
-        }
-      });
+                    if (selectedFile) {
+                      preview.src = URL.createObjectURL(selectedFile);
+                      preview.style.display = "block";
+                    }
+                  });
 
-      /* ================= LOAD DASHBOARD ================= */
-      async function loadDashboard() {
-        loginBox.style.display = "none";
-        dashboard.style.display = "block";
+                  /* ================= adding Varinat ================= */
+                  function addVariant() {
+                    const container = document.getElementById("variantsContainer");
 
-        const token = localStorage.getItem("token");
+                    const variantHTML = `
+                   <div class="variant-box" style="border:1px solid #ddd; padding:10px; margin:10px 0; border-radius:8px;">
 
-        const res = await fetch(`${BASE_URL}/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+                  <div class="attributes"></div>
 
-        const data = await res.json();
+                  <button type="button" onclick="addAttribute(this)">+ Add Attribute</button>
 
-        if (!res.ok) {
-          alert("Session expired");
-          logout();
-          return;
-        }
-
-        const name = data.user.name;
-        const role = normalizeRole(data.user.role);
-
-        currentUserRole = role;
-
-        console.log("✅ Logged in role:", role);
-
-        nameTop.innerText = name;
-        roleDisplay.innerText = role;
-
-        updateUIBasedOnRole();
-        loadProducts();
-      }
-
-      /* ================= LOAD PRODUCTS ================= */
-      async function loadProducts(search = "") {
-        const token = localStorage.getItem("token");
-
-        const url = search
-          ? `${BASE_URL}/products?search=${encodeURIComponent(search)}`
-          : `${BASE_URL}/products`;
-
-        const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const data = await res.json();
-
-        if (!data.data?.length) {
-          grid.innerHTML = `<div>No products found</div>`;
-          return;
-        }
-
-        grid.innerHTML = data.data
-          .map((p) => {
-            let actions = "";
-
-            if (hasPermission(["admin"])) {
-              actions = `
-                  <div class="actions">
-                    <button class="btn edit" onclick="event.stopPropagation(); editProduct('${p.id}')">Edit</button>
-                    <button class="btn delete" onclick="event.stopPropagation(); deleteProduct('${p.id}')">Delete</button>
-                  </div>
-                `;
-            } else if (hasPermission(["inventory_manager"])) {
-              actions = `
-                  <div class="actions">
-                    <button class="btn delete" onclick="deleteProduct('${p.id}')">Delete</button>
-                  </div>
-                `;
-            }
-            const firstVariant = p.variants?.[0];
-
-            return `
-                <div class="product-card" onclick="openProduct('${p.id}')">
-
-                  <div class="product-image">
-                    ${p.image_url ? `<img src="${p.image_url}">` : "📦"}
+                  <br><br>
+                  <div style="display:flex; gap:10px;">
+                  <input type="number" placeholder="Stock" class="variant-stock">
+                  <input type="number" placeholder="Additional Price" class="variant-price">
                   </div>
 
-                  <div class="product-info">
-                    <div class="product-name">${p.name}</div>
-                    <div class="product-category">${p.category}</div>
-
-                    <div class="product-price" id="price-${p.id}">
-                      ₹${p.selling_price + (firstVariant?.additional_price || 0)}
-                    </div>
-
-                    <div style="font-size:12px;color:gray;" id="sku-${p.id}">
-                      SKU: ${firstVariant?.sku || "-"}
-                    </div>
-
-                    <div style="font-size:12px;color:gray;" id="stock-${p.id}">
-                      Stock: ${firstVariant?.stock || 0}
-                    </div>
-
-                    <!-- ✅ VARIANTS -->
-                    <div class="variants">
-                      ${p.variants
-                        ?.map(
-                          (v, i) => `
-                        <span
-                          class="variant-chip ${i === 0 ? "active" : ""}"
-                          onclick='selectVariant(${JSON.stringify(v)}, "${p.id}", ${p.selling_price})'
-                        >
-                          ${Object.values(v.attributes).join(" / ")}
-                        </span>
-                      `,
-                        )
-                        .join("")}
-                    </div>
-                  </div>
-
-                  ${actions}
+                  <button type="button" onclick="this.parentElement.remove()"> Remove Variant</button>
                 </div>
               `;
-          })
-          .join("");
-      }
 
-      /* ================= Variant Click Logic ================= */
+                    container.insertAdjacentHTML("beforeend", variantHTML);
+                  }
 
-      function selectVariant(variant, productId, basePrice) {
-        // update price
-        document.getElementById(`price-${productId}`).innerText =
-          "₹" + (basePrice + (variant.additional_price || 0));
+                  /* ================= Add Attributes in Variant ================= */
 
-        // update sku
-        document.getElementById(`sku-${productId}`).innerText =
-          "SKU: " + variant.sku;
+                  function addAttribute(btn) {
+                    const variantBox = btn.parentElement;
+                    const attrContainer = variantBox.querySelector(".attributes");
 
-        // update stock
-        document.getElementById(`stock-${productId}`).innerText =
-          "Stock: " + variant.stock;
+                    const attrHTML = `
+                       <div class="attr-row" style="display:flex; gap:5px; margin-top:5px;">
+                       <input placeholder="Attribute Name (e.g. color, ram)" class="attr-name">
+                       <input placeholder="Value (e.g. red, 8GB)" class="attr-value">
+                       <button type="button" onclick="this.parentElement.remove()">❌</button>
+                     </div>
+                    ` ;
 
-        // highlight selected
-        const parent = document.getElementById(
-          `price-${productId}`,
-        ).parentElement;
-        const chips = parent.querySelectorAll(".variant-chip");
+                    attrContainer.insertAdjacentHTML("beforeend", attrHTML);
+                  }
 
-        chips.forEach((c) => c.classList.remove("active"));
-        event.target.classList.add("active");
-      }
+                  /* ================= LOAD DASHBOARD ================= */
+                  async function loadDashboard() {
+                    loginBox.style.display = "none";
+                    dashboard.style.display = "block";
 
-      /* ================= ADD ================= */
-      function openAddModal() {
-        if (!hasPermission(["admin", "inventory_manager"])) {
-          alert("No permission");
-          return;
-        }
+                    const token = localStorage.getItem("token");
 
-        editMode = false;
+                    const res = await fetch(`${BASE_URL}/auth/me`, {
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
 
-        productId.value = "";
-        name.value = "";
-        category.value = "";
-        price.value = "";
-        // image.value = "";
+                    const data = await res.json();
 
-        modalTitle.innerText = "Add Product";
-        productModal.style.display = "block";
+                    if (!res.ok) {
+                      alert("Session expired");
+                      logout();
+                      return;
+                    }
 
-        selectedFile = null;
+                    const name = data.user.name;
+                    const role = normalizeRole(data.user.role);
 
-        const preview = document.getElementById("previewImage");
-        preview.src = "";
-        preview.style.display = "none";
+                    currentUserRole = role;
 
-        document.getElementById("imageFile").value = "";
-      }
+                    console.log("Logged in role:", role);
 
-      /* ================= EDIT ================= */
-      async function editProduct(id) {
-        if (!hasPermission(["admin"])) {
-          alert("Only admin can edit");
-          return;
-        }
+                    nameTop.innerText = name;
+                    roleDisplay.innerText = role;
 
-        const token = localStorage.getItem("token");
+                    updateUIBasedOnRole();
+                    loadProducts();
+                  }
 
-        const res = await fetch(`${BASE_URL}/products/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+                  /* ================= LOAD PRODUCTS ================= */
+                  async function loadProducts(search = "") {
+                    const token = localStorage.getItem("token");
 
-        if (res.status === 403) {
-          alert(" Not allowed");
-          return;
-        }
+                    const url = search
+                      ? `${BASE_URL}/products?search=${encodeURIComponent(search)}&limit=50`
+                      : `${BASE_URL}/products?limit=50`;
 
-        const p = await res.json();
+                    const res = await fetch(url, {
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
 
-        editMode = true;
+                    const data = await res.json();
 
-        productId.value = p._id;
-        name.value = p.name;
-        category.value = p.category;
-        price.value = p.selling_price;
-        // image.value = p.image_url || "";
-        const preview = document.getElementById("previewImage");
+                    if (!data.data?.length) {
+                      grid.innerHTML = `<div>No products found</div>`;
+                      return;
+                    }
 
-        if (p.image_url) {
-          preview.src = p.image_url;
-          preview.style.display = "block";
-        }
+                    grid.innerHTML = data.data
+                      .map((p) => {
+                        let actions = "";
 
-        modalTitle.innerText = "Edit Product";
-        productModal.style.display = "block";
-      }
+                        if (hasPermission(["admin"])) {
+                          actions = `
+                              <div class="actions">
+                                <button class="btn edit" onclick="event.stopPropagation(); editProduct('${p.id}')">Edit</button>
+                                <button class="btn delete" onclick="event.stopPropagation(); deleteProduct('${p.id}')">Delete</button>
+                              </div>
+                            `;
+                        } else if (hasPermission(["inventory_manager"])) {
+                          actions = `
+                              <div class="actions">
+                                <button class="btn delete" onclick="deleteProduct('${p.id}')">Delete</button>
+                              </div>
+                            `;
+                        }
 
-      /* ================= SAVE ================= */
-      async function saveProduct() {
-        const nameVal = name.value.trim();
-        const categoryVal = category.value.trim();
-        const priceVal = Number(price.value);
+                        const firstVariant = p.variants?.[0];
 
-        if (!nameVal || !categoryVal || priceVal <= 0) {
-          alert("Fill all fields");
-          return;
-        }
+                        return `
+                            <div class="product-card" onclick="openProduct('${p.id}')">
 
-        const token = localStorage.getItem("token");
+                              <div class="product-image">
+                                ${p.image_url ? `<img src="${p.image_url}">` : "📦"}
+                              </div>
 
-        let productId = document.getElementById("productId").value;
+                              <div class="product-info">
+                                <div class="product-name">${p.name}</div>
+                                <div class="product-category">${p.category}</div>
 
-        const payload = {
-          name: nameVal,
-          category: categoryVal,
-          selling_price: priceVal,
-          cost_price: priceVal * 0.8,
-          reorder_level: 10,
-          tax_percentage: 0,
-          unit: "pcs",
-          supplier_ids: [],
-          variants: [],
-        };
+                                <div style="font-size:12px; color:${p.status === 'active' ? 'green' : 'red'};">
+                                  ${p.status === 'active' ? '🟢 Active' : '🔴 Inactive'}
+                                </div>
 
-        let url = `${BASE_URL}/products/`;
-        let method = "POST";
 
-        if (editMode && productId) {
-          url = `${BASE_URL}/products/${productId}`;
-          method = "PUT";
-        }
+                                <div class="product-price" id="price-${p.id}">
+                                  ₹${p.selling_price + (firstVariant?.additional_price || 0)}
+                                </div>
 
-        try {
-          const res = await fetch(url, {
-            method,
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(payload),
-          });
+                                <div style="font-size:12px;color:gray;" id="sku-${p.id}">
+                                  SKU: ${firstVariant?.sku || "-"}
+                                </div>
 
-          const data = await res.json();
+                                <div style="font-size:12px;color:gray;" id="stock-${p.id}">
+                                  Stock: ${firstVariant?.stock || 0}
+                                </div>
 
-          if (!res.ok) {
-            alert("Error saving product");
-            return;
-          }
+                                <!-- VARIANTS -->
+                                <div class="variants">
+                                  ${p.variants
+                                    ?.map(
+                                      (v, i) => `
+                                    <span
+                                      class="variant-chip ${i === 0 ? "active" : ""}"
+                                      onclick='selectVariant(${JSON.stringify(v)}, "${p.id}", ${p.selling_price})'
+                                    >
+                                       ${Object.values(v.attributes).join(" / ")}
+                                    </span>
+                                  `,
+                                    )
+                                    .join("")}
+                                </div>
+                              </div>
 
-          //  GET PRODUCT ID
-          const newProductId = editMode ? productId : data._id;
+                              ${actions}
+                            </div>
+                          `;
+                      })
+                      .join("");
+                  }
 
-          //  UPLOAD IMAGE AFTER PRODUCT CREATED
-          if (selectedFile) {
-            await uploadProductImage(newProductId, selectedFile);
-          }
+                  /* ================= Variant Click Logic ================= */
 
-          alert(" Product saved");
-          closeModal();
-          loadProducts();
-        } catch (err) {
-          console.error(err);
-          alert("Server error");
-        }
-      }
-      /* ================= DELETE ================= */
-      async function deleteProduct(id) {
-        if (!hasPermission(["admin", "inventory_manager"])) {
-          alert("No permission");
-          return;
-        }
+                  function selectVariant(variant, productId, basePrice) {
+                    document.getElementById(`price-${productId}`).innerText =
+                      "₹" + (basePrice + (variant.additional_price || 0));
 
-        if (!confirm("Delete?")) return;
+                    document.getElementById(`sku-${productId}`).innerText =
+                      "SKU: " + variant.sku;
 
-        const token = localStorage.getItem("token");
+                    document.getElementById(`stock-${productId}`).innerText =
+                      "Stock: " + variant.stock;
 
-        const res = await fetch(`${BASE_URL}/products/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
+                    const parent = document.getElementById(
+                      `price-${productId}`,
+                    ).parentElement;
+                    const chips = parent.querySelectorAll(".variant-chip");
 
-        if (res.status === 403) {
-          alert(" Only admin can delete");
-          return;
-        }
+                    chips.forEach((c) => c.classList.remove("active"));
+                    event.target.classList.add("active");
+                  }
 
-        loadProducts();
-      }
+                  /* ================= ADD ================= */
+                  function openAddModal() {
+                    if (!hasPermission(["admin", "inventory_manager", "supplier"])) {
+                      alert("No permission");
+                      return;
+                    }
 
-       /* ================= product description page ================= */
+                    editMode = false;
 
-      function openProduct(id) {
-        window.location.href = `product.html?id=${id}`;
-      }
+                    document.getElementById("productId").value = "";
 
-      /* ================= LOGOUT ================= */
-      function logout() {
-        localStorage.clear();
-        location.reload();
-      }
+                    document.getElementById("name").value = "";
+                    document.getElementById("description").value = "";
+                    document.getElementById("category").value = "";
+                    document.getElementById("subcategory").value = "";
+                    document.getElementById("brand").value = "";
 
-      function closeModal() {
-        document.getElementById("productModal").style.display = "none";
-      }
+                    document.getElementById("cost_price").value = "";
+                    document.getElementById("selling_price").value = "";
 
-      /* ================= INIT ================= */
-      if (localStorage.getItem("token")) {
-        loadDashboard();
-      }
+                    document.getElementById("reorder_level").value = "";
+                    document.getElementById("tax_percentage").value = "";
+                    document.getElementById("unit").value = "pcs";
+                    document.getElementById("status").value = "active";
+                    document.getElementById("variantsContainer").innerHTML = "";
 
-      let searchTimeout;
+                    modalTitle.innerText = "Add Product";
+                    productModal.style.display = "block";
 
-      searchInput.addEventListener("input", () => {
-        clearTimeout(searchTimeout);
+                    selectedFile = null;
 
-        searchTimeout = setTimeout(() => {
-          const value = searchInput.value.trim();
-          loadProducts(value);
-        }, 400); // debounce
-      });
+                    const preview = document.getElementById("previewImage");
+                    preview.src = "";
+                    preview.style.display = "none";
+
+                    document.getElementById("imageFile").value = "";
+                  }
+
+                  /* ================= EDIT ================= */
+                  async function editProduct(id) {
+                    if (!hasPermission(["admin"])) {
+                      alert("Only admin can edit");
+                      return;
+                    }
+
+                    const token = localStorage.getItem("token");
+
+                    const res = await fetch(`${BASE_URL}/products/${id}`, {
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+
+                    if (res.status === 403) {
+                      alert("Not allowed");
+                      return;
+                    }
+
+                    const p = await res.json();
+
+                    editMode = true;
+
+                    document.getElementById("productId").value = p._id;
+
+                    document.getElementById("name").value = p.name || "";
+                    document.getElementById("description").value = p.description || "";
+                    document.getElementById("category").value = p.category || "";
+                    document.getElementById("subcategory").value = p.subcategory || "";
+                    document.getElementById("brand").value = p.brand || "";
+
+                    document.getElementById("cost_price").value = p.cost_price || "";
+                    document.getElementById("selling_price").value = p.selling_price || "";
+                    document.getElementById("status").value = p.status || "active";
+
+                    document.getElementById("reorder_level").value = p.reorder_level || "";
+                    document.getElementById("tax_percentage").value =
+                      p.tax_percentage || "";
+                    document.getElementById("unit").value = p.unit || "pcs";
+
+                 
+                    const variant = p.variants?.[0];
+                    const preview = document.getElementById("previewImage");
+
+                    if (p.image_url) {
+                      preview.src = p.image_url;
+                      preview.style.display = "block";
+                    } else {
+                      preview.style.display = "none";
+                    }
+
+                    modalTitle.innerText = "Edit Product";
+                    productModal.style.display = "block";
+                  }
+
+                  /* ================= SAVE ================= */
+                  async function saveProduct() {
+                     const token = localStorage.getItem("token");
+
+                     let productId = document.getElementById("productId").value;
+
+
+                     const variants = [];
+
+                    document.querySelectorAll(".variant-box").forEach((box) => {
+                    const attributes = {};
+
+                      // dynamic attributes
+                      box.querySelectorAll(".attr-row").forEach((row) => {
+                        const key = row.querySelector(".attr-name").value.trim();
+                        const value = row.querySelector(".attr-value").value.trim();
+
+                        if (key && value) {
+                          attributes[key] = value;
+                        }
+                         });
+
+                      variants.push({
+                        attributes,
+                        stock: Number(box.querySelector(".variant-stock").value || 0),
+                        additional_price: Number(box.querySelector(".variant-price").value || 0),
+                      });
+                    });
+
+
+                    const payload = {
+                      name: document.getElementById("name").value.trim(),
+                      description:document.getElementById("description")?.value.trim() || "",
+                      category: document.getElementById("category").value.trim(),
+                      subcategory:document.getElementById("subcategory")?.value.trim() || "",
+                      brand: document.getElementById("brand")?.value.trim(),
+                      cost_price: Number(document.getElementById("cost_price")?.value || 0),
+                      selling_price: Number(document.getElementById("selling_price")?.value || 0),
+                      status: document.getElementById("status").value,
+                      variants: variants
+                    };
+
+                    let url = `${BASE_URL}/products/`;
+                    let method = "POST";
+
+                    if (editMode && productId) {
+                      url = `${BASE_URL}/products/${productId}`;
+                      method = "PUT";
+                    }
+
+                    try {
+                      const res = await fetch(url, {
+                        method,
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify(payload),
+                       });
+
+                      const data = await res.json();
+
+                      if (!res.ok) {
+                        alert(data.detail || "Error saving product");
+                        return;
+                      }
+
+                      // get product id
+                      const newProductId = editMode ? productId : data._id;
+
+                       // upload image (if selected)
+                      if (selectedFile) {
+                         await uploadProductImage(newProductId, selectedFile);
+                      }
+
+                      alert("Product saved successfully");
+
+                      closeModal();
+                      loadProducts();
+                    } catch (err) {
+                      console.error(err);
+                      alert("Server error");
+                    }
+                  }
+
+
+                  /* ================= DELETE ================= */
+                  async function deleteProduct(id) {
+                    if (!hasPermission(["admin", "inventory_manager"])) {
+                      alert("No permission");
+                      return;
+                    }
+
+                    if (!confirm("Delete?")) return;
+
+                    const token = localStorage.getItem("token");
+
+                    const res = await fetch(`${BASE_URL}/products/${id}`, {
+                      method: "DELETE",
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+
+                    if (res.status === 403) {
+                      alert(" Only admin can delete");
+                      return;
+                    }
+
+                    loadProducts();
+                  }
+
+                  // ================= Edit supplier profie =================
+
+                  async function openProfileModal() {
+                    const token = localStorage.getItem("token");
+
+                    const res = await fetch(`${BASE_URL}/suppliers/me`, {
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+
+                    const data = await res.json();
+
+                    // form
+                    document.getElementById("s_name").value = data.name || "";
+                    document.getElementById("s_contact").value = data.contact_person || "";
+                    document.getElementById("s_phone").value = data.phone || "";
+                    document.getElementById("s_email").value = data.email || "";
+                    document.getElementById("s_address").value = data.address || "";
+                    document.getElementById("s_gst").value = data.gst_number || "";
+
+                    document.getElementById("profileModal").style.display = "block";
+                  }
+
+                  /* ================= close profile modal ================= */
+                  function closeProfileModal() {
+                    document.getElementById("profileModal").style.display = "none";
+                  }
+
+                  /* ================= Update profile ================= */
+
+                  async function updateSupplier() {
+                    const token = localStorage.getItem("token");
+
+                    const payload = {
+                      name: document.getElementById("s_name").value,
+                      contact_person: document.getElementById("s_contact").value,
+                      phone: document.getElementById("s_phone").value,
+                      email: document.getElementById("s_email").value,
+                      address: document.getElementById("s_address").value,
+                      gst_number: document.getElementById("s_gst").value,
+                    };
+
+                    const res = await fetch(`${BASE_URL}/suppliers/me`, {
+                      method: "PUT",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                      },
+                      body: JSON.stringify(payload),
+                    });
+
+                    const data = await res.json();
+
+                    alert(data.message || "Updated!");
+                    closeProfileModal();
+                  }
+
+                  /* ================= product description page ================= */
+
+                  function openProduct(id) {
+                    window.location.href = `product.html?id=${id}`;
+                  }
+
+                  /* ================= LOGOUT ================= */
+                  function logout() {
+                    localStorage.clear();
+                    location.reload();
+                  }
+
+                  function closeModal() {
+                    document.getElementById("productModal").style.display = "none";
+                  }
+
+                  /* ================= INIT ================= */
+                  if (localStorage.getItem("token")) {
+                    loadDashboard();
+                  }
+
+                  let searchTimeout;
+
+                  searchInput.addEventListener("input", () => {
+                    clearTimeout(searchTimeout);
+
+                    searchTimeout = setTimeout(() => {
+                      const value = searchInput.value.trim();
+                      loadProducts(value);
+                    }, 400); 
+                  });
     </script>
   </body>
 </html>

@@ -7,6 +7,7 @@ class userRole(str,Enum):
     WAREHOUSE_STAFF = "warehouse_staff"
     FINANCE_STAFF = "finance_staff"
     VIEWER = "viewer"
+    SUPPLIER = "supplier" 
 
 class RegisterSchema(BaseModel):
     name:str

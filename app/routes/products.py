@@ -3,7 +3,9 @@ from app.schemas.product_schema import ProductCreate, ProductUpdate
 from app.services.product_service import ProductService
 from app.repositories.product_repository import ProductRepository
 from app.core.database import get_db
-from app.core.dependencies import required_roles
+from app.core.dependencies import required_roles,get_current_user
+from app.repositories.supplier_repository import SupplierRepository
+from app.services.supplier_service import SupplierService
 import cloudinary.uploader
 from bson import ObjectId
 
@@ -14,7 +16,7 @@ router = APIRouter(prefix="/products", tags=["Products"])
 async def create_product(
     payload: ProductCreate,
     db=Depends(get_db),
-    user=Depends(required_roles(["admin", "inventory_manager"]))
+    user=Depends(required_roles(["admin", "inventory_manager", "supplier"]))
 ):
     service = ProductService(repo=ProductRepository(db))
     result = await service.create_product(payload, user)
@@ -111,10 +113,22 @@ async def list_products(
     sort_by: str = "created_at",
     order: str = "desc",
     skip: int = 0,
-    limit: int = 10,
-    db=Depends(get_db)
+    limit: int = 20,
+    db=Depends(get_db),
+    user=Depends(get_current_user)
+    
 ):
     filters = {"is_deleted": False}
+    
+    if user["role"] != "admin":
+      filters["status"] = "active"
+    
+    if user["role"] == "supplier":
+        supplier_repo = SupplierRepository(db)
+        supplier_service = SupplierService(supplier_repo)
+        supplier = await supplier_service.get_supplier_by_user(user)
+        if supplier:
+            filters["supplier_id"] = str(supplier["_id"])
 
     # 🔍 SEARCH (multi-field)
     if search:

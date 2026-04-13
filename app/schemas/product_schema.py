@@ -14,9 +14,10 @@ class ProductCreate(BaseModel):
     category: Optional[str] = None
     subcategory: Optional[str] = None
     brand: Optional[str] = None
-    supplier_ids: List[str] = Field(default_factory=list)
+    supplier_id:  Optional[str] = None
     cost_price: float
     selling_price: float =0
+    status: str = "active"
     reorder_level:int = 10
     tax_percentage: float = 0
     unit :str ="pcs"  
@@ -29,7 +30,7 @@ class ProductUpdate(BaseModel):
     description: Optional[str] = None
     category: Optional[str] = None
     brand: Optional[str] = None
-    supplier_ids: Optional[List[str]] = None
+    supplier_id: Optional[List[str]] = None
     cost_price: Optional[float] = None
     selling_price: Optional[float] = None
     reorder_level: Optional[int] = None

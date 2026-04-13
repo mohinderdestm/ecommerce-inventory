@@ -1,6 +1,10 @@
 from fastapi import HTTPException, status
 from app.utils.sku_generator import generate_sku
 
+from app.repositories.supplier_repository import SupplierRepository
+from app.services.supplier_service import SupplierService
+from app.core.database import db
+
 class ProductService:
 
     def __init__(self, repo):
@@ -54,6 +58,18 @@ class ProductService:
         except Exception as e:
             print("SKU Error:", e)
             data["sku"] = base_name[:10]
+            
+        # ✅ HANDLE SUPPLIER LOGIC
+        if user.get("role") == "supplier":
+            supplier_repo = SupplierRepository(db)
+            supplier_service = SupplierService(supplier_repo)
+
+            supplier = await supplier_service.get_supplier_by_user(user)
+
+            if not supplier:
+                raise HTTPException(404, "Supplier not found")
+
+            data["supplier_id"] = str(supplier["_id"])
 
         product_id = await self.repo.create(data)
         return {"_id": product_id}
@@ -65,6 +81,11 @@ class ProductService:
         return {"message": "Product deleted"}     
     
     async def update_product(self, product_id, data):
+        update_data = data.dict(exclude_unset=True)
+
+        if "status" in update_data:
+           update_data["status"] = update_data["status"]
+
         result = await self.repo.update(product_id, data.dict(exclude_unset=True))
 
         if result.matched_count == 0:

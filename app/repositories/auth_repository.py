@@ -10,3 +10,5 @@ class AuthRepository:
     async def create_user(self, data: dict):
         result = await self.collection.insert_one(data)
         return str(result.inserted_id) 
+    
+   
