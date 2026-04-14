@@ -8,6 +8,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let allProducts = [];
 
+  let cart = JSON.parse(localStorage.getItem("active_cart")) || [];
+
   let currentPage = 1;
   const itemsPerPage = 10;
   let filteredProducts = [];
@@ -47,6 +49,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const profileOverlay = getEl("userProfileOverlay");
   const detailOverlay = getEl("productDetailOverlay");
   const detailBody = getEl("productDetailBody");
+
+  const cartBtn = getEl("cartBtn");
+  const cartOverlay = getEl("cartOverlay");
+  const cartItemsContainer = getEl("cartItemsContainer");
+  const cartTotalValue = getEl("cartTotalValue");
+  const cartBadge = getEl("cartBadge");
+  const clearCartBtn = getEl("clearCartBtn");
+  const placeOrderBtn = getEl("placeOrderBtn");
+  const orderSuccessOverlay = getEl("orderSuccessOverlay");
 
   const form = getEl("productForm");
   const variantsContainer = getEl("variantsContainer");
@@ -92,6 +103,8 @@ document.addEventListener("DOMContentLoaded", () => {
       logoutOverlay,
       profileOverlay,
       detailOverlay,
+      cartOverlay,
+      orderSuccessOverlay,
     ].forEach((ov) => ov?.classList.add("hidden"));
     if (form) form.reset();
     if (variantsContainer) variantsContainer.innerHTML = "";
@@ -106,6 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
       e.target === logoutOverlay ||
       e.target === profileOverlay ||
       e.target === detailOverlay ||
+      e.target === cartOverlay ||
       (e.target.classList && e.target.classList.contains("overlay-container"))
     ) {
       closeAllOverlays();
@@ -118,6 +132,7 @@ document.addEventListener("DOMContentLoaded", () => {
     getEl("closeLogoutOverlay"),
     getEl("closeProfileOverlay"),
     getEl("closeDetailOverlay"),
+    getEl("closeCartOverlay"),
     getEl("cancelLogout"),
     getEl("cancelDelete"),
   ].forEach((btn) => {
@@ -126,6 +141,151 @@ document.addEventListener("DOMContentLoaded", () => {
       closeAllOverlays();
     });
   });
+
+  const updateCartUI = () => {
+    localStorage.setItem("active_cart", JSON.stringify(cart));
+
+    if (!cartItemsContainer) return;
+    cartItemsContainer.innerHTML = "";
+    let subtotal = 0;
+    let selectedCount = 0;
+
+    if (cart.length === 0) {
+      cartItemsContainer.innerHTML = `
+        <div class="empty-msg">
+            <p style="text-align:center; padding: 20px; color: #94a3b8;">Your cart is empty.</p>
+        </div>`;
+      if (getEl("cartItemCountDisplay"))
+        getEl("cartItemCountDisplay").innerText = "0 Items";
+    } else {
+      cart.forEach((item, index) => {
+        if (item.selected) {
+          subtotal += item.price * item.quantity;
+          selectedCount += item.quantity;
+        }
+
+        const itemDiv = document.createElement("div");
+        itemDiv.className = `cart-item ${item.selected ? "" : "item-deselected"}`;
+        itemDiv.innerHTML = `
+          <input type="checkbox" class="item-checkbox" data-index="${index}" ${item.selected ? "checked" : ""}>
+          <img src="${item.image}" alt="${item.name}" class="cart-item-img" />
+          <div class="cart-item-info">
+            <h4>${item.name}</h4>
+            <p>₹ ${item.price} x ${item.quantity}</p>
+          </div>
+          <button class="remove-cart-item" data-index="${index}">&times;</button>
+        `;
+        cartItemsContainer.appendChild(itemDiv);
+      });
+      if (getEl("cartItemCountDisplay"))
+        getEl("cartItemCountDisplay").innerText =
+          `${selectedCount} Total Items`;
+    }
+
+    const formattedPrice = `₹ ${subtotal}`;
+    if (getEl("summarySubtotal"))
+      getEl("summarySubtotal").innerText = formattedPrice;
+    if (cartTotalValue) cartTotalValue.innerText = formattedPrice;
+    if (cartBadge) cartBadge.innerText = cart.length;
+
+    document.querySelectorAll(".item-checkbox").forEach((cb) => {
+      cb.addEventListener("change", (e) => {
+        const idx = e.target.dataset.index;
+        cart[idx].selected = e.target.checked;
+        updateCartUI();
+      });
+    });
+
+    document.querySelectorAll(".remove-cart-item").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        const idx = e.target.dataset.index;
+        cart.splice(idx, 1);
+        updateCartUI();
+      });
+    });
+  };
+
+  if (cartBtn) {
+    cartBtn.addEventListener("click", () => {
+      cartOverlay?.classList.remove("hidden");
+      updateCartUI();
+    });
+  }
+
+  if (clearCartBtn) {
+    clearCartBtn.addEventListener("click", () => {
+      cart = [];
+      updateCartUI();
+      showToast("Cart cleared");
+    });
+  }
+
+  if (placeOrderBtn) {
+    placeOrderBtn.addEventListener("click", async () => {
+      const selectedItems = cart.filter((i) => i.selected);
+      if (selectedItems.length === 0) {
+        showToast("Select items to place order!");
+        return;
+      }
+
+      const orderPayload = {
+        customer_name: localStorage.getItem("user_name") || userName,
+        items: selectedItems.map((item) => ({
+          product_id: item.id,
+          quantity: item.quantity,
+          variant_sku: item.sku || null,
+        })),
+      };
+
+      try {
+        const res = await fetch("/api/v1/orders/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(orderPayload),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          console.error("Backend Error Details:", errData);
+          throw new Error("Failed to save order");
+        }
+
+        const savedOrder = await res.json();
+
+        cartOverlay?.classList.add("hidden");
+        orderSuccessOverlay?.classList.remove("hidden");
+        getEl("processingState")?.classList.remove("hidden");
+        getEl("successState")?.classList.add("hidden");
+
+        setTimeout(() => {
+          getEl("processingState")?.classList.add("hidden");
+          getEl("successState")?.classList.remove("hidden");
+
+          if (getEl("transactionId"))
+            getEl("transactionId").innerText = `#${savedOrder.id}`;
+
+          cart = cart.filter((i) => !i.selected);
+          updateCartUI();
+
+          let count = 5;
+          const countdownEl = getEl("countdown");
+          const timer = setInterval(() => {
+            count--;
+            if (countdownEl) countdownEl.innerText = count;
+            if (count <= 0) {
+              clearInterval(timer);
+              window.location.reload();
+            }
+          }, 1000);
+        }, 2000);
+      } catch (err) {
+        showToast("Database update failed ❌");
+      }
+    });
+  }
 
   const fetchUserData = async () => {
     try {
@@ -427,11 +587,11 @@ document.addEventListener("DOMContentLoaded", () => {
       ? p.reorder_level
       : variantData.reorder_level || 0;
     const displayTitle = isBase ? p.name : `${p.name} (${variantData.name})`;
-
     const displayImg =
       !isBase && variantData.image
         ? variantData.image
         : p.image || "https://via.placeholder.com/300";
+    const displaySKU = isBase ? null : variantData.sku || variantData.name;
 
     const supplier = p.supplier_details || null;
     let supplierHtml = `<p class="no-supplier">No supplier information available.</p>`;
@@ -467,12 +627,10 @@ document.addEventListener("DOMContentLoaded", () => {
     let switcherHtml = "";
     if (p.variants && p.variants.length > 0) {
       const totalVariants = p.variants.length;
-
       let dots = `<button class="variant-dot ${index === -1 ? "active" : ""}" data-idx="-1"></button>`;
       p.variants.forEach((v, i) => {
         dots += `<button class="variant-dot ${index === i ? "active" : ""}" data-idx="${i}"></button>`;
       });
-
       const prevIdx = index === -1 ? totalVariants - 1 : index - 1;
       const nextIdx = index === totalVariants - 1 ? -1 : index + 1;
 
@@ -488,7 +646,7 @@ document.addEventListener("DOMContentLoaded", () => {
     detailBody.innerHTML = `
       <div class="detail-grid">
         <div class="detail-img-box">
-          <img src="${displayImg}" />
+          <img src="${displayImg}" id="detailMainImg" />
         </div>
         <div class="detail-info">
           <span class="detail-category">${p.category || "Uncategorized"}</span>
@@ -504,6 +662,18 @@ document.addEventListener("DOMContentLoaded", () => {
             <p>${p.description || "No description provided."}</p>
           </div>
           ${switcherHtml}
+          
+          <div class="product-actions">
+              <div class="qty-control">
+                  <button id="qtyMinus" class="qty-btn" type="button">−</button>
+                  <input type="number" id="purchaseQty" value="1" min="1" max="${displayStock}" readonly />
+                  <button id="qtyPlus" class="qty-btn" type="button">+</button>
+              </div>
+              <button class="add-to-cart-premium" id="addToCartActionBtn">
+                  <span class="icon">🛒</span>
+                  <span class="text">Add to Cart</span>
+              </button>
+          </div>
         </div>
       </div>
       <div class="detail-footer">
@@ -511,6 +681,39 @@ document.addEventListener("DOMContentLoaded", () => {
         ${managementHtml}
       </div>
     `;
+
+    const qtyInput = getEl("purchaseQty");
+    getEl("qtyPlus")?.addEventListener("click", () => {
+      if (parseInt(qtyInput.value) < displayStock)
+        qtyInput.value = parseInt(qtyInput.value) + 1;
+    });
+    getEl("qtyMinus")?.addEventListener("click", () => {
+      if (parseInt(qtyInput.value) > 1)
+        qtyInput.value = parseInt(qtyInput.value) - 1;
+    });
+
+    getEl("addToCartActionBtn")?.addEventListener("click", () => {
+      const qty = parseInt(qtyInput.value);
+      const existingItem = cart.find(
+        (i) => i.id === (p._id || p.id) && i.name === displayTitle,
+      );
+
+      if (existingItem) {
+        existingItem.quantity += qty;
+      } else {
+        cart.push({
+          id: p._id || p.id,
+          name: displayTitle,
+          price: displayPrice,
+          image: displayImg,
+          quantity: qty,
+          sku: displaySKU,
+          selected: true,
+        });
+      }
+      updateCartUI();
+      showToast(`Added ${qty} item(s) to Cart! 🛒`);
+    });
 
     document.querySelectorAll(".variant-dot, .nav-arrow").forEach((btn) => {
       btn.addEventListener("click", (e) => {
@@ -552,7 +755,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const getVal = (id) => getEl(id)?.value || "";
       const formData = new FormData();
-
       const variants = [];
       const variantImages = [];
 
@@ -563,7 +765,6 @@ document.addEventListener("DOMContentLoaded", () => {
           reorder_level: Number(item.querySelector(".v-qty").value) || 0,
           image: item.dataset.existingImage || "",
         });
-
         const vImgFile = item.querySelector(".v-image").files[0];
         variantImages.push(vImgFile || null);
       });
@@ -582,7 +783,6 @@ document.addEventListener("DOMContentLoaded", () => {
       };
 
       Object.keys(payload).forEach((key) => formData.append(key, payload[key]));
-
       const mainImg = getEl("image");
       if (mainImg?.files?.[0]) formData.append("image", mainImg.files[0]);
 
@@ -600,13 +800,11 @@ document.addEventListener("DOMContentLoaded", () => {
           ? `/api/v1/products/${editProductId}`
           : "/api/v1/products/";
         let method = editMode ? "PUT" : "POST";
-
         const res = await fetch(url, {
           method,
           headers: { Authorization: `Bearer ${token}` },
           body: formData,
         });
-
         if (res.ok) {
           showToast(editMode ? "Updated" : "Added");
           closeAllOverlays();
@@ -630,12 +828,9 @@ document.addEventListener("DOMContentLoaded", () => {
       container.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #94a3b8;">No products found.</p>`;
       return;
     }
-
     products.forEach((p) => {
       const card = document.createElement("div");
       card.className = "product-card";
-      card.style.cursor = "pointer";
-
       card.innerHTML = `
         <div class="img-box"><img src="${p.image || "https://via.placeholder.com/300"}" /></div>
         <div class="card-body">
@@ -644,7 +839,6 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="meta"><span class="price">₹ ${p.selling_price}</span><span class="qty">Stock: ${p.reorder_level}</span></div>
           <p class="extra">${p.brand || "Generic"} • ${p.category || "Uncategorized"}</p>
         </div>`;
-
       card.addEventListener("click", () => openDetailOverlay(p));
       container.appendChild(card);
     });
@@ -657,7 +851,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       const data = await res.json();
       let fetchedProducts = Array.isArray(data) ? data : data.products || [];
-
       const currentRole = (
         localStorage.getItem("user_role") ||
         userRole ||
@@ -672,7 +865,6 @@ document.addEventListener("DOMContentLoaded", () => {
             p.supplier_details && p.supplier_details.email === currentEmail,
         );
       }
-
       allProducts = fetchedProducts;
       updateCategoryDropdown(allProducts);
       performSearch();
@@ -681,5 +873,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  fetchUserData().then(loadProducts);
+  fetchUserData().then(() => {
+    loadProducts();
+    updateCartUI();
+  });
 });
