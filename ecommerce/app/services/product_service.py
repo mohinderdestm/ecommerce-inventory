@@ -16,7 +16,7 @@ class ProductService:
         self.product_repo = product_repo
         self.category_repo = category_repo
 
-    # Create
+    # Create 
 
     async def create_product(self, payload: ProductCreateRequest, created_by: str) -> dict:
         # Validate category exists

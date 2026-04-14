@@ -1,12 +1,14 @@
-from fastapi import APIRouter, Depends, status
+from typing import Optional
+from fastapi import APIRouter, Depends, Query, status
 
 from app.schemas.variant import (
     VariantBulkCreateRequest,
     VariantUpdateRequest,
-    VariantResponse,
+    VariantListResponse,
     APIResponse,
 )
 from app.services.variant_service import VariantService
+from app.repositories.variant_repository import VariantRepository
 from app.repositories.product_repository import ProductRepository
 from app.utils.dependencies import get_current_user, require_roles, get_db
 from app.models.user import UserRole
@@ -16,30 +18,34 @@ router = APIRouter(prefix="/products/{product_id}/variants", tags=["Product Vari
 
 
 def get_variant_service(db: AsyncIOMotorDatabase = Depends(get_db)) -> VariantService:
-    return VariantService(product_repo=ProductRepository(db))
+    return VariantService(
+        variant_repo=VariantRepository(db),
+        product_repo=ProductRepository(db),
+    )
 
 
 @router.get(
     "/",
-    response_model=list[VariantResponse],
+    response_model=VariantListResponse,
     summary="Get all variants for a product",
 )
 async def get_variants(
     product_id: str,
+    only_active: bool = Query(default=False),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=200),
     service: VariantService = Depends(get_variant_service),
     _: dict = Depends(get_current_user),
 ):
-    return await service.get_variants(product_id)
+    return await service.get_variants(product_id, only_active, page, page_size)
 
 
 @router.post(
     "/",
-    response_model=dict,
     status_code=status.HTTP_201_CREATED,
     summary="Add variants to a product [Admin / Supplier]",
     description=(
-        "Add one or more variants to a product. Each variant can have its own "
-        "color, attributes (RAM, ROM, Size etc.), price, stock, and images. "
+        "Add one or more variants to a product. "
     ),
 )
 async def add_variants(
@@ -53,7 +59,6 @@ async def add_variants(
 
 @router.put(
     "/{variant_id}",
-    response_model=dict,
     summary="Update a specific variant [Admin / Supplier]",
 )
 async def update_variant(

@@ -4,20 +4,17 @@ from pydantic import BaseModel, Field, field_validator
 from app.schemas.product import ImageMetadata
 
 
-# Single Variant
-
 class VariantCreateRequest(BaseModel):
     color: Optional[str] = Field(default="", max_length=50, examples=["Midnight Black"])
     attributes: Optional[dict] = Field(
         default={},
         examples=[{"RAM": "8GB", "ROM": "128GB"}],
-        description="Key-value pairs for variant attributes e.g. RAM, ROM, Size, Weight"
+        description="Key-value pairs e.g. RAM, ROM, Size, Weight"
     )
     selling_price: float = Field(..., gt=0, examples=[79999.0])
     cost_price: float = Field(..., gt=0, examples=[55000.0])
     stock: int = Field(default=0, ge=0, examples=[50])
     image_metadata: Optional[list[ImageMetadata]] = Field(default=[])
-    # Optional: override auto-generated SKU
     sku: Optional[str] = Field(default=None, max_length=100)
 
     @field_validator("attributes")
@@ -38,21 +35,14 @@ class VariantUpdateRequest(BaseModel):
     is_active: Optional[bool] = None
 
 
-# Bulk Variant Create 
-
 class VariantBulkCreateRequest(BaseModel):
-    variants: list[VariantCreateRequest] = Field(
-        ...,
-        min_length=1,
-        max_length=50,
-        description="List of variants to add to a product"
-    )
+    variants: list[VariantCreateRequest] = Field(..., min_length=1, max_length=50)
 
-
-# Response
 
 class VariantResponse(BaseModel):
+    id: str = Field(..., alias="_id")
     variant_id: str
+    product_id: str
     color: str
     attributes: dict
     sku: str
@@ -61,7 +51,17 @@ class VariantResponse(BaseModel):
     stock: int
     image_metadata: list[ImageMetadata]
     is_active: bool
+    created_by: str
     created_at: datetime
+    updated_at: datetime
+
+    model_config = {"populate_by_name": True}
+
+
+class VariantListResponse(BaseModel):
+    total: int
+    product_id: str
+    variants: list[VariantResponse]
 
 
 class APIResponse(BaseModel):

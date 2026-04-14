@@ -1374,30 +1374,27 @@ function renderSupplierProductCards(products, grid) {
     body.className = 'prod-body';
     body.style.cursor = 'pointer';
     body.onclick = () => openProductModal(p);
-    // Variant swatches and price range
-    const variants = p.variants || [];
-    const activeVariants = variants.filter(v => v.is_active !== false);
+    // Variant summary enriched by server via aggregation on variants collection
+    const vs = p.variant_summary || {};
+    const variantCount = vs.count || 0;
     let swatchHtml = '';
     let priceHtml = `<span class="prod-sell">₹${Number(p.selling_price).toLocaleString('en-IN')}</span>`;
 
-    if (activeVariants.length > 0) {
-      // Price range from variants
-      const prices = activeVariants.map(v => v.selling_price).filter(Boolean);
-      if (prices.length > 0) {
-        const minP = Math.min(...prices);
-        const maxP = Math.max(...prices);
-        priceHtml = minP === maxP
-          ? `<span class="prod-sell">₹${Number(minP).toLocaleString('en-IN')}</span>`
-          : `<span class="prod-sell">₹${Number(minP).toLocaleString('en-IN')}</span><span class="price-range"> – ₹${Number(maxP).toLocaleString('en-IN')}</span>`;
+    if (variantCount > 0) {
+      // Price range from aggregation
+      if (vs.min_price && vs.max_price) {
+        priceHtml = vs.min_price === vs.max_price
+          ? `<span class="prod-sell">₹${Number(vs.min_price).toLocaleString('en-IN')}</span>`
+          : `<span class="prod-sell">₹${Number(vs.min_price).toLocaleString('en-IN')}</span><span class="price-range"> – ₹${Number(vs.max_price).toLocaleString('en-IN')}</span>`;
       }
 
-      // Color swatches — max 6 shown
-      const withColors = activeVariants.filter(v => v.color);
-      const shown = withColors.slice(0, 6);
-      const extra = withColors.length - shown.length;
+      // Color swatches from aggregated colors list
+      const colors = (vs.colors || []).filter(Boolean);
+      const shown = colors.slice(0, 6);
+      const extra = colors.length - shown.length;
       if (shown.length > 0) {
-        const dots = shown.map(v =>
-          `<span class="swatch" style="background:${COLOR_MAP[v.color.toLowerCase().trim()]||'#475569'}" title="${escHtml(v.color)}"></span>`
+        const dots = shown.map(c =>
+          `<span class="swatch" style="background:${COLOR_MAP[c.toLowerCase().trim()]||'#475569'}" title="${escHtml(c)}"></span>`
         ).join('');
         swatchHtml = `<div class="variant-swatches">${dots}${extra > 0 ? `<span class="swatch-more">+${extra}</span>` : ''}</div>`;
       }
@@ -1408,7 +1405,7 @@ function renderSupplierProductCards(products, grid) {
       <div class="prod-sku">SKU: ${escHtml(p.sku)}</div>
       ${p.brand ? `<div class="prod-brand">${escHtml(p.brand)}</div>` : ''}
       <div class="prod-price">${priceHtml}</div>
-      ${activeVariants.length > 0 ? `<div style="font-size:.72rem;color:#475569">${activeVariants.length} variant${activeVariants.length>1?'s':''}</div>` : ''}
+      ${variantCount > 0 ? `<div style="font-size:.72rem;color:#475569">${variantCount} variant${variantCount>1?'s':''}</div>` : ''}
       ${p.tax_percentage > 0 ? `<div style="font-size:.72rem;color:#475569">Tax: ${escHtml(String(p.tax_percentage))}%</div>` : ''}
       ${swatchHtml}
       ${stockBadge}
@@ -1562,9 +1559,14 @@ function openProductModal(p) {
   const modalActions = document.getElementById('modal-actions');
   modalActions.style.display = canEditProducts() ? 'flex' : 'none';
 
-  // ── Variants section ──────────────────────────────────────────────────────
+  // ── Variants section — fetch from separate variants collection ────────────
   const variantsEl = document.getElementById('modal-variants');
-  const variants = (p.variants || []).filter(v => v.is_active !== false);
+  variantsEl.style.display = 'block';
+  variantsEl.innerHTML = '<div class="modal-variant-title">Variants</div><div style="font-size:.78rem;color:#475569">Loading variants...</div>';
+
+  // Async fetch variants from /products/{id}/variants/
+  apiFetch(`/products/${p._id}/variants/`).then(({ ok, data }) => {
+    const variants = ok ? (data.variants || []).filter(v => v.is_active !== false) : [];
 
   if (variants.length > 0) {
     variantsEl.style.display = 'block';
@@ -1603,6 +1605,7 @@ function openProductModal(p) {
   } else {
     variantsEl.style.display = 'none';
   }
+  }); // end async fetch
 
   document.getElementById('prod-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
