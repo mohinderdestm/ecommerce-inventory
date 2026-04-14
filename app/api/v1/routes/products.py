@@ -22,7 +22,6 @@ def verify_supplier_role(user):
 
 
 async def save_upload_file(file: UploadFile, directory: str) -> str:
-
     os.makedirs(directory, exist_ok=True)
     filename = f"{uuid.uuid4()}_{file.filename}"
     filepath = os.path.join(directory, filename)
@@ -79,15 +78,11 @@ async def create_product(
     if variant_images:
         for idx, v_file in enumerate(variant_images):
             if idx < len(data["variants"]):
-
                 content = await v_file.read()
                 if content:
                     await v_file.seek(0)
                     path = await save_upload_file(v_file, VARIANT_UPLOAD_DIR)
                     data["variants"][idx]["image"] = path
-                else:
-
-                    pass
 
     return await ProductService.create_product(data, user)
 
@@ -130,7 +125,6 @@ async def update_product(
     }
 
     if image:
-
         if hasattr(image, "filename"):
             data["image"] = await save_upload_file(image, UPLOAD_DIR)
 
@@ -148,7 +142,8 @@ async def update_product(
 
 @router.get("/")
 async def get_products(user=Depends(get_current_user)):
-    return await ProductService.get_products()
+
+    return await ProductService.get_products(user)
 
 
 @router.delete("/{product_id}")

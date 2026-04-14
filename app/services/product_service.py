@@ -10,14 +10,12 @@ class ProductService:
 
     @staticmethod
     def generate_sku(prefix="PROD"):
-
         return f"{prefix}-" + "".join(
             random.choices(string.ascii_uppercase + string.digits, k=6)
         )
 
     @classmethod
     async def create_product(cls, data: dict, user: dict):
-
         main_sku = cls.generate_sku()
         data["sku"] = main_sku
         data["status"] = "active"
@@ -28,7 +26,6 @@ class ProductService:
         if isinstance(variants, list):
             for variant in variants:
                 if not variant.get("sku"):
-
                     variant_suffix = (
                         variant.get("name", "VAR").replace(" ", "").upper()[:3]
                     )
@@ -41,14 +38,18 @@ class ProductService:
         return product
 
     @classmethod
-    async def get_products(cls):
-        return await ProductRepository.get_all_products()
+    async def get_products(cls, user: dict):
+        user_role = user.get("role")
+        supplier_email = None
+
+        if user_role == "supplier":
+            supplier_email = user.get("email")
+
+        return await ProductRepository.get_all_products(supplier_email=supplier_email)
 
     @classmethod
     async def update_product(cls, product_id: str, data: dict):
-
         if "variants" in data and isinstance(data["variants"], list):
-
             existing = await ProductRepository.get_product_by_id(product_id)
             base_sku = existing.get("sku", "PROD-GEN") if existing else "PROD-GEN"
 

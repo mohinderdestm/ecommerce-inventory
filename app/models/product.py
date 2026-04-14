@@ -17,6 +17,7 @@ def product_model(product) -> dict:
         "image": product.get("image") or None,
         "status": product.get("status", "active"),
         "variants": product.get("variants", []),
+        "supplier_email": product.get("supplier_email"),
     }
 
     if "supplier_details" in product:

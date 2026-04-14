@@ -9,15 +9,18 @@ class ProductRepository:
 
     @classmethod
     async def create_product(cls, data: dict):
-
         result = await cls.collection.insert_one(data)
-
         return await cls.get_product_by_id(str(result.inserted_id))
 
     @classmethod
-    async def get_all_products(cls):
+    async def get_all_products(cls, supplier_email: str = None):
+
+        match_stage = {}
+        if supplier_email:
+            match_stage = {"supplier_email": supplier_email}
 
         pipeline = [
+            {"$match": match_stage},
             {
                 "$lookup": {
                     "from": "suppliers",
@@ -25,7 +28,7 @@ class ProductRepository:
                     "foreignField": "email",
                     "as": "supplier_details",
                 }
-            }
+            },
         ]
 
         products = []
@@ -35,7 +38,6 @@ class ProductRepository:
 
     @classmethod
     async def get_product_by_id(cls, product_id: str):
-
         try:
             obj_id = ObjectId(product_id)
         except InvalidId:
@@ -54,7 +56,6 @@ class ProductRepository:
         ]
 
         cursor = cls.collection.aggregate(pipeline)
-
         product_list = await cursor.to_list(length=1)
 
         if not product_list:
@@ -64,7 +65,6 @@ class ProductRepository:
 
     @classmethod
     async def update_product(cls, product_id: str, data: dict):
-
         try:
             obj_id = ObjectId(product_id)
         except InvalidId:
@@ -75,7 +75,6 @@ class ProductRepository:
 
     @classmethod
     async def delete_product(cls, product_id: str):
-
         try:
             obj_id = ObjectId(product_id)
         except InvalidId:
