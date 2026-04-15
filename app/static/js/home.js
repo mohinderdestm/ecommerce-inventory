@@ -8,7 +8,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let allProducts = [];
 
-  let cart = JSON.parse(localStorage.getItem("active_cart")) || [];
+  const getSafeValue = (key, fallback = "N/A") => {
+    const value = localStorage.getItem(key);
+    if (!value || value === "undefined" || value === "null") return fallback;
+    return value;
+  };
+
+  const userEmail = getSafeValue("user_email", "");
+  const userRole = getSafeValue("user_role", "viewer").toLowerCase();
+  const userName =
+    getSafeValue("user_name") || (userEmail ? userEmail.split("@")[0] : "User");
+
+  const cartKey = userEmail ? `cart_${userEmail}` : "active_cart";
+  let cart = JSON.parse(localStorage.getItem(cartKey)) || [];
 
   let currentPage = 1;
   const itemsPerPage = 10;
@@ -23,17 +35,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const prevPageBtn = getEl("prevPage");
   const nextPageBtn = getEl("nextPage");
   const pageNumbersContainer = getEl("pageNumbers");
-
-  const getSafeValue = (key, fallback = "N/A") => {
-    const value = localStorage.getItem(key);
-    if (!value || value === "undefined" || value === "null") return fallback;
-    return value;
-  };
-
-  const userEmail = getSafeValue("user_email", "");
-  const userRole = getSafeValue("user_role", "viewer").toLowerCase();
-  const userName =
-    getSafeValue("user_name") || (userEmail ? userEmail.split("@")[0] : "User");
 
   const avatar = getEl("avatar");
   const nameEl = getEl("userName");
@@ -79,10 +80,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const updateHeaderUI = () => {
     const dName = localStorage.getItem("user_name") || userName;
-    const dRole = localStorage.getItem("user_role") || userRole;
+    const dRole = (localStorage.getItem("user_role") || userRole).toLowerCase();
+
     if (avatar) avatar.innerText = formatText(dName).charAt(0);
     if (nameEl) nameEl.innerText = formatText(dName);
     if (roleEl) roleEl.innerText = formatText(dRole);
+
+    // Hide cart UI for suppliers and admins
+    if (cartBtn) {
+      const isRestrictedRole = dRole === "supplier" || dRole === "admin";
+      cartBtn.style.display = isRestrictedRole ? "none" : "flex";
+    }
   };
 
   const showToast = (msg) => {
@@ -143,7 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   const updateCartUI = () => {
-    localStorage.setItem("active_cart", JSON.stringify(cart));
+    localStorage.setItem(cartKey, JSON.stringify(cart));
 
     if (!cartItemsContainer) return;
     cartItemsContainer.innerHTML = "";
@@ -472,7 +480,17 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   if (getEl("confirmLogout"))
     getEl("confirmLogout").addEventListener("click", () => {
-      localStorage.clear();
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user_name");
+      localStorage.removeItem("user_role");
+      localStorage.removeItem("user_email");
+      localStorage.removeItem("company_name");
+      localStorage.removeItem("contact_name");
+      localStorage.removeItem("phone_number");
+      localStorage.removeItem("gst_number");
+      localStorage.removeItem("address");
+      localStorage.removeItem("payment_term");
+      localStorage.removeItem("business_email");
       window.location.href = "/";
     });
 
@@ -611,10 +629,11 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
     }
 
-    let managementHtml = "";
     const currentRole = (
       localStorage.getItem("user_role") || userRole
     ).toLowerCase();
+
+    let managementHtml = "";
     if (currentRole === "supplier") {
       managementHtml = `
         <div class="detail-management-actions">
@@ -643,6 +662,22 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
     }
 
+    const canBuy = currentRole !== "supplier" && currentRole !== "admin";
+    const purchaseHtml = canBuy
+      ? `
+      <div class="product-actions">
+          <div class="qty-control">
+              <button id="qtyMinus" class="qty-btn" type="button">−</button>
+              <input type="number" id="purchaseQty" value="1" min="1" max="${displayStock}" readonly />
+              <button id="qtyPlus" class="qty-btn" type="button">+</button>
+          </div>
+          <button class="add-to-cart-premium" id="addToCartActionBtn">
+              <span class="icon">🛒</span>
+              <span class="text">Add to Cart</span>
+          </button>
+      </div>`
+      : "";
+
     detailBody.innerHTML = `
       <div class="detail-grid">
         <div class="detail-img-box">
@@ -662,18 +697,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <p>${p.description || "No description provided."}</p>
           </div>
           ${switcherHtml}
-          
-          <div class="product-actions">
-              <div class="qty-control">
-                  <button id="qtyMinus" class="qty-btn" type="button">−</button>
-                  <input type="number" id="purchaseQty" value="1" min="1" max="${displayStock}" readonly />
-                  <button id="qtyPlus" class="qty-btn" type="button">+</button>
-              </div>
-              <button class="add-to-cart-premium" id="addToCartActionBtn">
-                  <span class="icon">🛒</span>
-                  <span class="text">Add to Cart</span>
-              </button>
-          </div>
+          ${purchaseHtml}
         </div>
       </div>
       <div class="detail-footer">
@@ -682,38 +706,40 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `;
 
-    const qtyInput = getEl("purchaseQty");
-    getEl("qtyPlus")?.addEventListener("click", () => {
-      if (parseInt(qtyInput.value) < displayStock)
-        qtyInput.value = parseInt(qtyInput.value) + 1;
-    });
-    getEl("qtyMinus")?.addEventListener("click", () => {
-      if (parseInt(qtyInput.value) > 1)
-        qtyInput.value = parseInt(qtyInput.value) - 1;
-    });
+    if (canBuy) {
+      const qtyInput = getEl("purchaseQty");
+      getEl("qtyPlus")?.addEventListener("click", () => {
+        if (parseInt(qtyInput.value) < displayStock)
+          qtyInput.value = parseInt(qtyInput.value) + 1;
+      });
+      getEl("qtyMinus")?.addEventListener("click", () => {
+        if (parseInt(qtyInput.value) > 1)
+          qtyInput.value = parseInt(qtyInput.value) - 1;
+      });
 
-    getEl("addToCartActionBtn")?.addEventListener("click", () => {
-      const qty = parseInt(qtyInput.value);
-      const existingItem = cart.find(
-        (i) => i.id === (p._id || p.id) && i.name === displayTitle,
-      );
+      getEl("addToCartActionBtn")?.addEventListener("click", () => {
+        const qty = parseInt(qtyInput.value);
+        const existingItem = cart.find(
+          (i) => i.id === (p._id || p.id) && i.name === displayTitle,
+        );
 
-      if (existingItem) {
-        existingItem.quantity += qty;
-      } else {
-        cart.push({
-          id: p._id || p.id,
-          name: displayTitle,
-          price: displayPrice,
-          image: displayImg,
-          quantity: qty,
-          sku: displaySKU,
-          selected: true,
-        });
-      }
-      updateCartUI();
-      showToast(`Added ${qty} item(s) to Cart! 🛒`);
-    });
+        if (existingItem) {
+          existingItem.quantity += qty;
+        } else {
+          cart.push({
+            id: p._id || p.id,
+            name: displayTitle,
+            price: displayPrice,
+            image: displayImg,
+            quantity: qty,
+            sku: displaySKU,
+            selected: true,
+          });
+        }
+        updateCartUI();
+        showToast(`Added ${qty} item(s) to Cart! 🛒`);
+      });
+    }
 
     document.querySelectorAll(".variant-dot, .nav-arrow").forEach((btn) => {
       btn.addEventListener("click", (e) => {
