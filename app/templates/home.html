@@ -27,6 +27,9 @@
         <button id="cartBtn" class="btn cart-btn">
           🛒 Cart <span id="cartBadge" class="badge">0</span>
         </button>
+        <button id="adminOrdersBtn" class="btn admin-btn admin-only hidden">
+          📋 Order Details
+        </button>
         <button id="openAddProduct" class="btn add-btn">Add Product</button>
         <button id="logoutBtn" class="btn logout-btn">Logout</button>
       </div>
@@ -238,6 +241,37 @@
           <button id="closeProfileOverlay" class="close-btn">&times;</button>
         </div>
         <div id="profileDetails" class="profile-details"></div>
+      </div>
+    </div>
+
+    <div id="ordersOverlay" class="overlay hidden">
+      <div class="overlay-content orders-box-large">
+        <div class="overlay-header">
+          <div class="header-main">
+            <h2>Customer Order Management</h2>
+            <span id="totalOrdersBadge" class="item-count-pill"
+              >0 Total Orders</span
+            >
+          </div>
+          <button id="closeOrdersOverlay" class="close-btn">&times;</button>
+        </div>
+
+        <div class="orders-filter-bar">
+          <input
+            type="text"
+            id="orderSearch"
+            placeholder="Search by Order ID or User..."
+          />
+          <select id="statusFilter">
+            <option value="all">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+
+        <div id="ordersMasterContainer" class="orders-list-container">
+          <div class="loading-state">Fetching latest orders...</div>
+        </div>
       </div>
     </div>
 

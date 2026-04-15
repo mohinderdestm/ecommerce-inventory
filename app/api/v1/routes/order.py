@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from app.schemas.order import OrderCreate, OrderResponse
 from app.services.order_service import OrderService
 from app.utils.dependencies import get_current_user
@@ -24,3 +24,11 @@ async def get_orders(current_user: dict = Depends(get_current_user)):
 @router.post("/{order_id}/cancel")
 async def cancel_order(order_id: str, current_user: dict = Depends(get_current_user)):
     return await OrderService.cancel_order(order_id)
+
+
+@router.put("/{order_id}/confirm", status_code=status.HTTP_200_OK)
+async def confirm_user_order(
+    order_id: str, current_user: dict = Depends(get_current_user)
+):
+
+    return await OrderService.confirm_order(order_id, current_user)

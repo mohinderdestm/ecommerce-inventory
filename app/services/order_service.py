@@ -13,7 +13,6 @@ class OrderService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Users with role '{user_role}' cannot place orders.",
             )
-
         processed_items = []
         total_price = 0
         user_id = str(current_user.get("id") or current_user.get("_id"))
@@ -48,7 +47,6 @@ class OrderService:
                     )
 
                 display_name = f"{product['name']} ({variant.get('name', 'Variant')})"
-
                 price = variant.get("price", price)
 
                 await ProductRepository.collection.update_one(
@@ -94,7 +92,7 @@ class OrderService:
             "customer_name": order_in.customer_name,
             "items": processed_items,
             "total_amount": total_price,
-            "status": "confirmed",
+            "status": "pending",
             "user_details": {
                 "name": current_user.get("name", "User"),
                 "email": current_user.get("email"),
@@ -102,6 +100,28 @@ class OrderService:
             },
         }
         return await OrderRepository.create_order(order_dict)
+
+    @classmethod
+    async def confirm_order(cls, order_id: str, current_user: dict):
+
+        if current_user.get("role") != "admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only admins can confirm orders.",
+            )
+
+        order = await OrderRepository.get_order_by_id(order_id)
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+
+        if order.get("status") != "pending":
+            raise HTTPException(
+                status_code=400,
+                detail=f"Only 'pending' orders can be confirmed. Current status: {order.get('status')}",
+            )
+
+        await OrderRepository.update_order_status(order_id, "confirmed")
+        return {"message": "Order successfully confirmed."}
 
     @classmethod
     async def cancel_order(cls, order_id: str):
@@ -118,13 +138,11 @@ class OrderService:
             qty = item["quantity"]
 
             if sku:
-
                 await ProductRepository.collection.update_one(
                     {"_id": ObjectId(p_id), "variants.sku": sku},
                     {"$inc": {"variants.$.reorder_level": qty}},
                 )
             else:
-
                 product = await ProductRepository.get_product_by_id(p_id)
                 if product:
                     restored_qty = product.get("reorder_level", 0) + qty

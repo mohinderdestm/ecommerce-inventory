@@ -60,6 +60,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const placeOrderBtn = getEl("placeOrderBtn");
   const orderSuccessOverlay = getEl("orderSuccessOverlay");
 
+  const adminOrdersBtn = getEl("adminOrdersBtn");
+  const ordersOverlay = getEl("ordersOverlay");
+  const ordersMasterContainer = getEl("ordersMasterContainer");
+  const totalOrdersBadge = getEl("totalOrdersBadge");
+  const closeOrdersOverlay = getEl("closeOrdersOverlay");
+
   const form = getEl("productForm");
   const variantsContainer = getEl("variantsContainer");
   const addVariantBtn = getEl("addVariantBtn");
@@ -86,10 +92,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (nameEl) nameEl.innerText = formatText(dName);
     if (roleEl) roleEl.innerText = formatText(dRole);
 
-    // Hide cart UI for suppliers and admins
     if (cartBtn) {
       const isRestrictedRole = dRole === "supplier" || dRole === "admin";
       cartBtn.style.display = isRestrictedRole ? "none" : "flex";
+    }
+
+    if (adminOrdersBtn) {
+      const canSeeOrders = dRole === "admin" || dRole === "viewer";
+      adminOrdersBtn.style.display = canSeeOrders ? "flex" : "none";
+      adminOrdersBtn.classList.toggle("hidden", !canSeeOrders);
     }
   };
 
@@ -113,6 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
       detailOverlay,
       cartOverlay,
       orderSuccessOverlay,
+      ordersOverlay,
     ].forEach((ov) => ov?.classList.add("hidden"));
     if (form) form.reset();
     if (variantsContainer) variantsContainer.innerHTML = "";
@@ -128,6 +140,7 @@ document.addEventListener("DOMContentLoaded", () => {
       e.target === profileOverlay ||
       e.target === detailOverlay ||
       e.target === cartOverlay ||
+      e.target === ordersOverlay ||
       (e.target.classList && e.target.classList.contains("overlay-container"))
     ) {
       closeAllOverlays();
@@ -141,6 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
     getEl("closeProfileOverlay"),
     getEl("closeDetailOverlay"),
     getEl("closeCartOverlay"),
+    getEl("closeOrdersOverlay"),
     getEl("cancelLogout"),
     getEl("cancelDelete"),
   ].forEach((btn) => {
@@ -898,6 +912,178 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Load Error:", err);
     }
   };
+
+  const handleConfirmOrder = async (orderId) => {
+    try {
+      const res = await fetch(`/api/v1/orders/${orderId}/confirm`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        showToast("Order confirmed! ✅");
+        loadAllOrders();
+      } else {
+        showToast("Failed to confirm order.");
+      }
+    } catch (err) {
+      showToast("Server error during confirmation.");
+    }
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    try {
+      const res = await fetch(`/api/v1/orders/${orderId}/cancel`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        showToast("Order cancelled! ❌");
+        loadAllOrders();
+      } else {
+        showToast("Failed to cancel order.");
+      }
+    } catch (err) {
+      showToast("Server error during cancellation.");
+    }
+  };
+
+  const loadAllOrders = async () => {
+    if (!ordersMasterContainer) return;
+
+    ordersMasterContainer.innerHTML =
+      '<div class="loading-state">Fetching latest orders...</div>';
+
+    try {
+      const res = await fetch("/api/v1/orders/", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      let orders = await res.json();
+
+      const dRole = (
+        localStorage.getItem("user_role") || userRole
+      ).toLowerCase();
+      const dName = localStorage.getItem("user_name") || userName;
+
+      if (dRole === "viewer") {
+        orders = orders.filter((o) => o.customer_name === dName);
+      }
+
+      if (totalOrdersBadge)
+        totalOrdersBadge.innerText = `${orders.length} Total Orders`;
+
+      if (!orders || orders.length === 0) {
+        ordersMasterContainer.innerHTML =
+          '<p class="empty-msg">No customer orders found.</p>';
+        return;
+      }
+
+      ordersMasterContainer.innerHTML = "";
+      orders.forEach((order) => {
+        const card = document.createElement("div");
+        card.className = "order-card";
+
+        let orderTotal = 0;
+        const itemsHtml = order.items
+          .map((item) => {
+            const productRef = allProducts.find(
+              (p) => (p._id || p.id) === item.product_id,
+            );
+
+            // Defaults
+            let imgUrl = productRef
+              ? productRef.image
+              : "https://via.placeholder.com/100";
+            let pName = productRef
+              ? productRef.name
+              : `Product ID: ${item.product_id}`;
+            let pPrice = productRef ? productRef.selling_price : 0;
+            let variantDisplay = item.variant_sku
+              ? `SKU: ${item.variant_sku}`
+              : "Standard";
+
+            if (productRef && productRef.variants && item.variant_sku) {
+              const variantMatch = productRef.variants.find(
+                (v) => v.sku === item.variant_sku,
+              );
+              if (variantMatch) {
+                imgUrl = variantMatch.image || imgUrl;
+
+                pPrice = variantMatch.additional_price || pPrice;
+                pName = `${productRef.name} (${variantMatch.name})`;
+                variantDisplay = "Selected Variant";
+              }
+            }
+
+            orderTotal += pPrice * item.quantity;
+
+            return `
+            <div class="order-item-row">
+              <img src="${imgUrl}" alt="Product" class="order-item-img" />
+              <div class="item-details">
+                <p class="item-name" style="font-weight: 600; color: #f8fafc;">${pName}</p>
+                <p class="item-meta" style="font-size: 12px; color: #94a3b8;">
+                  Qty: ${item.quantity} | <span class="variant-label">${variantDisplay}</span>
+                </p>
+              </div>
+            </div>
+          `;
+          })
+          .join("");
+
+        let actionBtnHtml = "";
+        const isPending =
+          (order.status || "pending").toLowerCase() === "pending";
+
+        if (isPending) {
+          if (dRole === "admin") {
+            actionBtnHtml = `<button class="btn confirm-order-btn" style="background: #22c55e; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;" data-id="${order.id}">Confirm Order</button>`;
+          } else if (dRole === "viewer") {
+            actionBtnHtml = `<button class="btn cancel-order-btn" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;" data-id="${order.id}">Cancel Order</button>`;
+          }
+        }
+
+        card.innerHTML = `
+          <div class="order-card-header" style="display: flex; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid #334155;">
+            <div class="user-info">
+              <strong>Customer:</strong> <span class="cust-name">${order.customer_name || "Guest"}</span> 
+            </div>
+            <span class="order-id" style="color: #38bdf8;">#ORD-${order.id.slice(-6).toUpperCase()}</span>
+          </div>
+          <div class="order-items-list" style="margin: 15px 0;">
+            ${itemsHtml}
+          </div>
+          <div class="order-card-footer" style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #334155; padding-top: 10px;">
+            <div class="order-total" style="font-weight: bold;">Total: <span style="color: #22c55e;">₹ ${orderTotal}</span></div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              ${actionBtnHtml}
+              <div class="status-pill status-${(order.status || "pending").toLowerCase()}">${order.status || "Pending"}</div>
+            </div>
+          </div>
+        `;
+
+        const cBtn = card.querySelector(".confirm-order-btn");
+        if (cBtn)
+          cBtn.addEventListener("click", () => handleConfirmOrder(order.id));
+
+        const xBtn = card.querySelector(".cancel-order-btn");
+        if (xBtn)
+          xBtn.addEventListener("click", () => handleCancelOrder(order.id));
+
+        ordersMasterContainer.appendChild(card);
+      });
+    } catch (err) {
+      console.error("Order Load Error:", err);
+      ordersMasterContainer.innerHTML =
+        '<p class="error-msg">Failed to load orders. Please try again.</p>';
+    }
+  };
+
+  if (adminOrdersBtn) {
+    adminOrdersBtn.addEventListener("click", () => {
+      ordersOverlay?.classList.remove("hidden");
+      loadAllOrders();
+    });
+  }
 
   fetchUserData().then(() => {
     loadProducts();
