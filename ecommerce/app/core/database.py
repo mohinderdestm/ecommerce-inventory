@@ -60,6 +60,25 @@ async def create_indexes():
     await db["variants"].create_index("is_active")
     await db["variants"].create_index([("product_id", 1), ("is_active", 1)])
 
+    # Warehouses
+    await db["warehouses"].create_index("name", unique=True)
+    await db["warehouses"].create_index("status")
+    await db["warehouses"].create_index("staff_ids")
+ 
+    # Warehouse stock — compound unique per warehouse+product+variant
+    await db["warehouse_stock"].create_index(
+        [("warehouse_id", 1), ("product_id", 1), ("variant_id", 1)], unique=True
+    )
+    await db["warehouse_stock"].create_index("product_id")
+    await db["warehouse_stock"].create_index("warehouse_id")
+ 
+    # Stock transfers
+    await db["stock_transfers"].create_index("from_warehouse_id")
+    await db["stock_transfers"].create_index("to_warehouse_id")
+    await db["stock_transfers"].create_index("status")
+    await db["stock_transfers"].create_index("product_id")
+
+
     logger.info("Database indexes ensured.")
 
 

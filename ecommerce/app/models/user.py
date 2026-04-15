@@ -7,6 +7,7 @@ class UserRole(str, Enum):
     ADMIN = "admin"
     CUSTOMER = "customer"
     SUPPLIER = "supplier"
+    WAREHOUSE_STAFF = "warehouse_staff"
 
 
 class UserStatus(str, Enum):

@@ -16,6 +16,7 @@ header h1{font-size:1rem;font-weight:700;color:#f1f5f9}
 .badge.admin{background:#7c3aed22;color:#a78bfa;border:1px solid #7c3aed55}
 .badge.customer{background:#0284c722;color:#38bdf8;border:1px solid #0284c755}
 .badge.supplier{background:#d9770622;color:#fb923c;border:1px solid #d9770655}
+.badge.warehouse_staff{background:#06b6d422;color:#22d3ee;border:1px solid #06b6d455}
 
 /* ── Layout ── */
 .layout{display:flex;min-height:calc(100vh - 53px)}
@@ -260,6 +261,13 @@ textarea{resize:vertical;min-height:70px}
       <button class="nav-btn" data-panel="supplier-products" onclick="switchTab(this,'supplier-products')">Link Products</button>
       <button class="nav-btn" data-panel="supplier-product-list" onclick="switchTab(this,'supplier-product-list')">Supplier Products</button>
     </div>
+    <div style="margin-bottom:6px">
+      <div class="sidebar-label">Warehouses</div>
+      <button class="nav-btn" data-panel="create-warehouse" onclick="switchTab(this,'create-warehouse')">Create Warehouse</button>
+      <button class="nav-btn" data-panel="list-warehouses" onclick="switchTab(this,'list-warehouses')">List Warehouses</button>
+      <button class="nav-btn" data-panel="warehouse-stock" onclick="switchTab(this,'warehouse-stock')">Stock Summary</button>
+      <button class="nav-btn" data-panel="warehouse-transfer" onclick="switchTab(this,'warehouse-transfer')">Stock Transfer</button>
+    </div>
     <div>
       <div class="sidebar-label">Products</div>
       <button class="nav-btn" data-panel="create-product" onclick="switchTab(this,'create-product')">Create Product</button>
@@ -284,7 +292,12 @@ textarea{resize:vertical;min-height:70px}
           <div class="form-group"><label>Phone</label><input id="reg-phone" placeholder="+91-9876543210"/></div>
           <div class="form-group"><label>Password</label><input id="reg-password" type="password" placeholder="Min 8 chars, 1 uppercase, 1 digit"/></div>
           <div class="form-group"><label>Role</label>
-            <select id="reg-role"><option value="customer">Customer</option><option value="supplier">Supplier</option><option value="admin">Admin</option></select>
+            <select id="reg-role">
+              <option value="customer">Customer</option>
+              <option value="supplier">Supplier</option>
+              <option value="warehouse_staff">Warehouse Staff</option>
+              <option value="admin">Admin</option>
+            </select>
           </div>
         </div>
         <button class="btn btn-primary btn-full" onclick="handleRegister()">Register</button>
@@ -322,7 +335,13 @@ textarea{resize:vertical;min-height:70px}
         <p class="hint"><strong>Admin only.</strong> Filter by role and status.</p>
         <div class="filter-row">
           <div class="form-group"><label>Role</label>
-            <select id="users-role"><option value="">All</option><option value="admin">Admin</option><option value="customer">Customer</option><option value="supplier">Supplier</option></select>
+            <select id="users-role">
+            <option value="">All</option>
+            <option value="admin">Admin</option>
+            <option value="customer">Customer</option>
+            <option value="supplier">Supplier</option>
+            <option value="warehouse_staff">Warehouse Staff</option>
+          </select>
           </div>
           <div class="form-group"><label>Status</label>
             <select id="users-status"><option value="">All</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="suspended">Suspended</option></select>
@@ -344,7 +363,13 @@ textarea{resize:vertical;min-height:70px}
           <div class="form-group"><label>Full Name</label><input id="upd-fullname" placeholder="Leave blank to skip"/></div>
           <div class="form-group"><label>Phone</label><input id="upd-phone" placeholder="Leave blank to skip"/></div>
           <div class="form-group"><label>Role (Admin only)</label>
-            <select id="upd-role"><option value="">No change</option><option value="admin">Admin</option><option value="customer">Customer</option><option value="supplier">Supplier</option></select>
+            <select id="upd-role">
+              <option value="">No change</option>
+              <option value="admin">Admin</option>
+              <option value="customer">Customer</option>
+              <option value="supplier">Supplier</option>
+              <option value="warehouse_staff">Warehouse Staff</option>
+            </select>
           </div>
           <div class="form-group"><label>Status (Admin only)</label>
             <select id="upd-status"><option value="">No change</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="suspended">Suspended</option></select>
@@ -548,6 +573,127 @@ textarea{resize:vertical;min-height:70px}
       </div>
       <div id="sup-prod-summary" class="search-summary" style="display:none"></div>
       <div id="sup-prod-grid" class="products-grid"></div>
+    </div>
+
+    <!-- ── CREATE WAREHOUSE ── -->
+    <div id="panel-create-warehouse" class="panel">
+      <div class="panel-title">Create Warehouse</div>
+      <div class="card">
+        <p class="hint"><strong>Admin only.</strong> Capacity is optional — max units this warehouse can hold.</p>
+        <div class="form-grid">
+          <div class="form-group"><label>Warehouse Name *</label><input id="wh-name" placeholder="Mumbai Central Warehouse"/></div>
+          <div class="form-group"><label>Contact Person</label><input id="wh-contact" placeholder="Rajan Kumar"/></div>
+          <div class="form-group"><label>Phone</label><input id="wh-phone" placeholder="+91-9876543210"/></div>
+          <div class="form-group"><label>Email</label><input id="wh-email" type="email" placeholder="warehouse@company.com"/></div>
+          <div class="form-group"><label>Capacity (units)</label><input id="wh-capacity" type="number" placeholder="10000 (optional)"/></div>
+        </div>
+        <div class="form-group"><label>Notes</label><textarea id="wh-notes" placeholder="Any additional notes..."></textarea></div>
+        <label style="margin-bottom:8px;display:block">Address</label>
+        <div class="form-grid three">
+          <div class="form-group"><label>Street</label><input id="wh-street" placeholder="123 Industrial Area"/></div>
+          <div class="form-group"><label>City</label><input id="wh-city" placeholder="Mumbai"/></div>
+          <div class="form-group"><label>State</label><input id="wh-state" placeholder="Maharashtra"/></div>
+          <div class="form-group"><label>Pincode</label><input id="wh-pin" placeholder="400001"/></div>
+          <div class="form-group"><label>Country</label><input id="wh-country" value="India"/></div>
+        </div>
+        <button class="btn btn-success btn-full" onclick="handleCreateWarehouse()">Create Warehouse</button>
+        <div id="create-wh-result" class="result"></div>
+      </div>
+    </div>
+
+    <!-- ── LIST WAREHOUSES ── -->
+    <div id="panel-list-warehouses" class="panel">
+      <div class="panel-title">List Warehouses</div>
+      <div class="card">
+        <div class="filter-row">
+          <div class="form-group"><label>Search</label><input id="wh-search" placeholder="Name, city, contact..."/></div>
+          <div class="form-group"><label>Status</label>
+            <select id="wh-filter-status">
+              <option value="">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="under_maintenance">Under Maintenance</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="handleListWarehouses()">Fetch</button>
+        </div>
+        <div id="list-wh-result" class="result"></div>
+        <hr class="divider"/>
+        <p class="hint" style="margin-bottom:10px">Assign or remove staff from a warehouse:</p>
+        <div class="form-group"><label>Warehouse ID</label><input id="wh-staff-id" placeholder="MongoDB ObjectId of warehouse"/></div>
+        <div class="form-group"><label>User IDs (comma-separated)</label><input id="wh-staff-users" placeholder="userId1, userId2"/></div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-success" style="flex:1" onclick="handleAssignStaff()">Assign Staff</button>
+          <button class="btn btn-danger"  style="flex:1" onclick="handleUnassignStaff()">Remove Staff</button>
+        </div>
+        <div id="wh-staff-result" class="result"></div>
+      </div>
+    </div>
+
+    <!-- ── STOCK SUMMARY ── -->
+    <div id="panel-warehouse-stock" class="panel">
+      <div class="panel-title">Warehouse Stock</div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="filter-row">
+          <div class="form-group" style="flex:2"><label>Warehouse ID</label><input id="stock-wh-id" placeholder="MongoDB ObjectId of warehouse"/></div>
+          <button class="btn btn-primary" style="align-self:flex-end" onclick="handleGetStockSummary()">Get Stock Summary</button>
+        </div>
+        <div id="stock-summary-result" class="result"></div>
+      </div>
+
+      <div class="card">
+        <p class="hint" style="margin-bottom:12px">Check stock for a product across all warehouses:</p>
+        <div class="filter-row">
+          <div class="form-group" style="flex:2"><label>Product ID</label><input id="stock-prod-id" placeholder="MongoDB ObjectId of product"/></div>
+          <button class="btn btn-primary" style="align-self:flex-end" onclick="handleProductStock()">Get Stock</button>
+        </div>
+        <div id="product-stock-result" class="result"></div>
+        <hr class="divider"/>
+        <p class="hint" style="margin-bottom:12px"><strong>Admin only.</strong> Add or reduce stock manually (positive = add, negative = reduce):</p>
+        <div class="form-grid">
+          <div class="form-group"><label>Warehouse ID</label><input id="upd-stock-wh" placeholder="Warehouse ObjectId"/></div>
+          <div class="form-group"><label>Product ID</label><input id="upd-stock-prod" placeholder="Product ObjectId"/></div>
+          <div class="form-group"><label>Variant ID (optional)</label><input id="upd-stock-var" placeholder="UUID variant_id or leave empty"/></div>
+          <div class="form-group"><label>Quantity (+add / -reduce)</label><input id="upd-stock-qty" type="number" placeholder="e.g. 100 or -10"/></div>
+        </div>
+        <div class="form-group"><label>Notes</label><input id="upd-stock-notes" placeholder="e.g. Initial stock entry"/></div>
+        <button class="btn btn-primary btn-full" onclick="handleUpdateStock()">Update Stock</button>
+        <div id="upd-stock-result" class="result"></div>
+      </div>
+    </div>
+
+    <!-- ── STOCK TRANSFER ── -->
+    <div id="panel-warehouse-transfer" class="panel">
+      <div class="panel-title">Stock Transfer</div>
+      <div class="card">
+        <p class="hint"><strong>Admin only.</strong> Transfers stock from one warehouse to another atomically — deducts from source, adds to destination instantly.</p>
+        <div class="form-grid">
+          <div class="form-group"><label>From Warehouse ID *</label><input id="tr-from" placeholder="Source warehouse ObjectId"/></div>
+          <div class="form-group"><label>To Warehouse ID *</label><input id="tr-to" placeholder="Destination warehouse ObjectId"/></div>
+          <div class="form-group"><label>Product ID *</label><input id="tr-prod" placeholder="Product ObjectId"/></div>
+          <div class="form-group"><label>Variant ID (optional)</label><input id="tr-var" placeholder="UUID variant_id or leave empty"/></div>
+          <div class="form-group"><label>Quantity *</label><input id="tr-qty" type="number" placeholder="Units to transfer" min="1"/></div>
+        </div>
+        <div class="form-group"><label>Notes</label><input id="tr-notes" placeholder="Reason for transfer..."/></div>
+        <button class="btn btn-success btn-full" onclick="handleStockTransfer()">Initiate Transfer</button>
+        <div id="transfer-result" class="result"></div>
+        <hr class="divider"/>
+        <p class="hint" style="margin-bottom:12px">View transfer history:</p>
+        <div class="filter-row">
+          <div class="form-group"><label>Warehouse ID (optional)</label><input id="tr-list-wh" placeholder="Filter by warehouse"/></div>
+          <div class="form-group"><label>Status</label>
+            <select id="tr-list-status">
+              <option value="">All</option>
+              <option value="pending">Pending</option>
+              <option value="in_transit">In Transit</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="handleListTransfers()">View History</button>
+        </div>
+        <div id="transfer-list-result" class="result"></div>
+      </div>
     </div>
 
     <!-- ── VARIANTS ── -->
@@ -1039,6 +1185,92 @@ async function handleDeleteProduct() {
   if (!confirm(`Permanently delete product ${id}?`)) return;
   const { ok, data } = await apiFetch(`/products/${id}`, { method: 'DELETE' });
   showResult('del-prod-result', data, !ok);
+}
+
+// ── Warehouses ───────────────────────────────────────────────────────────────
+async function handleCreateWarehouse() {
+  const body = {
+    name: val('wh-name'),
+    contact_person: val('wh-contact'),
+    phone: val('wh-phone'),
+    notes: val('wh-notes'),
+    address: {
+      street: val('wh-street'), city: val('wh-city'),
+      state: val('wh-state'), pincode: val('wh-pin'),
+      country: val('wh-country') || 'India',
+    },
+  };
+  if (val('wh-email'))    body.email = val('wh-email');
+  if (val('wh-capacity')) body.capacity = parseInt(val('wh-capacity'));
+  const { ok, data } = await apiFetch('/warehouses/', { method: 'POST', body: JSON.stringify(body) });
+  showResult('create-wh-result', data, !ok);
+}
+
+async function handleListWarehouses() {
+  const search = val('wh-search'), status = val('wh-filter-status');
+  let qs = '?page=1&page_size=20';
+  if (search) qs += `&search=${encodeURIComponent(search)}`;
+  if (status) qs += `&status=${status}`;
+  const { ok, data } = await apiFetch('/warehouses/' + qs);
+  showResult('list-wh-result', data, !ok);
+}
+
+async function handleAssignStaff() {
+  const id = val('wh-staff-id'); if (!id) return alert('Warehouse ID required');
+  const raw = val('wh-staff-users'); if (!raw) return alert('User IDs required');
+  const user_ids = raw.split(',').map(s => s.trim()).filter(Boolean);
+  const { ok, data } = await apiFetch(`/warehouses/${id}/staff`, { method: 'POST', body: JSON.stringify({ user_ids }) });
+  showResult('wh-staff-result', data, !ok);
+}
+
+async function handleUnassignStaff() {
+  const id = val('wh-staff-id'); if (!id) return alert('Warehouse ID required');
+  const raw = val('wh-staff-users'); if (!raw) return alert('User IDs required');
+  const user_ids = raw.split(',').map(s => s.trim()).filter(Boolean);
+  const { ok, data } = await apiFetch(`/warehouses/${id}/staff`, { method: 'DELETE', body: JSON.stringify({ user_ids }) });
+  showResult('wh-staff-result', data, !ok);
+}
+
+async function handleGetStockSummary() {
+  const id = val('stock-wh-id'); if (!id) return alert('Warehouse ID required');
+  const { ok, data } = await apiFetch(`/warehouses/${id}/stock`);
+  showResult('stock-summary-result', data, !ok);
+}
+
+async function handleProductStock() {
+  const id = val('stock-prod-id'); if (!id) return alert('Product ID required');
+  const { ok, data } = await apiFetch(`/warehouses/stock/product/${id}`);
+  showResult('product-stock-result', data, !ok);
+}
+
+async function handleUpdateStock() {
+  const whId = val('upd-stock-wh'); if (!whId) return alert('Warehouse ID required');
+  const prodId = val('upd-stock-prod'); if (!prodId) return alert('Product ID required');
+  const qty = parseInt(val('upd-stock-qty')); if (isNaN(qty) || qty === 0) return alert('Enter a non-zero quantity');
+  const body = { product_id: prodId, quantity: qty, notes: val('upd-stock-notes') };
+  const varId = val('upd-stock-var'); if (varId) body.variant_id = varId;
+  const { ok, data } = await apiFetch(`/warehouses/${whId}/stock`, { method: 'POST', body: JSON.stringify(body) });
+  showResult('upd-stock-result', data, !ok);
+}
+
+async function handleStockTransfer() {
+  const from = val('tr-from'); if (!from) return alert('Source warehouse ID required');
+  const to = val('tr-to');   if (!to)   return alert('Destination warehouse ID required');
+  const prod = val('tr-prod'); if (!prod) return alert('Product ID required');
+  const qty = parseInt(val('tr-qty')); if (!qty || qty <= 0) return alert('Enter a positive quantity');
+  const body = { to_warehouse_id: to, product_id: prod, quantity: qty, notes: val('tr-notes') };
+  const varId = val('tr-var'); if (varId) body.variant_id = varId;
+  const { ok, data } = await apiFetch(`/warehouses/${from}/transfer`, { method: 'POST', body: JSON.stringify(body) });
+  showResult('transfer-result', data, !ok);
+}
+
+async function handleListTransfers() {
+  const wh = val('tr-list-wh'), status = val('tr-list-status');
+  let qs = '?page=1&page_size=20';
+  if (wh) qs += `&warehouse_id=${wh}`;
+  if (status) qs += `&status=${status}`;
+  const { ok, data } = await apiFetch('/warehouses/transfers/list' + qs);
+  showResult('transfer-list-result', data, !ok);
 }
 
 // ── Variants ──────────────────────────────────────────────────────────────────
