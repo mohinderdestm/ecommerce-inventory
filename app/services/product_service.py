@@ -83,6 +83,7 @@ class ProductService:
     async def update_product(self, product_id, data):
         update_data = data.dict(exclude_unset=True)
 
+    # ✅ allow status update
         if "status" in update_data:
            update_data["status"] = update_data["status"]
 

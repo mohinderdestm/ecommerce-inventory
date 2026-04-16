@@ -2,6 +2,7 @@ from fastapi import APIRouter, status,Depends
 from app.schemas.auth_schema import RegisterSchema, loginSchema
 from app.services.auth_service import AuthService
 from app.core.dependencies import get_current_user,required_roles
+from app.core.database import get_db
 
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -36,4 +37,22 @@ async def admin_only(user=Depends(required_roles(["admin"]))):
     return{
         "success":True,
         "message":"Welcome Admin!"
-    }    
+    }  
+    
+@router.get("/users")
+async def get_users(role: str = None, db=Depends(get_db)):
+    query = {}
+
+    if role:
+        query["role"] = role
+
+    users = await db["users"].find(query).to_list(100)
+
+    return [
+        {
+            "id": str(u["_id"]),
+            "name": u.get("name"),
+            "email": u.get("email")
+        }
+        for u in users
+    ]  

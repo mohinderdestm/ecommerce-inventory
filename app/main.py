@@ -4,6 +4,8 @@ from app.routes.products import router as product_router
 from app.routes.suppliers import router as supplier_router
 from fastapi.middleware.cors import CORSMiddleware
 import app.core.cloudinary_config
+from app.routes.warehouses import router as warehouse_router
+from app.routes.inventory import router as inventory_router
 
 app = FastAPI(title="Ecommerce Inventory System")
 
@@ -18,7 +20,9 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(product_router)
-app.include_router(supplier_router) 
+app.include_router(supplier_router)
+app.include_router(warehouse_router)
+app.include_router(inventory_router)
 
 
 @app.get("/")

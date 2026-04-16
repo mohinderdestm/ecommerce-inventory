@@ -15,6 +15,10 @@ db = client[DB_NAME]
 users_collection = db["users"]
 products_collection = db["products"]
 suppliers_collection = db["suppliers"]
+warehouses_collection = db["warehouses"]
+inventory_collection = db["inventory"]
+inventory_movements_collection = db["inventory_movements"]
+
 
 
 # Dependency function
