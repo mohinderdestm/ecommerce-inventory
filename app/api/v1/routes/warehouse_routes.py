@@ -1,8 +1,12 @@
 from fastapi import APIRouter, Depends
-from app.schemas.warehouse_schema import WarehouseCreate, WarehouseUpdate
+from app.schemas.warehouse_schema import (
+    WarehouseCreate,
+    WarehouseUpdate,
+    BulkWarehouseCreate,
+)
 from app.services.warehouse_service import WarehouseService
+from app.services.warehouse_stock_service import WarehouseStockService
 from app.utils.dependencies import get_current_user
-from app.schemas.warehouse_schema import BulkWarehouseCreate
 
 router = APIRouter(prefix="/warehouses", tags=["Warehouses"])
 
@@ -39,3 +43,10 @@ async def bulk_create_warehouses(
     data: BulkWarehouseCreate, user=Depends(get_current_user)
 ):
     return await WarehouseService.bulk_create_warehouses(data, user)
+
+
+@router.get("/{warehouse_id}/products")
+async def get_products_in_warehouse(warehouse_id: str, user=Depends(get_current_user)):
+    stock = await WarehouseStockService.get_warehouse_stock(warehouse_id)
+
+    return {"warehouse_id": warehouse_id, "products": stock}

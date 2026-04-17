@@ -9,6 +9,7 @@ from app.api.v1.routes import (
     order,
     warehouse_routes,
     warehouse_staff_routes,
+    warehouse_stock_routes,
 )
 
 api_router = APIRouter()
@@ -23,3 +24,4 @@ api_router.include_router(order.router)
 api_router.include_router(warehouse_routes.router)
 api_router.include_router(warehouse_staff_routes.router)
 api_router.include_router(staff_routes.router)
+api_router.include_router(warehouse_stock_routes.router)
