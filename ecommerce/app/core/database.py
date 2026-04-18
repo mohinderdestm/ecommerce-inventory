@@ -78,6 +78,13 @@ async def create_indexes():
     await db["stock_transfers"].create_index("status")
     await db["stock_transfers"].create_index("product_id")
 
+    # Sales Orders
+    await db["sales_orders"].create_index("order_number", unique=True)
+    await db["sales_orders"].create_index("customer_id")
+    await db["sales_orders"].create_index("status")
+    await db["sales_orders"].create_index("warehouse_id")
+    await db["sales_orders"].create_index("created_at")
+    await db["sales_orders"].create_index([("customer_id", 1), ("status", 1)])
 
     logger.info("Database indexes ensured.")
 
