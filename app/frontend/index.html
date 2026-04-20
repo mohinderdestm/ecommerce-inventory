@@ -330,6 +330,40 @@
 #inventoryHistoryModal {
   z-index: 3000;
 }
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge.draft { background: gray; }
+.badge.confirmed { background: #007bff; }
+.badge.packed { background: orange; }
+.badge.shipped { background: purple; }
+.badge.delivered { background: green; }
+.badge.cancelled { background: red; }
+.badge.returned { background: brown; }
+
+button {
+  margin: 3px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
     </style>
   </head>
 
@@ -595,7 +629,7 @@
     </select>
 
     <input id="orderQty" type="number" placeholder="Quantity" />
-    <input id="orderPrice" type="number" placeholder="Price" />
+    <!-- <input id="orderPrice" type="number" placeholder="Price" /> -->
 
     <button onclick="addItemToOrder()">➕ Add Item</button>
 
@@ -1687,37 +1721,93 @@
       orderItems = [];
       document.getElementById("orderItemsList").innerHTML = "";
 
-      loadProductsDropdown("orderProductDropdown");
-      loadWarehouseDropdown("orderWarehouseDropdown");
+      loadProductsDropdownForOrders("orderProductDropdown");
+      loadWarehouseDropdownForOrders("orderWarehouseDropdown");
     }
 
     function closeOrderModal() {
       document.getElementById("orderModal").style.display = "none";
   }
    
-   // ================= Add order items =================
+   // ================= Add order items fro sales order=================
 
     function addItemToOrder() {
-      const productDropdown = document.getElementById("orderProductDropdown");
-      const productId = productDropdown.value;
-      const productName = productDropdown.options[productDropdown.selectedIndex].text;
+      const dropdown = document.getElementById("orderProductDropdown");
+
+      const productId = dropdown.value;
+       const productName = dropdown.options[dropdown.selectedIndex].text;
+
+      
+      const price = Number(
+      dropdown.options[dropdown.selectedIndex].dataset.price || 0);
 
       const qty = Number(document.getElementById("orderQty").value);
-      const price = Number(document.getElementById("orderPrice").value);
 
-       if (!productId || !qty || !price) {
-         alert("Fill all fields");
-         return;
-        }
 
-        orderItems.push({
-          product_id: productId,
-          product_name: productName,
-          quantity: qty,
-          price: price
+      if (!productId || !qty) {
+        alert("Select product and quantity");
+        return;
+       }
+      
+
+      orderItems.push({
+         product_id: productId,
+         product_name: productName,
+         quantity: qty,
+         price: price
         });
+      
+      console.log("ALL ITEMS:", orderItems); // 🔥 DEBUG
 
-       renderOrderItems();
+      renderOrderItems();
+     }
+    // ================= Product dropdown for sales order =================
+    async function loadProductsDropdownForOrders(dropdownId) {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`${BASE_URL}/products?limit=100`, {
+         headers: { Authorization: `Bearer ${token}` },
+         });
+
+      const data = await res.json();
+
+      const dropdown = document.getElementById(dropdownId);
+
+      if (!dropdown) {
+        console.error("Dropdown not found:", dropdownId);
+        return;
+       }
+       
+      dropdown.innerHTML = `<option value="">Select Product</option>`;
+
+      data.data.forEach(p => {
+          dropdown.innerHTML += `
+            <option value="${p.id}" data-price="${p.selling_price}">
+               ${p.name}
+            </option>
+           `;
+        });
+    }
+
+     // ================= WAREHOUSE dropdown for Sales order Items =================
+    async function loadWarehouseDropdownForOrders(dropdownId) {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`${BASE_URL}/warehouses/`, {
+         headers: { Authorization: `Bearer ${token}` },
+       });
+
+      const data = await res.json();
+
+      const dropdown = document.getElementById(dropdownId);
+
+      dropdown.innerHTML = `<option value="">Select Warehouse</option>`;
+
+      data.forEach(w => {
+         dropdown.innerHTML += `
+           <option value="${w.id}">${w.name}</option>
+        `;
+      });
      }
 
      // ================= Render Sales order Items =================
@@ -1735,6 +1825,7 @@
       // ================= Submit Sales order =================
 
     async function submitOrder() {
+      console.log("Submitting items:", orderItems);  
       const token = localStorage.getItem("token");
       const warehouseDropdown = document.getElementById("orderWarehouseDropdown");
 
@@ -1760,6 +1851,10 @@
          alert(data.detail || "Error");
          return;
       }
+      if (!orderItems.length) {
+       alert("Add at least one item");
+       return;
+     }
 
       alert("Order Created!");
       closeOrderModal();
@@ -1787,23 +1882,51 @@
       const container = document.getElementById("orderList");
 
       container.innerHTML = data.map(order => `
-        <div style="border:1px solid #ccc; padding:10px; margin:10px 0;">
+        <div class="order-card">
       
             <b>${order.customer_name}</b><br>
-            📦 ${order.warehouse_name}<br>
-            💰 ₹${order.total_amount || 0}<br>
-            📊 Status: ${order.status}<br><br>
+            ${order.warehouse_name}<br>
+           
+             ₹${order.total_amount || 0}<br>
+            
+                 ${ order.items.map(item => `
+                    <li style="list-style-type:none">${item.product_name} (Qty: ${item.quantity})</li>
+                  `).join("")
+                 }
+             
+             Status: 
+            <span class="badge ${order.status}">
+            ${order.status.toUpperCase()}
+            </span>
 
-            <button onclick="updateOrderStatus('${order.id}', 'confirmed')">Confirm</button>
-            <button onclick="updateOrderStatus('${order.id}', 'packed')">Pack</button>
-            <button onclick="updateOrderStatus('${order.id}', 'shipped')">Ship</button>
-            <button onclick="updateOrderStatus('${order.id}', 'delivered')">Deliver</button>
-            <button onclick="updateOrderStatus('${order.id}', 'cancelled')">Cancel</button>
-            <button onclick="updateOrderStatus('${order.id}', 'returned')">Return</button>
+            <br><br>
+
+           ${getActionButtons(order)}
 
         </div>
       `).join("");
      }
+
+      // ================= adding button style for sales order =================
+
+
+    function getActionButtons(order) {
+      const s = order.status;
+
+         return `
+            <button onclick="updateOrderStatus('${order.id}', 'confirmed')" ${s !== "draft" ? "disabled" : ""}>✔</button>
+
+            <button onclick="updateOrderStatus('${order.id}', 'packed')" ${s !== "confirmed" ? "disabled" : ""}>📦</button>
+
+            <button onclick="updateOrderStatus('${order.id}', 'shipped')" ${s !== "packed" ? "disabled" : ""}>🚚</button>
+
+            <button onclick="updateOrderStatus('${order.id}', 'delivered')" ${s !== "shipped" ? "disabled" : ""}>✅</button>
+
+            <button onclick="updateOrderStatus('${order.id}', 'cancelled')" ${["draft","confirmed","packed"].includes(s) ? "" : "disabled"}>❌</button>
+
+            <button onclick="updateOrderStatus('${order.id}', 'returned')" ${s !== "delivered" ? "disabled" : ""}>↩</button>
+          `;
+        }
 
      // ================= Update order status =================
 
