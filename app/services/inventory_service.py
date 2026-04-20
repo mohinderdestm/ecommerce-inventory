@@ -10,7 +10,7 @@ class InventoryService:
     async def move_stock(self, data, user):
         payload = data.dict()
 
-        movements = db["inventory_movements"]
+        movements = db["inventory_logs"]
         products = db["products"]
         warehouses = db["warehouses"]
 

@@ -393,7 +393,16 @@
           <a onclick="openInventoryModal('transfer')">🔄 Transfer</a>
           <a onclick="loadInventoryHistory()">📊 Inventory History</a>
       </div>
+      </div>
+
+      <div class="dropdown">
+         <button class="dropbtn">🧾 Orders</button>
+         <div class="dropdown-content">
+         <a onclick="openOrderModal()">➕ Create Order</a>
+         <a onclick="loadOrders()">📋 View Orders</a>
+      </div>
     </div>
+    
   </div>
 
   <div class="nav-group">
@@ -419,6 +428,19 @@
       <div class="products-grid" id="grid"></div>
     </div>
 
+      <!-- CREATE ORDERS PAGE SECTION---->
+
+    <div id="ordersPage" style="display:none; padding:20px;">
+
+      <h2>🧾 Orders</h2>
+
+      <button class="add-product-btn" onclick="openOrderForm()">➕ Create Order</button>
+
+     <div id="ordersTable" style="margin-top:20px;"></div>
+
+    </div>
+
+  
     <!-- Product MODAL -->
     <div class="modal" id="productModal">
       <div class="modal-content">
@@ -538,6 +560,57 @@
   </div>
 </div>  
 
+ <!-- Sales Order Overlay -->
+  <div id="orderSection" class="overlay" onclick="closeOrderOverlay(event)">
+  <div class="overlay-content" onclick="event.stopPropagation()">
+
+    <button onclick="closeOrderOverlay()" style="float:right;">❌</button>
+
+    <h3>🧾 Orders</h3>
+
+    <div id="orderList"></div>
+
+  </div>
+</div>
+
+<!-- Sales Order model -->
+
+<div class="modal" id="orderModal">
+  <div class="modal-content">
+
+    <h3>Create Order</h3>
+
+    <input id="customerName" placeholder="Customer Name" />
+
+    <select id="orderWarehouseDropdown">
+      <option value="">Select Warehouse</option>
+    </select>
+
+    <hr>
+
+    <h4>Add Items</h4>
+
+    <select id="orderProductDropdown">
+      <option value="">Select Product</option>
+    </select>
+
+    <input id="orderQty" type="number" placeholder="Quantity" />
+    <input id="orderPrice" type="number" placeholder="Price" />
+
+    <button onclick="addItemToOrder()">➕ Add Item</button>
+
+    <div id="orderItemsList"></div>
+
+    <br>
+
+    <button onclick="submitOrder()">Submit</button>
+    <button onclick="closeOrderModal()">Cancel</button>
+
+  </div>
+</div>
+
+
+
 
     <!-- Assign Staff Modal-->
     <div class="modal" id="assignStaffModal">
@@ -616,6 +689,7 @@
 
     <script>
       const BASE_URL = "http://127.0.0.1:8000";
+      let orderItems = [];
 
       let editMode = false;
       let currentUserRole = "";
@@ -1606,6 +1680,163 @@
       document.getElementById("inventoryHistoryModal").style.display = "none";
     }
 
+    // ================= Sales Open Model =================
+    function openOrderModal() {
+      document.getElementById("orderModal").style.display = "block";
+
+      orderItems = [];
+      document.getElementById("orderItemsList").innerHTML = "";
+
+      loadProductsDropdown("orderProductDropdown");
+      loadWarehouseDropdown("orderWarehouseDropdown");
+    }
+
+    function closeOrderModal() {
+      document.getElementById("orderModal").style.display = "none";
+  }
+   
+   // ================= Add order items =================
+
+    function addItemToOrder() {
+      const productDropdown = document.getElementById("orderProductDropdown");
+      const productId = productDropdown.value;
+      const productName = productDropdown.options[productDropdown.selectedIndex].text;
+
+      const qty = Number(document.getElementById("orderQty").value);
+      const price = Number(document.getElementById("orderPrice").value);
+
+       if (!productId || !qty || !price) {
+         alert("Fill all fields");
+         return;
+        }
+
+        orderItems.push({
+          product_id: productId,
+          product_name: productName,
+          quantity: qty,
+          price: price
+        });
+
+       renderOrderItems();
+     }
+
+     // ================= Render Sales order Items =================
+
+    function renderOrderItems() {
+      const container = document.getElementById("orderItemsList");
+
+      container.innerHTML = orderItems.map(item => `
+          <div style="padding:5px; border-bottom:1px solid #ccc;">
+             ${item.product_name} | Qty: ${item.quantity} | ₹${item.price}
+          </div>
+       `).join("");
+      }
+
+      // ================= Submit Sales order =================
+
+    async function submitOrder() {
+      const token = localStorage.getItem("token");
+      const warehouseDropdown = document.getElementById("orderWarehouseDropdown");
+
+      const payload = {
+        customer_name: document.getElementById("customerName").value,
+        warehouse_id: warehouseDropdown.value,
+        warehouse_name: warehouseDropdown.options[warehouseDropdown.selectedIndex].text,
+        items: orderItems
+      };
+
+      const res = await fetch(`${BASE_URL}/orders`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+        body: JSON.stringify(payload)
+       });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+         alert(data.detail || "Error");
+         return;
+      }
+
+      alert("Order Created!");
+      closeOrderModal();
+     }
+
+      // ================= Load Sales Order =================
+    async function loadOrders() {
+      const section = document.getElementById("orderSection");
+
+      if (section.style.display === "flex") {
+        section.style.display = "none";
+        return;
+      }
+
+      section.style.display = "flex";
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${BASE_URL}/orders`, {
+          headers: { Authorization: `Bearer ${token}` }
+        
+        
+        });
+
+      const data = await res.json();
+
+      const container = document.getElementById("orderList");
+
+      container.innerHTML = data.map(order => `
+        <div style="border:1px solid #ccc; padding:10px; margin:10px 0;">
+      
+            <b>${order.customer_name}</b><br>
+            📦 ${order.warehouse_name}<br>
+            💰 ₹${order.total_amount || 0}<br>
+            📊 Status: ${order.status}<br><br>
+
+            <button onclick="updateOrderStatus('${order.id}', 'confirmed')">Confirm</button>
+            <button onclick="updateOrderStatus('${order.id}', 'packed')">Pack</button>
+            <button onclick="updateOrderStatus('${order.id}', 'shipped')">Ship</button>
+            <button onclick="updateOrderStatus('${order.id}', 'delivered')">Deliver</button>
+            <button onclick="updateOrderStatus('${order.id}', 'cancelled')">Cancel</button>
+            <button onclick="updateOrderStatus('${order.id}', 'returned')">Return</button>
+
+        </div>
+      `).join("");
+     }
+
+     // ================= Update order status =================
+
+    async function updateOrderStatus(orderId, status) {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`${BASE_URL}/orders/${orderId}/status`, {
+         method: "PUT",
+         headers: {
+           "Content-Type": "application/json",
+           Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+         alert(data.detail || "Error");
+         return;
+       }
+
+      alert(data.message);
+      loadOrders();
+    }
+
+    // ================= Close supply order overlay =================
+    function closeOrderOverlay(event) {
+       if (!event || event.target.id === "orderSection") {
+       document.getElementById("orderSection").style.display = "none";
+    }
+    }
+      
       // ================= Edit supplier profie =================
 
       async function openProfileModal() {

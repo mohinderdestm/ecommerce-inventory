@@ -14,16 +14,7 @@ class WarehouseService:
         warehouse_id = await self.repo.create(warehouse_data)
         return {"id": warehouse_id}
 
-    # async def list_warehouses(self):
-    #     data = await self.repo.get_all()
-
-    #     for w in data:
-    #         w["id"] = str(w["_id"])
-    #         del w["_id"]
-
-    #     return data
     
-
     async def list_warehouses(self):
        warehouses = await self.repo.get_all()
        result = []

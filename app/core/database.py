@@ -17,7 +17,8 @@ products_collection = db["products"]
 suppliers_collection = db["suppliers"]
 warehouses_collection = db["warehouses"]
 inventory_collection = db["inventory"]
-inventory_movements_collection = db["inventory_movements"]
+inventory_movements_collection = db["inventory_logs"]
+sales_orders_collection = db["sales_orders"]
 
 
 

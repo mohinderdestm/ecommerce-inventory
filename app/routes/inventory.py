@@ -60,7 +60,7 @@ async def get_inventory_history(
     db=Depends(get_db),
     user=Depends(required_roles(["admin", "inventory_manager"]))
 ):
-    movements = db["inventory_movements"]
+    movements = db["inventory_logs"]
 
     data = await movements.find().sort("timestamp", -1).to_list(100)
 
