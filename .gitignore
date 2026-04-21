@@ -33,3 +33,7 @@ yarn-error.log*
 
 # Vite specific
 .vite/
+
+graphify-out/
+.graphifyignore
+CODEBASE_GRAPH.md

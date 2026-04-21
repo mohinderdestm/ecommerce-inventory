@@ -14,6 +14,7 @@ import Suppliers from './pages/Suppliers'
 import SalesOrders from './pages/SalesOrders'
 import CreateOrder from './pages/CreateOrder'
 import Warehouses from './pages/Warehouses'
+import InventoryMovements from './pages/InventoryMovements'
 import { Categories, Variants, Profile } from './pages/OtherPages'
 import './App.css'
 
@@ -71,6 +72,7 @@ export default function App() {
               <Route path="/variants"  element={<PrivateLayout><Variants /></PrivateLayout>} />
               <Route path="/suppliers" element={<PrivateLayout><Suppliers /></PrivateLayout>} />
               <Route path="/warehouses"element={<PrivateLayout><Warehouses /></PrivateLayout>} />
+              <Route path="/movements" element={<PrivateLayout><InventoryMovements /></PrivateLayout>} />
               <Route path="/orders"        element={<PrivateLayout><SalesOrders /></PrivateLayout>} />
               <Route path="/orders/create" element={<PrivateLayout><CreateOrder /></PrivateLayout>} />
               <Route path="/profile"   element={<PrivateLayout><Profile /></PrivateLayout>} />

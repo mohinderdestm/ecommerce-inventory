@@ -22,11 +22,14 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 router = APIRouter(prefix="/warehouses", tags=["Warehouses"])
 
 
+from app.repositories.inventory_movement_repository import InventoryMovementRepository
+
 def get_warehouse_service(db: AsyncIOMotorDatabase = Depends(get_db)) -> WarehouseService:
     return WarehouseService(
         warehouse_repo=WarehouseRepository(db),
         product_repo=ProductRepository(db),
         user_repo=UserRepository(db),
+        movement_repo=InventoryMovementRepository(db),
     )
 
 

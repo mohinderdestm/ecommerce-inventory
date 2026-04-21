@@ -18,12 +18,15 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 router = APIRouter(prefix="/sales-orders", tags=["Sales Orders"])
 
 
+from app.repositories.inventory_movement_repository import InventoryMovementRepository
+
 def get_order_service(db: AsyncIOMotorDatabase = Depends(get_db)) -> SalesOrderService:
     return SalesOrderService(
         order_repo=SalesOrderRepository(db),
         product_repo=ProductRepository(db),
         warehouse_repo=WarehouseRepository(db),
         variant_repo=VariantRepository(db),
+        movement_repo=InventoryMovementRepository(db),
     )
 
 

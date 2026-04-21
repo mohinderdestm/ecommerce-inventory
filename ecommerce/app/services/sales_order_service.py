@@ -14,6 +14,8 @@ from app.models.sales_order import (
 from app.schemas.sales_order import (
     SalesOrderCreateRequest, StatusUpdateRequest, ReturnRequest,
 )
+from app.repositories.inventory_movement_repository import InventoryMovementRepository
+from app.models.inventory_movement import build_inventory_movement_document, MovementType
 
 logger = logging.getLogger(__name__)
 
@@ -25,11 +27,13 @@ class SalesOrderService:
         product_repo: ProductRepository,
         warehouse_repo: WarehouseRepository,
         variant_repo: VariantRepository,
+        movement_repo: InventoryMovementRepository = None,
     ):
         self.order_repo = order_repo
         self.product_repo = product_repo
         self.warehouse_repo = warehouse_repo
         self.variant_repo = variant_repo
+        self.movement_repo = movement_repo
 
     # ── Create Order (Draft) ──────────────────────────────────────────────────
 
@@ -201,6 +205,19 @@ class SalesOrderService:
                 variant_id=item.get("variant_id"),
                 quantity_delta=-item["quantity"],
             )
+            if self.movement_repo:
+                doc = build_inventory_movement_document(
+                    product_id=item["product_id"],
+                    warehouse_id=order["warehouse_id"],
+                    movement_type=MovementType.OUTWARD,
+                    quantity=item["quantity"],
+                    reference_type="SALES_ORDER",
+                    reference_id=order_id,
+                    performed_by=updated_by,
+                    variant_id=item.get("variant_id"),
+                    remarks=f"Order {order['order_number']} confirmed"
+                )
+                await self.movement_repo.create(doc)
 
         updated = await self.order_repo.update(order_id, {
             "status": SalesOrderStatus.CONFIRMED.value,
@@ -283,6 +300,19 @@ class SalesOrderService:
                     variant_id=item.get("variant_id"),
                     quantity_delta=item["quantity"],
                 )
+                if self.movement_repo:
+                    doc = build_inventory_movement_document(
+                        product_id=item["product_id"],
+                        warehouse_id=order["warehouse_id"],
+                        movement_type=MovementType.RETURN,
+                        quantity=item["quantity"],
+                        reference_type="SALES_ORDER_CANCELLED",
+                        reference_id=order_id,
+                        performed_by=updated_by,
+                        variant_id=item.get("variant_id"),
+                        remarks=f"Order {order['order_number']} cancelled"
+                    )
+                    await self.movement_repo.create(doc)
 
         await self.order_repo.update(order_id, {
             "status": SalesOrderStatus.CANCELLED.value,
@@ -317,6 +347,22 @@ class SalesOrderService:
                 variant_id=item.get("variant_id") if isinstance(item, dict) else item.variant_id,
                 quantity_delta=item["quantity"] if isinstance(item, dict) else item.quantity,
             )
+            if self.movement_repo:
+                pid = item["product_id"] if isinstance(item, dict) else item.product_id
+                vid = item.get("variant_id") if isinstance(item, dict) else item.variant_id
+                qty = item["quantity"] if isinstance(item, dict) else item.quantity
+                doc = build_inventory_movement_document(
+                    product_id=pid,
+                    warehouse_id=order["warehouse_id"],
+                    movement_type=MovementType.RETURN,
+                    quantity=qty,
+                    reference_type="SALES_ORDER_RETURNED",
+                    reference_id=order_id,
+                    performed_by=updated_by,
+                    variant_id=vid,
+                    remarks=f"Order {order['order_number']} returned. Reason: {payload.reason}"
+                )
+                await self.movement_repo.create(doc)
 
         await self.order_repo.update(order_id, {
             "status": SalesOrderStatus.RETURNED.value,

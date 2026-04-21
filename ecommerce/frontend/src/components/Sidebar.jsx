@@ -21,8 +21,11 @@ const NAV = [
   },
   {
     label: 'Warehouse',
-    roles: ['admin', 'warehouse_staff'],
-    links: [{ to: '/warehouses', icon: '🏗️', label: 'Warehouses' }],
+    roles: ['admin', 'warehouse_staff', 'inventory_manager'],
+    links: [
+      { to: '/warehouses', icon: '🏗️', label: 'Warehouses' },
+      { to: '/movements', icon: '📋', label: 'Movements' }
+    ],
   },
   {
     label: 'Orders',

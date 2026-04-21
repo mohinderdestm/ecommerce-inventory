@@ -14,6 +14,8 @@ from app.schemas.warehouse import (
     WarehouseCreateRequest, WarehouseUpdateRequest,
     StaffAssignRequest, StockUpdateRequest, StockTransferRequest,
 )
+from app.repositories.inventory_movement_repository import InventoryMovementRepository
+from app.models.inventory_movement import build_inventory_movement_document, MovementType
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +26,12 @@ class WarehouseService:
         warehouse_repo: WarehouseRepository,
         product_repo: ProductRepository,
         user_repo: UserRepository,
+        movement_repo: InventoryMovementRepository = None,
     ):
         self.repo = warehouse_repo
         self.product_repo = product_repo
         self.user_repo = user_repo
+        self.movement_repo = movement_repo
 
     # Create 
 
@@ -197,6 +201,21 @@ class WarehouseService:
             variant_id=payload.variant_id,
             quantity_delta=payload.quantity,
         )
+
+        if self.movement_repo:
+            mtype = MovementType.INWARD if payload.quantity >= 0 else MovementType.OUTWARD
+            doc = build_inventory_movement_document(
+                product_id=payload.product_id,
+                warehouse_id=warehouse_id,
+                movement_type=mtype,
+                quantity=abs(payload.quantity),
+                reference_type="MANUAL_UPDATE",
+                performed_by=updated_by,
+                variant_id=payload.variant_id,
+                remarks=f"Manual update via warehouse stock API"
+            )
+            await self.movement_repo.create(doc)
+
         logger.info(
             f"Stock updated in warehouse {warehouse_id}: "
             f"product={payload.product_id} delta={payload.quantity} by {updated_by}"
@@ -289,6 +308,35 @@ class WarehouseService:
         # Immediately deduct from source and add to destination (direct transfer)
         await self.repo.upsert_stock(from_warehouse_id, payload.product_id, payload.variant_id, -payload.quantity)
         await self.repo.upsert_stock(payload.to_warehouse_id, payload.product_id, payload.variant_id, payload.quantity)
+
+        if self.movement_repo:
+            # TRANSFER_OUT
+            doc_out = build_inventory_movement_document(
+                product_id=payload.product_id,
+                warehouse_id=from_warehouse_id,
+                movement_type=MovementType.TRANSFER_OUT,
+                quantity=payload.quantity,
+                reference_type="TRANSFER",
+                reference_id=str(transfer["_id"]),
+                performed_by=created_by,
+                variant_id=payload.variant_id,
+                remarks=f"Transfer to {payload.to_warehouse_id}"
+            )
+            await self.movement_repo.create(doc_out)
+
+            # TRANSFER_IN
+            doc_in = build_inventory_movement_document(
+                product_id=payload.product_id,
+                warehouse_id=payload.to_warehouse_id,
+                movement_type=MovementType.TRANSFER_IN,
+                quantity=payload.quantity,
+                reference_type="TRANSFER",
+                reference_id=str(transfer["_id"]),
+                performed_by=created_by,
+                variant_id=payload.variant_id,
+                remarks=f"Transfer from {from_warehouse_id}"
+            )
+            await self.movement_repo.create(doc_in)
 
         # Mark transfer as completed
         completed = await self.repo.update_transfer(transfer["_id"], {
