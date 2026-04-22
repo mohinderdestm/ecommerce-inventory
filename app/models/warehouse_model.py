@@ -30,16 +30,42 @@ class WarehouseModel:
 
     @staticmethod
     def response(warehouse) -> dict:
+
+        def clean(value, fallback="N/A"):
+            if value in [None, "", "string", "null"]:
+                return fallback
+            return value
+
+        address = warehouse.get("address") or {}
+
         return {
             "id": str(warehouse["_id"]),
-            "name": warehouse.get("name"),
-            "code": warehouse.get("code"),
-            "email": warehouse.get("email"),
-            "phone": warehouse.get("phone"),
-            "address": warehouse.get("address"),
-            "capacity": warehouse.get("capacity"),
-            "is_active": warehouse.get("is_active"),
-            "created_by": warehouse.get("created_by"),
+            "name": clean(warehouse.get("name")),
+            "code": clean(warehouse.get("code")),
+            "email": clean(warehouse.get("email")),
+            "phone": clean(warehouse.get("phone")),
+            "address": {
+                "street": clean(address.get("street")),
+                "city": clean(address.get("city")),
+                "state": clean(address.get("state")),
+                "country": clean(address.get("country")),
+                "pincode": clean(address.get("pincode")),
+            },
+            "capacity": (
+                warehouse.get("capacity")
+                if warehouse.get("capacity") is not None
+                else 0
+            ),
+            "is_active": warehouse.get("is_active", True),
+            "created_by": (
+                {
+                    "id": warehouse.get("created_by", {}).get("id"),
+                    "name": clean(warehouse.get("created_by", {}).get("name")),
+                    "email": clean(warehouse.get("created_by", {}).get("email")),
+                }
+                if warehouse.get("created_by")
+                else {}
+            ),
             "created_at": warehouse.get("created_at"),
             "updated_at": warehouse.get("updated_at"),
         }

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Smart Inventory Dashboard</title>
     <link rel="stylesheet" href="/static/css/home.css" />
+    <link rel="stylesheet" href="/static/css/warehouses.css" />
   </head>
 
   <body>
@@ -29,6 +30,9 @@
         </button>
         <button id="adminOrdersBtn" class="btn admin-btn admin-only hidden">
           📋 Order Details
+        </button>
+        <button id="warehouseBtn" class="btn warehouse-btn hidden">
+          🏬 Warehouses
         </button>
         <button id="openAddProduct" class="btn add-btn">Add Product</button>
         <button id="logoutBtn" class="btn logout-btn">Logout</button>
@@ -275,6 +279,52 @@
       </div>
     </div>
 
+    <div id="warehouseOverlay" class="overlay hidden">
+      <div class="overlay-content warehouse-box">
+        <div class="overlay-header">
+          <h2>Warehouse Management</h2>
+          <button id="addWarehouseBtn" class="add-warehouse-btn hidden">
+            ➕ Add Warehouse
+          </button>
+          <button id="closeWarehouseOverlay" class="close-btn">&times;</button>
+        </div>
+
+        <div id="warehouseContainer" class="warehouse-container">
+          <p class="loading-text">Loading warehouses...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADD WAREHOUSE OVERLAY -->
+    <div id="addWarehouseOverlay" class="overlay hidden">
+      <div class="overlay-content add-warehouse-box">
+        <div class="overlay-header">
+          <h2>Add Warehouse</h2>
+          <button id="closeAddWarehouseOverlay" class="close-btn">
+            &times;
+          </button>
+        </div>
+
+        <form id="addWarehouseForm" class="warehouse-form">
+          <input name="name" placeholder="Warehouse Name" required />
+          <input name="code" placeholder="Code" required />
+          <input name="email" placeholder="Email" required />
+          <input name="phone" placeholder="Phone" />
+
+          <input name="street" placeholder="Street" required />
+          <input name="city" placeholder="City" required />
+          <input name="state" placeholder="State" required />
+          <input name="country" placeholder="Country" required />
+          <input name="pincode" placeholder="Pincode" required />
+
+          <input name="capacity" type="number" placeholder="Capacity" />
+
+          <button type="submit" class="submit-btn">Create Warehouse</button>
+        </form>
+      </div>
+    </div>
+
     <script src="/static/js/home.js"></script>
+    <script src="/static/js/warehouses.js"></script>
   </body>
 </html>
