@@ -1,7 +1,8 @@
+from datetime import datetime
+from bson import ObjectId
 from app.repositories.warehouse_stock_repository import WarehouseStockRepository
 from app.models.warehouse_stock_model import WarehouseStock
 from app.core.database import db
-from bson import ObjectId
 
 
 class WarehouseStockService:
@@ -29,7 +30,6 @@ class WarehouseStockService:
 
         if data.variant_sku == product.get("sku"):
             final_sku = product.get("sku")
-
         else:
             for v in product.get("variants", []):
                 if v.get("sku") == data.variant_sku:
@@ -114,8 +114,30 @@ class WarehouseStockService:
             data.from_warehouse, data.variant_sku, data.quantity
         )
 
-        await WarehouseStockRepository.increase_stock(
-            data.to_warehouse, data.variant_sku, data.quantity
+        destination = await WarehouseStockRepository.find_one(
+            data.to_warehouse, data.variant_sku
         )
+
+        if destination:
+
+            await WarehouseStockRepository.increase_stock(
+                data.to_warehouse, data.variant_sku, data.quantity
+            )
+        else:
+
+            new_stock = {
+                "warehouse_id": ObjectId(data.to_warehouse),
+                "warehouse_name": source.get("warehouse_name"),
+                "product_id": source.get("product_id"),
+                "product_name": source.get("product_name"),
+                "product_sku": source.get("product_sku"),
+                "variant_sku": source.get("variant_sku"),
+                "variant_name": source.get("variant_name"),
+                "quantity": data.quantity,
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow(),
+            }
+
+            await WarehouseStockRepository.create(new_stock)
 
         return {"message": "Stock transferred"}
