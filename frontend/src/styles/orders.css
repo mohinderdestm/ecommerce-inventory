@@ -1,0 +1,210 @@
+.orders-page {
+  padding: 20px;
+}
+
+.orders-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.orders-header h1 {
+  margin: 0;
+  font-size: 32px;
+  color: #111827;
+}
+
+.orders-header p {
+  color: #6b7280;
+}
+
+.back-btn {
+  background: #111827;
+  color: white;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.orders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.order-card {
+  background: white;
+  border-radius: 20px;
+  padding: 22px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  border: 1px solid #eee;
+}
+
+.order-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.order-top h3 {
+  margin: 0;
+}
+
+.order-top p {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.status {
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.draft {
+  background: #f3f4f6;
+}
+
+.confirmed {
+  background: #dbeafe;
+}
+
+.packed {
+  background: #fef3c7;
+}
+
+.shipped {
+  background: #e0e7ff;
+}
+
+.delivered {
+  background: #dcfce7;
+}
+
+.cancelled {
+  background: #fee2e2;
+}
+
+.order-info {
+  display: flex;
+  justify-content: space-between;
+  margin: 20px 0;
+}
+
+.order-info span {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.order-info h2,
+.order-info h4 {
+  margin-top: 5px;
+}
+
+.warehouse-box {
+  margin-bottom: 20px;
+}
+
+.warehouse-box label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.warehouse-box select,
+.status-select {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+}
+
+.order-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.order-actions button {
+  flex: 1;
+  border: none;
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.view-btn {
+  background: #111827;
+  color: white;
+}
+
+.confirm-btn {
+  background: #16a34a;
+  color: white;
+}
+
+.cancel-btn {
+  background: #dc2626;
+  color: white;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.order-modal {
+  background: white;
+  width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 20px;
+  padding: 25px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.close-btn {
+  background: red;
+  color: white;
+  border: none;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.modal-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid #eee;
+  padding: 15px 0;
+}
+
+.modal-item img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.modal-footer {
+  margin-top: 20px;
+  text-align: right;
+}

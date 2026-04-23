@@ -1,0 +1,309 @@
+/* ================= PAGE ================= */
+
+.page {
+  /* padding: 24px; */
+  background: #f4f7fc;
+  min-height: 100vh;
+}
+
+/* ================= TOPBAR ================= */
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.search {
+  width: 340px;
+  padding: 12px 16px;
+  border: 1px solid #dbe3f0;
+  border-radius: 12px;
+  background: white;
+  font-size: 14px;
+  outline: none;
+}
+
+.search:focus {
+  border-color: #2563eb;
+}
+
+.profile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.profile span {
+  font-weight: 700;
+  color: #111827;
+}
+
+.profile small {
+  color: #6b7280;
+  text-transform: capitalize;
+}
+
+/* ================= HEADER ================= */
+
+.topbar-premium {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28px;
+}
+
+.topbar-premium h1 {
+  font-size: 32px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.add-btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 14px 22px;
+  border-radius: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.add-btn:hover {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+}
+
+/* ================= GRID ================= */
+
+.grid-premium {
+  display: grid;
+grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 24px;
+}
+
+/* ================= PRODUCT CARD ================= */
+
+.card-premium {
+  background: white;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+  transition: 0.25s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-premium:hover {
+  transform: translateY(-6px);
+}
+
+.card-premium img {
+  width: 100%;
+  height: 240px;
+  object-fit: cover;
+  background: #f3f4f6;
+}
+
+/* .card-body {
+  padding: 20px;
+} */
+
+/* .card-body h3 {
+  font-size: 22px;
+  margin-bottom: 8px;
+  color: #111827;
+} */
+
+.card-body p {
+  color: #6b7280;
+  margin: 0px;
+  /* margin-bottom: 14px;
+  min-height: 40px;
+  line-height: 1.5; */
+}
+
+/* ================= PRICE ================= */
+
+.price {
+  /* font-size: 24px;
+  font-weight: 800; */
+  color: #2563eb;
+  /* margin-bottom: 14px; */
+}
+
+/* ================= STOCK ================= */
+
+.stock {
+  /* display: inline-block; */
+  padding: 8px 14px;
+  /* border-radius: 999px; */
+  /* font-size: 13px; */
+  font-weight: 700;
+  /* margin-bottom: 18px; */
+}
+
+.stock.in {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.stock.low {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.stock.out {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* ================= ACTION BUTTONS ================= */
+
+.card-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  flex: 1;
+  border: none;
+  border-radius: 12px;
+  padding: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.edit {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.delete {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.add {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+/* ================= MODAL ================= */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+  padding: 20px;
+}
+
+/* ================= FORM ================= */
+
+.form {
+  background: white;
+  width: 100%;
+  max-width: 560px;
+  border-radius: 24px;
+  padding: 30px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form h3 {
+  font-size: 26px;
+  margin-bottom: 10px;
+  color: #111827;
+}
+
+.form input,
+.form select,
+.form textarea {
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid #d1d5db;
+  font-size: 15px;
+  outline: none;
+}
+
+.form input:focus,
+.form select:focus,
+.form textarea:focus {
+  border-color: #2563eb;
+}
+
+/* ================= FORM BUTTONS ================= */
+
+.form button {
+  border: none;
+  padding: 14px;
+  border-radius: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.form button:first-of-type {
+  background: #2563eb;
+  color: white;
+}
+
+.form button:first-of-type:hover {
+  background: #1d4ed8;
+}
+
+.form button:last-of-type {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.form button:last-of-type:hover {
+  background: #d1d5db;
+}
+
+/* ================= RESPONSIVE ================= */
+
+@media (max-width: 768px) {
+
+  .topbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .search {
+    width: 100%;
+  }
+
+  .topbar-premium {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .grid-premium {
+    grid-template-columns: 1fr;
+  }
+
+  .card-actions {
+    flex-direction: column;
+  }
+
+}
+
