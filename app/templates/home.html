@@ -186,18 +186,29 @@
             placeholder="Selling Price"
             required
           />
-          <input
-            type="number"
-            id="quantity"
-            placeholder="Stock Quantity"
-            required
-          />
           <input type="number" id="tax" placeholder="Tax %" />
           <select id="unit">
             <option value="piece">Piece</option>
             <option value="kg">Kilogram</option>
             <option value="litre">Litre</option>
           </select>
+          <div class="warehouse-allocation-block">
+            <div class="warehouse-allocation-header">
+              <label>Base Product Warehouse Stock</label>
+              <button
+                type="button"
+                id="addBaseAllocationBtn"
+                class="add-variant-btn"
+              >
+                + Add Warehouse Stock
+              </button>
+            </div>
+            <div id="baseWarehouseAllocations"></div>
+            <p class="warehouse-allocation-note">
+              Choose a warehouse and the quantity to store there. Orders will be
+              fulfilled from this warehouse stock.
+            </p>
+          </div>
           <div class="variants-section">
             <label>Product Variants</label>
             <div id="variantsContainer"></div>

@@ -6,6 +6,7 @@ from datetime import datetime
 class OrderItem(BaseModel):
     product_id: str
     variant_sku: Optional[str] = None
+    warehouse_id: Optional[str] = None
     quantity: int = Field(..., gt=0)
 
 
@@ -17,6 +18,7 @@ class OrderCreate(BaseModel):
 class OrderItemResponse(BaseModel):
     product_id: str
     variant_sku: Optional[str] = None
+    warehouse_id: Optional[str] = None
     name: str
     quantity: int
     price_at_purchase: float

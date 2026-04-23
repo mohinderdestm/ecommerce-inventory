@@ -69,6 +69,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const form = getEl("productForm");
   const variantsContainer = getEl("variantsContainer");
   const addVariantBtn = getEl("addVariantBtn");
+  const baseWarehouseAllocations = getEl("baseWarehouseAllocations");
+  const addBaseAllocationBtn = getEl("addBaseAllocationBtn");
   const profileDetails = getEl("profileDetails");
   const userBox = document.querySelector(".user-box");
 
@@ -76,6 +78,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let editProductId = null;
   let deleteProductId = null;
   let isSubmitting = false;
+  let availableWarehouses = [];
+  let warehousesLoaded = false;
 
   if (addBtn) {
     addBtn.style.display = userRole === "supplier" ? "flex" : "none";
@@ -93,8 +97,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (roleEl) roleEl.innerText = formatText(dRole);
 
     if (cartBtn) {
-      const isRestrictedRole = dRole === "supplier" || dRole === "admin";
-      cartBtn.style.display = isRestrictedRole ? "none" : "flex";
+      cartBtn.style.display = dRole === "viewer" ? "flex" : "none";
     }
 
     if (adminOrdersBtn) {
@@ -115,6 +118,142 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 2000);
   };
 
+  const fetchWarehousesForProductForm = async (force = false) => {
+    if (warehousesLoaded && !force) return availableWarehouses;
+
+    try {
+      const res = await fetch("/api/v1/warehouses/", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      availableWarehouses = Array.isArray(data) ? data : [];
+    } catch (err) {
+      availableWarehouses = [];
+    } finally {
+      warehousesLoaded = true;
+    }
+
+    return availableWarehouses;
+  };
+
+  const buildWarehouseOptions = (selectedWarehouseId = "") => {
+    const defaultOption = availableWarehouses.length
+      ? '<option value="">Select Warehouse</option>'
+      : '<option value="">No warehouse available</option>';
+
+    return `${defaultOption}${availableWarehouses
+      .map(
+        (warehouse) => `
+          <option value="${warehouse.id}" ${warehouse.id === selectedWarehouseId ? "selected" : ""}>
+            ${warehouse.name}
+          </option>
+        `,
+      )
+      .join("")}`;
+  };
+
+  const addWarehouseAllocationRow = (targetContainer, allocation = {}) => {
+    if (!targetContainer) return;
+
+    const row = document.createElement("div");
+    row.className = "warehouse-allocation-row";
+    row.innerHTML = `
+      <select class="warehouse-select">
+        ${buildWarehouseOptions(allocation.warehouse_id || "")}
+      </select>
+      <input
+        type="number"
+        class="warehouse-qty"
+        placeholder="Quantity"
+        min="1"
+        value="${allocation.quantity || ""}"
+      />
+      <button type="button" class="remove-warehouse-allocation-btn">&times;</button>
+    `;
+
+    row
+      .querySelector(".remove-warehouse-allocation-btn")
+      ?.addEventListener("click", () => row.remove());
+
+    targetContainer.appendChild(row);
+  };
+
+  const collectWarehouseAllocations = (targetContainer) => {
+    if (!targetContainer) return [];
+
+    return Array.from(
+      targetContainer.querySelectorAll(".warehouse-allocation-row"),
+    )
+      .map((row) => ({
+        warehouse_id: row.querySelector(".warehouse-select")?.value || "",
+        quantity: Number(row.querySelector(".warehouse-qty")?.value) || 0,
+      }))
+      .filter(
+        (allocation) => allocation.warehouse_id && allocation.quantity > 0,
+      );
+  };
+
+  const renderWarehouseStockSummary = (warehouseStock = [], unit = "piece") => {
+    if (!warehouseStock.length) {
+      return `
+        <div class="warehouse-stock-summary empty">
+          <span>No warehouse stock assigned yet.</span>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="warehouse-stock-summary">
+        ${warehouseStock
+          .map(
+            (entry) => `
+              <div class="warehouse-stock-chip">
+                <strong>${entry.warehouse_name || "Warehouse"}</strong>
+                <span>${entry.quantity} ${unit}</span>
+              </div>
+            `,
+          )
+          .join("")}
+      </div>
+    `;
+  };
+
+  const renderWarehouseOrderSelector = (
+    warehouseStock = [],
+    selectedWarehouseId = "",
+    unit = "piece",
+  ) => {
+    const selectableWarehouses = warehouseStock.filter(
+      (entry) => Number(entry.quantity) > 0,
+    );
+    if (!selectableWarehouses.length) return "";
+
+    const resolvedWarehouseId =
+      selectedWarehouseId &&
+      selectableWarehouses.some((w) => w.warehouse_id === selectedWarehouseId)
+        ? selectedWarehouseId
+        : selectableWarehouses[0].warehouse_id;
+
+    return `
+      <div class="warehouse-picker-card">
+        <label for="detailWarehouseSelect" class="warehouse-picker-label">
+          Choose Warehouse For Order
+        </label>
+        <select id="detailWarehouseSelect" class="warehouse-picker-select">
+          ${selectableWarehouses
+            .map(
+              (entry) => `
+                <option value="${entry.warehouse_id}" ${entry.warehouse_id === resolvedWarehouseId ? "selected" : ""}>
+                  ${entry.warehouse_name} • ${entry.quantity} ${unit}
+                </option>
+              `,
+            )
+            .join("")}
+        </select>
+      </div>
+    `;
+  };
+
   const closeAllOverlays = () => {
     [
       overlay,
@@ -128,6 +267,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ].forEach((ov) => ov?.classList.add("hidden"));
     if (form) form.reset();
     if (variantsContainer) variantsContainer.innerHTML = "";
+    if (baseWarehouseAllocations) baseWarehouseAllocations.innerHTML = "";
     editMode = false;
     deleteProductId = null;
   };
@@ -193,6 +333,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <img src="${item.image}" alt="${item.name}" class="cart-item-img" />
           <div class="cart-item-info">
             <h4>${item.name}</h4>
+            <p class="cart-warehouse-line">${item.warehouse_name || "Warehouse not selected"}</p>
             <p>₹ ${item.price} x ${item.quantity}</p>
           </div>
           <button class="remove-cart-item" data-index="${index}">&times;</button>
@@ -249,6 +390,10 @@ document.addEventListener("DOMContentLoaded", () => {
         showToast("Select items to place order!");
         return;
       }
+      if (selectedItems.some((item) => !item.warehouse_id)) {
+        showToast("Each cart item must have a selected warehouse");
+        return;
+      }
 
       const orderPayload = {
         customer_name: localStorage.getItem("user_name") || userName,
@@ -256,6 +401,7 @@ document.addEventListener("DOMContentLoaded", () => {
           product_id: item.id,
           quantity: item.quantity,
           variant_sku: item.sku || null,
+          warehouse_id: item.warehouse_id || null,
         })),
       };
 
@@ -531,7 +677,6 @@ document.addEventListener("DOMContentLoaded", () => {
     variant = {
       name: "",
       additional_price: null,
-      reorder_level: null,
       image: "",
     },
   ) => {
@@ -544,26 +689,41 @@ document.addEventListener("DOMContentLoaded", () => {
       variant.additional_price === 0 || variant.additional_price === null
         ? ""
         : variant.additional_price;
-    const qtyVal =
-      variant.reorder_level === 0 || variant.reorder_level === null
-        ? ""
-        : variant.reorder_level;
 
     div.innerHTML = `
-      <div style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
-        <div style="display: flex; gap: 5px; align-items: center;">
+      <div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+        <div style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap;">
             <input type="text" class="v-name" placeholder="Variant Name" value="${variant.name || ""}" required />
             <input type="number" class="v-price" placeholder="Price" value="${priceVal}" required />
-            <input type="number" class="v-qty" placeholder="Stock" value="${qtyVal}" required />
             <button type="button" class="remove-variant-btn">&times;</button>
         </div>
         <input type="file" class="v-image" accept="image/*" />
         ${variant.image ? `<small style="color: #38bdf8; font-size: 10px;">Current: ${variant.image.split("/").pop()}</small>` : ""}
+        <div class="warehouse-allocation-block compact">
+          <div class="warehouse-allocation-header">
+            <label>Variant Warehouse Stock</label>
+            <button type="button" class="add-variant-allocation-btn add-variant-btn">
+              + Add Warehouse Stock
+            </button>
+          </div>
+          <div class="variant-warehouse-allocations"></div>
+        </div>
       </div>
     `;
     div
       .querySelector(".remove-variant-btn")
       .addEventListener("click", () => div.remove());
+
+    const variantAllocationsContainer = div.querySelector(
+      ".variant-warehouse-allocations",
+    );
+    div
+      .querySelector(".add-variant-allocation-btn")
+      ?.addEventListener("click", () =>
+        addWarehouseAllocationRow(variantAllocationsContainer),
+      );
+    addWarehouseAllocationRow(variantAllocationsContainer);
+
     variantsContainer.appendChild(div);
   };
 
@@ -571,10 +731,21 @@ document.addEventListener("DOMContentLoaded", () => {
     addVariantBtn.addEventListener("click", () => createVariantInput());
   }
 
-  const openOverlay = (mode = "add", product = null) => {
+  if (addBaseAllocationBtn) {
+    addBaseAllocationBtn.addEventListener("click", () =>
+      addWarehouseAllocationRow(baseWarehouseAllocations),
+    );
+  }
+
+  const openOverlay = async (mode = "add", product = null) => {
     if (!overlay || userRole !== "supplier") return;
+    await fetchWarehousesForProductForm();
     overlay.classList.remove("hidden");
     if (variantsContainer) variantsContainer.innerHTML = "";
+    if (baseWarehouseAllocations) {
+      baseWarehouseAllocations.innerHTML = "";
+      addWarehouseAllocationRow(baseWarehouseAllocations);
+    }
 
     if (mode === "edit" && product) {
       editMode = true;
@@ -593,7 +764,6 @@ document.addEventListener("DOMContentLoaded", () => {
       setVal("brand", product.brand);
       setVal("cost_price", product.cost_price);
       setVal("price", product.selling_price);
-      setVal("quantity", product.reorder_level);
       setVal("tax", product.tax);
       setVal("unit", product.unit || "piece");
 
@@ -608,22 +778,36 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  const renderVariantDetails = (p, index) => {
+  const renderVariantDetails = (p, index, selectedWarehouseId = "") => {
     const isBase = index === -1;
     const variantData = isBase ? null : p.variants[index];
 
     const displayPrice = isBase
       ? p.selling_price
-      : variantData.additional_price || 0;
+      : variantData.additional_price || p.selling_price;
     const displayStock = isBase
-      ? p.reorder_level
-      : variantData.reorder_level || 0;
+      ? (p.base_stock ?? p.stock ?? 0)
+      : (variantData.stock ?? variantData.reorder_level ?? 0);
     const displayTitle = isBase ? p.name : `${p.name} (${variantData.name})`;
     const displayImg =
       !isBase && variantData.image
         ? variantData.image
         : p.image || "https://via.placeholder.com/300";
     const displaySKU = isBase ? null : variantData.sku || variantData.name;
+    const warehouseStock = isBase
+      ? p.warehouse_stock || []
+      : variantData.warehouse_stock || [];
+    const orderWarehouses = warehouseStock.filter(
+      (entry) => Number(entry.quantity) > 0,
+    );
+    const resolvedWarehouse =
+      orderWarehouses.find(
+        (entry) => entry.warehouse_id === selectedWarehouseId,
+      ) ||
+      orderWarehouses[0] ||
+      null;
+    const selectedWarehouseQty = resolvedWarehouse?.quantity || 0;
+    const selectedWarehouseIdValue = resolvedWarehouse?.warehouse_id || "";
 
     const supplier = p.supplier_details || null;
     let supplierHtml = `<p class="no-supplier">No supplier information available.</p>`;
@@ -676,18 +860,20 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
     }
 
-    const canBuy = currentRole !== "supplier" && currentRole !== "admin";
+    const canBuy = currentRole === "viewer";
+    const isOutOfStock = displayStock <= 0 || !resolvedWarehouse;
     const purchaseHtml = canBuy
       ? `
+      ${renderWarehouseOrderSelector(orderWarehouses, selectedWarehouseIdValue, p.unit || "piece")}
       <div class="product-actions">
           <div class="qty-control">
               <button id="qtyMinus" class="qty-btn" type="button">−</button>
-              <input type="number" id="purchaseQty" value="1" min="1" max="${displayStock}" readonly />
+              <input type="number" id="purchaseQty" value="${isOutOfStock ? 0 : 1}" min="1" max="${selectedWarehouseQty}" readonly />
               <button id="qtyPlus" class="qty-btn" type="button">+</button>
           </div>
-          <button class="add-to-cart-premium" id="addToCartActionBtn">
+          <button class="add-to-cart-premium" id="addToCartActionBtn" ${isOutOfStock ? "disabled" : ""}>
               <span class="icon">🛒</span>
-              <span class="text">Add to Cart</span>
+              <span class="text">${isOutOfStock ? "Out of Stock" : "Add to Cart"}</span>
           </button>
       </div>`
       : "";
@@ -706,6 +892,7 @@ document.addEventListener("DOMContentLoaded", () => {
              <span class="detail-tax">+ ${p.tax}% Tax</span>
           </div>
           <p class="detail-stock">Available Stock: <strong>${displayStock} ${p.unit || "piece"}</strong></p>
+          
           <div class="detail-desc">
             <label>Description</label>
             <p>${p.description || "No description provided."}</p>
@@ -722,8 +909,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (canBuy) {
       const qtyInput = getEl("purchaseQty");
+      getEl("detailWarehouseSelect")?.addEventListener("change", (e) => {
+        renderVariantDetails(p, index, e.target.value);
+      });
       getEl("qtyPlus")?.addEventListener("click", () => {
-        if (parseInt(qtyInput.value) < displayStock)
+        if (parseInt(qtyInput.value) < selectedWarehouseQty)
           qtyInput.value = parseInt(qtyInput.value) + 1;
       });
       getEl("qtyMinus")?.addEventListener("click", () => {
@@ -732,12 +922,28 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       getEl("addToCartActionBtn")?.addEventListener("click", () => {
+        if (displayStock <= 0) {
+          showToast("This item is out of stock in all warehouses");
+          return;
+        }
+        if (!resolvedWarehouse) {
+          showToast("Select a warehouse before adding to cart");
+          return;
+        }
+
         const qty = parseInt(qtyInput.value);
         const existingItem = cart.find(
-          (i) => i.id === (p._id || p.id) && i.name === displayTitle,
+          (i) =>
+            i.id === (p._id || p.id) &&
+            i.name === displayTitle &&
+            i.warehouse_id === selectedWarehouseIdValue,
         );
 
         if (existingItem) {
+          if (existingItem.quantity + qty > selectedWarehouseQty) {
+            showToast("Requested quantity exceeds selected warehouse stock");
+            return;
+          }
           existingItem.quantity += qty;
         } else {
           cart.push({
@@ -747,6 +953,8 @@ document.addEventListener("DOMContentLoaded", () => {
             image: displayImg,
             quantity: qty,
             sku: displaySKU,
+            warehouse_id: selectedWarehouseIdValue,
+            warehouse_name: resolvedWarehouse.warehouse_name,
             selected: true,
           });
         }
@@ -797,13 +1005,18 @@ document.addEventListener("DOMContentLoaded", () => {
       const formData = new FormData();
       const variants = [];
       const variantImages = [];
+      const warehouseAllocations = collectWarehouseAllocations(
+        baseWarehouseAllocations,
+      );
 
       document.querySelectorAll(".variant-item").forEach((item) => {
         variants.push({
           name: item.querySelector(".v-name").value,
           additional_price: Number(item.querySelector(".v-price").value) || 0,
-          reorder_level: Number(item.querySelector(".v-qty").value) || 0,
           image: item.dataset.existingImage || "",
+          warehouse_allocations: collectWarehouseAllocations(
+            item.querySelector(".variant-warehouse-allocations"),
+          ),
         });
         const vImgFile = item.querySelector(".v-image").files[0];
         variantImages.push(vImgFile || null);
@@ -816,10 +1029,11 @@ document.addEventListener("DOMContentLoaded", () => {
         brand: getVal("brand"),
         cost_price: Number(getVal("cost_price")),
         selling_price: Number(getVal("price")),
-        reorder_level: Number(getVal("quantity")),
+        reorder_level: 0,
         tax: Number(getVal("tax")),
         unit: getVal("unit"),
         variants: JSON.stringify(variants),
+        warehouse_allocations: JSON.stringify(warehouseAllocations),
       };
 
       Object.keys(payload).forEach((key) => formData.append(key, payload[key]));
@@ -879,6 +1093,19 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="meta"><span class="price">₹ ${p.selling_price}</span><span class="qty">Stock: ${p.reorder_level}</span></div>
           <p class="extra">${p.brand || "Generic"} • ${p.category || "Uncategorized"}</p>
         </div>`;
+      const stockLabel = card.querySelector(".qty");
+      if (stockLabel) stockLabel.innerText = `Stock: ${p.stock || 0}`;
+
+      const cardBody = card.querySelector(".card-body");
+      if (cardBody) {
+        const stockPreview = document.createElement("div");
+        stockPreview.className = "warehouse-stock-preview";
+        stockPreview.innerHTML = renderWarehouseStockSummary(
+          p.warehouse_stock || [],
+          p.unit || "piece",
+        );
+        cardBody.appendChild(stockPreview);
+      }
       card.addEventListener("click", () => openDetailOverlay(p));
       container.appendChild(card);
     });
@@ -1088,5 +1315,6 @@ document.addEventListener("DOMContentLoaded", () => {
   fetchUserData().then(() => {
     loadProducts();
     updateCartUI();
+    if (userRole === "supplier") fetchWarehousesForProductForm();
   });
 });

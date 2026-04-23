@@ -48,6 +48,7 @@ async def create_product(
     tax: float = Form(0),
     unit: str = Form("piece"),
     variants: str = Form("[]"),
+    warehouse_allocations: str = Form("[]"),
     image: UploadFile = File(None),
     variant_images: List[UploadFile] = File(None),
     user=Depends(get_current_user),
@@ -58,6 +59,12 @@ async def create_product(
         parsed_variants = json.loads(variants)
     except json.JSONDecodeError:
         raise HTTPException(status_code=422, detail="Invalid JSON format for variants")
+    try:
+        parsed_warehouse_allocations = json.loads(warehouse_allocations)
+    except json.JSONDecodeError:
+        raise HTTPException(
+            status_code=422, detail="Invalid JSON format for warehouse allocations"
+        )
 
     data = {
         "name": name,
@@ -70,6 +77,7 @@ async def create_product(
         "tax": tax,
         "unit": unit,
         "variants": parsed_variants,
+        "warehouse_allocations": parsed_warehouse_allocations,
     }
 
     if image:
@@ -100,6 +108,7 @@ async def update_product(
     tax: float = Form(0),
     unit: str = Form("piece"),
     variants: str = Form("[]"),
+    warehouse_allocations: str = Form("[]"),
     image: UploadFile = File(None),
     variant_images: List[UploadFile] = File(None),
     user=Depends(get_current_user),
@@ -110,6 +119,12 @@ async def update_product(
         parsed_variants = json.loads(variants)
     except json.JSONDecodeError:
         raise HTTPException(status_code=422, detail="Invalid JSON format for variants")
+    try:
+        parsed_warehouse_allocations = json.loads(warehouse_allocations)
+    except json.JSONDecodeError:
+        raise HTTPException(
+            status_code=422, detail="Invalid JSON format for warehouse allocations"
+        )
 
     data = {
         "name": name,
@@ -122,6 +137,7 @@ async def update_product(
         "tax": tax,
         "unit": unit,
         "variants": parsed_variants,
+        "warehouse_allocations": parsed_warehouse_allocations,
     }
 
     if image:

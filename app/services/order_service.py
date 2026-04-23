@@ -1,17 +1,17 @@
 from app.repositories.order_repository import OrderRepository
 from app.repositories.product_repository import ProductRepository
+from app.services.warehouse_stock_service import WarehouseStockService
 from fastapi import HTTPException, status
-from bson import ObjectId
 
 
 class OrderService:
     @classmethod
     async def place_order(cls, order_in, current_user: dict):
         user_role = current_user.get("role")
-        if user_role in ["admin", "supplier"]:
+        if user_role != "viewer":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Users with role '{user_role}' cannot place orders.",
+                detail="Only viewers can place orders.",
             )
         processed_items = []
         total_price = 0
@@ -38,36 +38,22 @@ class OrderService:
                         status_code=404, detail=f"Variant {item.variant_sku} not found"
                     )
 
-                current_variant_stock = variant.get("reorder_level", 0)
-
-                if current_variant_stock < item.quantity:
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"Insufficient stock for variant {item.variant_sku}",
-                    )
-
                 display_name = f"{product['name']} ({variant.get('name', 'Variant')})"
-                price = variant.get("price", price)
+                price = variant.get("additional_price", price) or price
 
-                await ProductRepository.collection.update_one(
-                    {
-                        "_id": ObjectId(item.product_id),
-                        "variants.sku": item.variant_sku,
-                    },
-                    {"$inc": {"variants.$.reorder_level": -item.quantity}},
-                )
-
-            else:
-                if product.get("reorder_level", 0) < item.quantity:
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"Insufficient stock for {product['name']}",
+            if item.warehouse_id:
+                stock_reservation = (
+                    await WarehouseStockService.reserve_stock_from_selected_warehouse(
+                        product, item.variant_sku, item.warehouse_id, item.quantity
                     )
-
-                new_stock = product["reorder_level"] - item.quantity
-                await ProductRepository.update_product(
-                    item.product_id, {"reorder_level": new_stock}
                 )
+            else:
+                stock_reservation = await WarehouseStockService.reserve_stock(
+                    product, item.variant_sku, item.quantity
+                )
+
+            if not item.variant_sku:
+                display_name = product["name"]
 
             s_email = product.get("supplier_email")
             if not s_email and "supplier_details" in product:
@@ -80,10 +66,12 @@ class OrderService:
                 {
                     "product_id": item.product_id,
                     "variant_sku": item.variant_sku,
+                    "warehouse_id": item.warehouse_id,
                     "name": display_name,
                     "quantity": item.quantity,
                     "price_at_purchase": price,
                     "supplier_email": s_email,
+                    "warehouse_allocations": stock_reservation["warehouse_allocations"],
                 }
             )
 
@@ -135,20 +123,33 @@ class OrderService:
         for item in order.get("items", []):
             p_id = str(item["product_id"])
             sku = item.get("variant_sku")
-            qty = item["quantity"]
+            product = await ProductRepository.get_product_by_id(p_id)
+            if not product:
+                continue
 
-            if sku:
-                await ProductRepository.collection.update_one(
-                    {"_id": ObjectId(p_id), "variants.sku": sku},
-                    {"$inc": {"variants.$.reorder_level": qty}},
+            allocations = item.get("warehouse_allocations") or []
+            if allocations:
+                await WarehouseStockService.restore_stock_allocations(
+                    product, sku, allocations
                 )
-            else:
-                product = await ProductRepository.get_product_by_id(p_id)
-                if product:
-                    restored_qty = product.get("reorder_level", 0) + qty
-                    await ProductRepository.update_product(
-                        p_id, {"reorder_level": restored_qty}
-                    )
+                continue
+
+            await WarehouseStockService.restore_stock_allocations(
+                product,
+                sku,
+                [
+                    {
+                        "warehouse_id": warehouse_stock.get("warehouse_id"),
+                        "warehouse_name": warehouse_stock.get("warehouse_name"),
+                        "quantity": item.get("quantity", 0),
+                    }
+                    for warehouse_stock in (
+                        await WarehouseStockService.get_warehouse_candidates_for_restore(
+                            product, sku
+                        )
+                    )[:1]
+                ],
+            )
 
         await OrderRepository.update_order_status(order_id, "cancelled")
         return {"message": "Order cancelled and stock restored successfully."}

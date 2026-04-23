@@ -3,6 +3,11 @@ from typing import Optional, List
 from app.schemas.supplier_schema import SupplierResponse
 
 
+class WarehouseAllocation(BaseModel):
+    warehouse_id: str
+    quantity: int = Field(..., gt=0)
+
+
 class ProductVariant(BaseModel):
     name: str
     sku: Optional[str] = None
@@ -10,6 +15,7 @@ class ProductVariant(BaseModel):
     reorder_level: int = Field(default=0, ge=0)
     stock: int = Field(default=0, ge=0)
     image: Optional[str] = None
+    warehouse_allocations: List[WarehouseAllocation] = []
 
 
 class ProductCreate(BaseModel):
@@ -24,6 +30,7 @@ class ProductCreate(BaseModel):
     unit: str = Field(default="piece")
     image: Optional[str] = None
     variants: List[ProductVariant] = []
+    warehouse_allocations: List[WarehouseAllocation] = []
 
 
 class ProductResponse(BaseModel):

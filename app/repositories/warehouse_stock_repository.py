@@ -23,6 +23,26 @@ class WarehouseStockRepository:
         return await cursor.to_list(length=None)
 
     @staticmethod
+    async def find_by_product_ids(product_ids):
+        object_ids = [ObjectId(product_id) for product_id in product_ids if product_id]
+        if not object_ids:
+            return []
+
+        cursor = collection.find({"product_id": {"$in": object_ids}})
+        return await cursor.to_list(length=None)
+
+    @staticmethod
+    async def find_available_stock(product_id, sku):
+        cursor = collection.find(
+            {
+                "product_id": ObjectId(product_id),
+                "variant_sku": sku,
+                "quantity": {"$gt": 0},
+            }
+        ).sort([("updated_at", 1), ("created_at", 1)])
+        return await cursor.to_list(length=None)
+
+    @staticmethod
     async def increase_stock(warehouse_id, sku, qty):
         return await collection.update_one(
             {"warehouse_id": ObjectId(warehouse_id), "variant_sku": sku},
