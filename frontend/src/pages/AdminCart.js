@@ -35,7 +35,6 @@ export default function AdminCart() {
 
             <h3>User: {cart.user_id}</h3>
 
-            {/* ✅ ITEMS LOOP */}
             {cart.items?.length > 0 ? (
               cart.items.map((item, i) => (
                 <div key={i} className="inventory-item">

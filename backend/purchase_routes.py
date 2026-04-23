@@ -16,7 +16,6 @@ VALID_STATUSES = [
 ]
 
 
-# ================= CREATE PO =================
 @router.post("/purchase")
 async def create_po(data: dict, user=Depends(get_current_user)):
 
@@ -49,7 +48,6 @@ async def create_po(data: dict, user=Depends(get_current_user)):
     }
 
 
-# ================= GET PURCHASE ORDERS =================
 @router.get("/purchase")
 async def get_po(user=Depends(get_current_user)):
 
@@ -63,7 +61,6 @@ async def get_po(user=Depends(get_current_user)):
     return data
 
 
-# ================= UPDATE STATUS =================
 @router.put("/purchase/status/{po_id}")
 async def update_po_status(
     po_id: str,
@@ -94,15 +91,12 @@ async def update_po_status(
 
     current_status = po.get("status")
 
-    # Prevent editing completed orders
     if current_status == "received":
         raise HTTPException(
             status_code=400,
             detail="Received PO cannot be changed"
         )
 
-    # ================= RECEIVED STATUS =================
-    # When received → add inventory into warehouse
 
     if new_status == "received" and current_status != "received":
 
@@ -141,7 +135,7 @@ async def update_po_status(
                     "quantity": qty
                 })
 
-            # update global stock
+       
             await products_collection.update_one(
                 {"variants.sku": sku},
                 {"$inc": {"variants.$.stock": qty}}

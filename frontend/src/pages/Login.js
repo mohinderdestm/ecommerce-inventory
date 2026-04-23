@@ -16,7 +16,7 @@ export default function Login() {
   try {
     await API.post("/login", data);
 
-    const me = await API.get("/me");   // ✅ get role from /me
+    const me = await API.get("/me"); 
     const role = me.data.role;
 
     if (role === "admin" || role === "inventory_manager") {

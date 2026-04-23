@@ -74,7 +74,7 @@ async def get_products(user=Depends(get_current_user)):
             "supplier_email": user["email"]
         }).to_list(1000)
 
-    else:  # 👀 VIEWER
+    else: 
         data = await products_collection.find().to_list(1000)
 
     clean = []
@@ -83,17 +83,15 @@ async def get_products(user=Depends(get_current_user)):
         d["id"] = str(d["_id"])
         d.pop("_id", None)
 
-        # ✅ MODIFY VARIANTS BASED ON ROLE
         variants = []
 
         for v in d.get("variants", []):
             new_v = v.copy()
 
             if user["role"] == "viewer":
-                # ❌ remove stock
+            
                 new_v.pop("stock", None)
 
-                # ✅ add availability
                 if v.get("stock", 0) == 0:
                     new_v["availability"] = "Out of Stock"
                 elif v.get("stock", 0) <= 5:
@@ -117,7 +115,6 @@ async def delete_product(id: str, user=Depends(get_current_user)):
     if not product:
         raise HTTPException(status_code=404)
 
-    # ✅ ADMIN → allowed
     if user["role"] == "admin":
         pass
 
@@ -153,11 +150,10 @@ async def update_product(
     if not product:
         raise HTTPException(status_code=404)
 
-    # ✅ ADMIN → allowed
+ 
     if user["role"] == "admin":
         pass
 
-    # ✅ SUPPLIER → only own product
     elif user["role"] == "supplier":
         if product["supplier_email"] != user["email"]:
             raise HTTPException(status_code=403, detail="Not your product")

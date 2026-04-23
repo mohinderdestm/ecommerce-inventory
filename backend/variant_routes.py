@@ -25,7 +25,6 @@ async def add_variant(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    # ✅ RBAC
     if user["role"] == "supplier":
         if product["supplier_email"] != user["email"]:
             raise HTTPException(status_code=403)
@@ -130,7 +129,6 @@ async def delete_variant(product_id: str, variant_id: str, user=Depends(get_curr
     if not product:
         raise HTTPException(status_code=404)
 
-    # ✅ RBAC
     if user["role"] == "admin":
         pass
     elif user["role"] == "supplier":

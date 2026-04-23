@@ -12,7 +12,6 @@ async def dashboard():
     orders = await orders_collection.find().to_list(100)
     revenue = sum(o.get("total", 0) for o in orders)
 
-    # 🔥 LOW STOCK (example: stock < 5)
     low_stock = 0
     products = await products_collection.find().to_list(100)
 
@@ -21,7 +20,7 @@ async def dashboard():
             if v.get("stock", 0) < 5:
                 low_stock += 1
 
-    # 🔥 RECENT ORDERS
+
     recent_orders = [
         {
             "id": str(o["_id"]),

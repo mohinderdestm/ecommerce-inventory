@@ -14,7 +14,6 @@ async def get_current_user(request: Request):
         payload = decode_token(token)
         email = payload.get("email") or payload.get("sub")
 
-        # ⭐ FETCH FULL USER FROM DB
         user = await users_collection.find_one({
              "email": email
         })
@@ -23,8 +22,6 @@ async def get_current_user(request: Request):
             raise HTTPException(status_code=401, detail="User not found")
         
         user["id"] = str(user["_id"])
-
-        # ⭐ RETURN FULL USER
         return {
             "id": str(user["_id"]),
             "_id": str(user["_id"]),

@@ -6,7 +6,6 @@ from deps import get_current_user
 
 router = APIRouter()
 
-# ---------------- CREATE WAREHOUSE ----------------
 @router.post("/warehouse")
 async def create_warehouse(data: Warehouse):
     existing = await warehouse_collection.find_one({"code": data.code})
@@ -22,7 +21,7 @@ async def create_warehouse(data: Warehouse):
     return {"message": "Warehouse created", "id": str(result.inserted_id)}
 
 
-# ---------------- ASSIGN USER ----------------
+
 @router.post("/warehouse/assign")
 async def assign_staff(data: AssignStaff):
 
@@ -44,7 +43,6 @@ async def assign_staff(data: AssignStaff):
     else:
         raise HTTPException(status_code=400, detail="Invalid role")
 
-    # 🔥 LINK USER TO WAREHOUSE
     await users_collection.update_one(
         {"_id": ObjectId(data.user_id)},
         {"$set": {"warehouse_id": data.warehouse_id}}
@@ -53,7 +51,7 @@ async def assign_staff(data: AssignStaff):
     return {"message": "Assigned successfully"}
 
 
-# ---------------- GET WAREHOUSES (RBAC) ----------------
+
 @router.get("/warehouse")
 async def get_warehouses(current_user: dict = Depends(get_current_user)):
 
@@ -73,7 +71,7 @@ async def get_warehouses(current_user: dict = Depends(get_current_user)):
     for w in data:
         w["_id"] = str(w["_id"])
 
-        # MANAGER
+   
         if w.get("manager_id"):
             manager = await users_collection.find_one({"_id": ObjectId(w["manager_id"])})
             if manager:
@@ -82,7 +80,6 @@ async def get_warehouses(current_user: dict = Depends(get_current_user)):
                     "name": manager["name"]
                 }
 
-        # STAFF
         staff_list = []
         for sid in w.get("staff_ids", []):
             staff = await users_collection.find_one({"_id": ObjectId(sid)})
@@ -94,7 +91,6 @@ async def get_warehouses(current_user: dict = Depends(get_current_user)):
                 })
         w["staff"] = staff_list
 
-        # INVENTORY
         inventory_list = []
         for item in w.get("inventory", []):
             product = await products_collection.find_one({"variants.sku": item["sku"]})
@@ -116,7 +112,6 @@ async def get_warehouses(current_user: dict = Depends(get_current_user)):
     return data
 
 
-# ---------------- ADD INVENTORY ----------------
 
 @router.post("/warehouse/inventory/add")
 async def add_inventory(data: dict, current_user: dict = Depends(get_current_user)):
@@ -154,7 +149,6 @@ async def add_inventory(data: dict, current_user: dict = Depends(get_current_use
         {"$set": {"inventory": inventory}}
     )
 
-    # update global stock
     await products_collection.update_one(
         {"variants.sku": sku},
         {"$inc": {"variants.$.stock": qty}}
@@ -164,7 +158,7 @@ async def add_inventory(data: dict, current_user: dict = Depends(get_current_use
 
 
 
-# ---------------- TRANSFER INVENTORY ----------------
+
 @router.post("/warehouse/inventory/transfer")
 async def transfer_inventory(data: dict, current_user: dict = Depends(get_current_user)):
 
@@ -177,7 +171,7 @@ async def transfer_inventory(data: dict, current_user: dict = Depends(get_curren
     sku = data.get("sku")
     qty = data.get("quantity")
 
-    # ================= VALIDATION =================
+
     if not from_id or not to_id or not sku or not qty:
         raise HTTPException(status_code=400, detail="All fields required")
 
@@ -194,7 +188,7 @@ async def transfer_inventory(data: dict, current_user: dict = Depends(get_curren
     if not from_wh or not to_wh:
         raise HTTPException(status_code=404, detail="Warehouse not found")
 
-    # ================= CHECK SKU IN SOURCE =================
+    
     source_inventory = from_wh.get("inventory", [])
 
     source_item = None
@@ -209,14 +203,13 @@ async def transfer_inventory(data: dict, current_user: dict = Depends(get_curren
     if source_item["quantity"] < qty:
         raise HTTPException(status_code=400, detail="Not enough stock in source")
 
-    # ================= REMOVE FROM SOURCE =================
     source_item["quantity"] -= qty
 
     # remove item if becomes 0
     if source_item["quantity"] == 0:
         source_inventory = [i for i in source_inventory if i["sku"] != sku]
 
-    # ================= ADD TO DESTINATION =================
+
     dest_inventory = to_wh.get("inventory", [])
 
     dest_item = None
@@ -233,7 +226,7 @@ async def transfer_inventory(data: dict, current_user: dict = Depends(get_curren
             "quantity": qty
         })
 
-    # ================= SAVE BOTH =================
+
     await warehouse_collection.update_one(
         {"_id": ObjectId(from_id)},
         {"$set": {"inventory": source_inventory}}

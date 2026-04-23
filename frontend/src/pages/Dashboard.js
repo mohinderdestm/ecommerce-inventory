@@ -24,7 +24,7 @@ export default function Dashboard() {
     }
       setUser(me.data);
 
-      const res = await API.get("/dashboard"); // 🔥 create backend
+      const res = await API.get("/dashboard"); 
       setStats(res.data);
 
     } catch {

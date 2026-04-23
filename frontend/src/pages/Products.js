@@ -39,7 +39,6 @@ export default function Products() {
   });
 
 
-  // ✅ LOAD DATA
  const load = async () => {
   try {
     const me = await API.get("/me");
@@ -63,7 +62,7 @@ export default function Products() {
   }, []);
 
 const getStockStatus = (product) => {
-  // 🔥 CASE 1: HAS VARIANTS
+
   if (product.variants && product.variants.length > 0) {
     const totalStock = product.variants.reduce(
       (sum, v) => sum + (v.stock || 0),
@@ -75,7 +74,7 @@ const getStockStatus = (product) => {
     return { label: "In Stock", class: "in" };
   }
 
-  // 🔥 CASE 2: NO VARIANTS
+
   return { label: "No Variants", class: "out" };
 };
 
@@ -97,7 +96,7 @@ const getStockStatus = (product) => {
       pincode: ""
     });
 
-    load(); // 🔥 VERY IMPORTANT
+    load();
 
   } catch (err) {
     console.log(err);
@@ -105,7 +104,7 @@ const getStockStatus = (product) => {
   }
 };
 
-  // ✅ CREATE PRODUCT
+
   const createProduct = async () => {
   try {
     const formData = new FormData();
@@ -132,7 +131,7 @@ const getStockStatus = (product) => {
 
     const res = await API.post("/products", formData);
 
-    // ✅ SUCCESS ONLY IF RESPONSE EXISTS
+   
     if (res && res.data) {
       setShowForm(false);
       setForm({
@@ -152,14 +151,13 @@ const getStockStatus = (product) => {
     console.log("CREATE ERROR FULL:", err);
     console.log("RESPONSE:", err.response);
 
-    // ❌ Only show error if REAL backend error
+
     if (err.response && err.response.status >= 400) {
       alert(err.response.data?.detail || "Create failed");
     }
   }
 };
 
-  // ✅ UPDATE PRODUCT
   const updateProduct = async () => {
     try {
       const formData = new FormData();
@@ -186,7 +184,7 @@ const getStockStatus = (product) => {
     }
   };
 
-  // ✅ DELETE PRODUCT
+
   const deleteProduct = async (id) => {
     try {
       await API.delete(`/products/${id}`);
@@ -205,13 +203,9 @@ const getStockStatus = (product) => {
       <div className="topbar">
           <input className="search" placeholder="Search..." />
 
-          {/* <div className="profile">
-            <span>{user?.name || "User"}</span>
-            <small>{user?.role}</small>
-          </div> */}
         </div>
 
-      {/* 🔥 TOP BAR */}
+      
       <div className="topbar-premium">
         <h1>Products</h1>
        
@@ -227,7 +221,6 @@ const getStockStatus = (product) => {
         
       </div>
 
-      {/* 🧾 PRODUCTS */}
       <div className="grid-premium">
         {products
           .filter(p =>
@@ -263,7 +256,6 @@ const getStockStatus = (product) => {
               );
             })()}
 
-                {/* ACTIONS */}
                 <div className="card-actions">
 
                   {(user?.role === "admin" ||
@@ -314,7 +306,6 @@ const getStockStatus = (product) => {
 
     </div>
 
-    {/* KEEP YOUR MODALS SAME BELOW */}
      {showForm && (
         <div className="modal">
           <div className="form">

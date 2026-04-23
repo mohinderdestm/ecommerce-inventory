@@ -13,8 +13,6 @@ from deps import get_current_user
 router = APIRouter(tags=["Cart"])
 
 
-# ================= ADD TO CART =================
-
 @router.post("/cart/add")
 async def add_to_cart(data: dict, user=Depends(get_current_user)):
 
@@ -82,7 +80,6 @@ async def add_to_cart(data: dict, user=Depends(get_current_user)):
     return {"message": "Added to cart"}
 
 
-# ================= GET MY CART =================
 
 @router.get("/cart")
 async def get_my_cart(user=Depends(get_current_user)):
@@ -144,7 +141,6 @@ async def get_my_cart(user=Depends(get_current_user)):
     }
 
 
-# ================= CHECKOUT =================
 
 @router.post("/cart/checkout")
 async def checkout(user=Depends(get_current_user)):
@@ -237,7 +233,6 @@ async def checkout(user=Depends(get_current_user)):
     }
 
 
-# ================= ADMIN SEE ALL CARTS =================
 
 @router.get("/cart/all")
 async def get_all_carts(user=Depends(get_current_user)):

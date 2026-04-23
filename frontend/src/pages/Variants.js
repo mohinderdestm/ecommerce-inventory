@@ -21,18 +21,17 @@ export default function VariantPage() {
   imageFile: null
 });
 
-  // ✅ LOAD DATA
+
   const load = async () => {
     try {
       const me = await API.get("/me");
       setUser(me.data);
 
-      // ✅ GET PRODUCT (for name)
       const prod = await API.get("/products");
       const found = prod.data.data.find(p => p.id === id);
       setProduct(found);
 
-      // ✅ GET VARIANTS
+  
       const res = await API.get(`/variants/${id}`);
       setVariants(res.data.data);
 
@@ -45,7 +44,6 @@ export default function VariantPage() {
     load();
   }, []);
 
-  // ✅ ADD VARIANT
 const addVariant = async () => {
   try {
     const formData = new FormData();
@@ -112,7 +110,6 @@ const deleteVariant = async (variantId) => {
           ← Back to Products
         </button>
 
-        {/* ✅ PRODUCT NAME */}
         <h2>
           {product?.name || "Product"} 
         </h2>
@@ -143,7 +140,6 @@ const deleteVariant = async (variantId) => {
         <p>₹{v.price}</p>
         <p>Stock: {v.stock}</p>
 
-        {/* ✅ RBAC BUTTONS */}
         {(user?.role === "admin" || user?.role === "supplier") && (
           <>
             <button onClick={() => setEditVariant(v)}>
@@ -163,7 +159,7 @@ const deleteVariant = async (variantId) => {
           ))}
         </div>
 
-        {/* ✅ MODAL */}
+        
        {show && (
         <div className="modal">
           <div className="form">
@@ -195,7 +191,7 @@ const deleteVariant = async (variantId) => {
               onChange={e => setForm({...form, stock: e.target.value})}
             />
 
-            {/* ✅ IMAGE INPUT */}
+
             <input
               type="file"
               onChange={e => setForm({...form, imageFile: e.target.files[0]})}

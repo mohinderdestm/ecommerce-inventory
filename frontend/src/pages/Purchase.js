@@ -19,7 +19,7 @@ export default function Purchase() {
   const [sku, setSku] = useState("");
   const [qty, setQty] = useState("");
 
-  // ================= LOAD =================
+
 
   const load = async () => {
 
@@ -61,7 +61,7 @@ export default function Purchase() {
   }, []);
 
 
-  // ================= ADD ITEM =================
+
 
   const addItem = () => {
 
@@ -85,7 +85,6 @@ export default function Purchase() {
   };
 
 
-  // ================= REMOVE ITEM =================
 
   const removeItem = (index) => {
 
@@ -100,7 +99,6 @@ export default function Purchase() {
   };
 
 
-  // ================= CREATE PO =================
 
   const createPO = async () => {
 
@@ -120,7 +118,6 @@ export default function Purchase() {
 
       await API.post("/purchase", form);
 
-      // alert("Purchase Order Created");
 
       setForm({
         warehouse_id: "",
@@ -141,8 +138,6 @@ export default function Purchase() {
     }
   };
 
-
-  // ================= UPDATE STATUS =================
 
   const updateStatus = async (id, status) => {
 
@@ -167,8 +162,6 @@ export default function Purchase() {
     }
   };
 
-
-  // ================= STATUS CLASS =================
 
   const getStatusClass = (status) => {
 
@@ -208,7 +201,7 @@ export default function Purchase() {
         </div>
 
 
-        {/* ================= CREATE CARD ================= */}
+    
 
         <div className="purchase-create-card">
 
@@ -217,7 +210,7 @@ export default function Purchase() {
           </div>
 
 
-          {/* ================= WAREHOUSE ================= */}
+    
 
           <div className="form-group">
 
@@ -251,7 +244,6 @@ export default function Purchase() {
           </div>
 
 
-          {/* ================= SUPPLIER ================= */}
 
           <div className="form-group">
 
@@ -285,7 +277,6 @@ export default function Purchase() {
           </div>
 
 
-          {/* ================= ITEM INPUT ================= */}
 
           <div className="item-input-row">
 
@@ -313,8 +304,7 @@ export default function Purchase() {
           </div>
 
 
-          {/* ================= ITEMS ================= */}
-
+       
           <div className="purchase-items">
 
             {form.items.length === 0 ? (
@@ -352,7 +342,6 @@ export default function Purchase() {
           </div>
 
 
-          {/* ================= CREATE BUTTON ================= */}
 
           <button
             className="create-btn"
@@ -364,7 +353,6 @@ export default function Purchase() {
         </div>
 
 
-        {/* ================= PURCHASE ORDERS ================= */}
 
         <div className="purchase-orders-section">
 
@@ -418,7 +406,7 @@ export default function Purchase() {
                   </div>
 
 
-                  {/* ================= PRODUCTS ================= */}
+        
 
                   <div className="purchase-products">
 
@@ -444,7 +432,7 @@ export default function Purchase() {
                   </div>
 
 
-                  {/* ================= ACTIONS ================= */}
+            
 
                   <div className="po-actions">
 
