@@ -175,6 +175,7 @@
         background: rgba(0, 0, 0, 0.5);
 
         overflow-y: auto;
+        z-index: 2000;
       }
 
       .modal-content {
@@ -295,7 +296,7 @@
   height: 100%;
 
   background: rgba(0,0,0,0.5);
-  z-index: 9999;
+  z-index: 1000;
 
   display: flex;
   justify-content: center;
@@ -364,6 +365,19 @@ button:disabled {
   background: #ccc;
   cursor: not-allowed;
 }
+
+.add-cart {
+  background: #ac5e2a;;
+  color: white;
+  padding: 6px 10px;
+  border: none;
+  margin-top: 8px;
+  cursor: pointer;
+}
+.add-cart:hover {
+  background: #e65c00;
+}
+
     </style>
   </head>
 
@@ -436,14 +450,121 @@ button:disabled {
          <a onclick="loadOrders()">📋 View Orders</a>
       </div>
     </div>
+      
+    <div class="dropdown">
+        <button class="dropbtn">📥 Purchase</button>
+
+      <div class="dropdown-content">
+         <a onclick="openPurchaseModal()">➕ Create PO</a>
+          <a onclick="togglePurchaseSection()">📋 View PO</a>
+      </div>
+    </div>
     
-  </div>
+    </div>
+
+     
 
   <div class="nav-group">
+    <button id="cartBtn"  onclick="openCart()">
+       🛒 Cart (<span id="cartCount">0</span>)
+     </button> 
     <button id="editProfileBtn" onclick="openProfileModal()">👤 Profile</button>
     <button onclick="logout()">Logout</button>
   </div>
 
+</div>
+
+<div id="cartBox" style="
+  display:none;
+  position:fixed;
+  right:20px;
+  top:80px;
+  width:300px;
+  background:#fff;
+  border:1px solid #ccc;
+  padding:10px;
+  z-index:1000;
+">
+
+  <h4>🛒 Cart</h4>
+
+  <div id="cartItems"></div>
+
+  <hr>
+
+  <b>Total: <span id="cartTotal">₹0</span></b>
+
+  <br><br>
+
+  <button onclick="openCheckout()">Proceed to Checkout</button>
+  <button onclick="closeCart()">Close</button>
+
+</div>
+
+
+<!-- CART checkout MODAL -->
+
+<div id="checkoutModal" onclick="closeCheckout(event)" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5);z-index:100">
+
+  <div style="background:#fff; width:400px; margin:60px auto; padding:20px; border-radius:10px;">
+
+    <h3>🧾 Checkout</h3>
+
+    <label>Name</label>
+    <input id="custName" placeholder="Enter your name" style="width:100%; margin-bottom:10px;">
+
+    <label>Phone</label>
+    <input id="custPhone" placeholder="Enter phone" style="width:100%; margin-bottom:10px;">
+
+    <label>Address</label>
+    <textarea id="custAddress" placeholder="Enter address" style="width:100%; margin-bottom:10px;"></textarea>
+
+    <hr>
+
+    <div id="checkoutItems"></div>
+
+    <hr>
+
+    <b>Total: <span id="checkoutTotal"></span></b>
+
+    <br><br>
+
+    <button onclick="confirmCheckout()">✅ Place Order</button>
+    <button onclick="closeCheckout()">Cancel</button>
+
+  </div>
+</div>
+
+
+
+<!-- <div id="cartBox" style="position:fixed; right:20px; top:80px; width:250px; background:#fff; border:1px solid #ccc; padding:10px;">
+  
+  <button onclick="closeCart()" style="float:right;">❌</button>
+  <h4>🛒 Cart</h4>
+
+  <div id="cartItems"></div>
+
+  <hr>
+
+  <b>Total: <span id="cartTotal">₹0</span></b>
+
+  <br><br>
+
+  <button onclick="checkoutSimpleOrder()">✅ Checkout</button>
+
+</div> -->
+
+<!-- Purchase Order Overlay -->
+<div id="purchaseSection" class="overlay" onclick="closePurchaseOverlay(event)" style="display:none;">
+  <div class="overlay-content" onclick="event.stopPropagation()">
+
+    <button onclick="closePurchaseOverlay()" style="float:right;">❌</button>
+
+    <h3>📦 Purchase Orders</h3>
+
+    <div id="purchaseList"></div>
+
+  </div>
 </div>
 
       <button class="add-product-btn" id="addBtn" onclick="openAddModal()">
@@ -616,7 +737,7 @@ button:disabled {
 
     <input id="customerName" placeholder="Customer Name" />
 
-    <select id="orderWarehouseDropdown">
+    <select id="orderWarehouseDropdown" onchange="loadProductsWithStock()">
       <option value="">Select Warehouse</option>
     </select>
 
@@ -640,6 +761,104 @@ button:disabled {
     <button onclick="submitOrder()">Submit</button>
     <button onclick="closeOrderModal()">Cancel</button>
 
+  </div>
+</div>
+
+ <!-- Summary Modal-->
+  <div class="modal" id="orderSummaryModal">
+  <div class="modal-content">
+
+    <h3>🧾 Order Summary</h3>
+
+    <p><b>Customer:</b> <span id="summaryCustomer"></span></p>
+    <p><b>Warehouse:</b> <span id="summaryWarehouse"></span></p>
+
+    <hr>
+
+    <div id="summaryItems"></div>
+
+    <h4 id="summaryTotal"></h4>
+
+    <button onclick="confirmOrderFinal()">Confirm Order</button>
+    <button onclick="closeSummary()">Cancel</button>
+
+  </div>
+</div>
+
+ <!-- Purchase order Modal-->
+
+ <div class="modal" id="purchaseModal">
+  <div class="modal-content">
+
+    <h3>Create Purchase Order</h3>
+
+    <!-- <input id="supplierName" placeholder="Supplier Name" /> -->
+
+    <select id="supplierDropdown">
+      <option value="">Select Supplier</option>
+    </select>
+
+    <select id="poWarehouseDropdown">
+      <option value="">Select Warehouse</option>
+    </select>
+
+    <hr>
+
+    <h4>Add Items</h4>
+
+    <select id="poProductDropdown"></select>
+
+    <input id="poQty" type="number" placeholder="Quantity" />
+    <input id="poPrice" type="number" placeholder="Cost Price" />
+
+    <button onclick="addItemToPO()">➕ Add Item</button>
+
+    <div id="poItemsList"></div>
+
+    <br>
+
+    <button onclick="createPO()">Submit PO</button>
+    <button onclick="closePurchaseModal()">Cancel</button>
+
+  </div>
+</div>
+  
+<!-- Purchase receive model-->
+
+<div class="modal" id="receiveModal" onclick="closeReceiveModal()">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <h3>Receive Items</h3>
+
+    <input id="receiveQty" type="number" placeholder="Quantity" />
+
+    <button onclick="submitReceive()">Receive</button>
+    <button onclick="closeReceiveModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- Purchase invoice Modal-->
+
+<div class="modal" id="invoiceModal">
+  <div class="modal-content">
+    <h3>Invoice</h3>
+
+    <input id="gstPercent" type="number" placeholder="GST %"  />
+    <input id="invoiceDate" type="date" />
+
+    <button onclick="submitInvoice()">Save</button>
+    <button onclick="closeInvoiceModal()">Cancel</button>
+  </div>
+</div>
+
+ <!-- PO Invoice pop up-->
+  <div class="modal" id="invoiceViewModal"  onclick="closeInvoiceView(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+
+    <h3>🧾 Invoice</h3>
+
+    <div id="invoiceContent"></div>
+
+    <button onclick="closeInvoiceView()">Close</button>
   </div>
 </div>
 
@@ -724,7 +943,6 @@ button:disabled {
     <script>
       const BASE_URL = "http://127.0.0.1:8000";
       let orderItems = [];
-
       let editMode = false;
       let currentUserRole = "";
 
@@ -741,6 +959,8 @@ button:disabled {
       /* ================= UPDATE UI ================= */
       function updateUIBasedOnRole() {
         const addBtn = document.getElementById("addBtn");
+        const cartBtn = document.getElementById("cartBtn");
+
 
         console.log("🔐 Current Role:", currentUserRole);
 
@@ -755,6 +975,29 @@ button:disabled {
         } else {
           editProfileBtn.style.display = "none";
         }
+
+         if (currentUserRole === "viewer") {
+
+    //  Hide dropdowns (Warehouse, Inventory, Orders)
+         document.querySelectorAll(".dropdown").forEach(d => {
+           d.style.display = "none";
+        });
+
+    //  Hide Purchase buttons
+        const poBtn = document.querySelector('[onclick="openPurchaseModal()"]');
+           if (poBtn) poBtn.style.display = "none";
+
+        const viewPoBtn = document.querySelector('[onclick="togglePurchaseSection()"]');
+             if (viewPoBtn) viewPoBtn.style.display = "none";
+       }
+
+
+         if (["admin", "inventory_manager", "supplier"].includes(currentUserRole)) {
+            cartBtn.style.display = "none";
+         } else {
+           cartBtn.style.display = "inline-block";
+         }
+
       }
 
       function isValidEmail(email) {
@@ -862,6 +1105,7 @@ button:disabled {
 
             if (res.ok) {
               localStorage.setItem("token", data.access_token);
+             closeAllOverlays();
 
               loadDashboard();
             } else {
@@ -958,6 +1202,7 @@ button:disabled {
 
       /* ================= LOAD DASHBOARD ================= */
       async function loadDashboard() {
+        closeAllOverlays();
         loginBox.style.display = "none";
         dashboard.style.display = "block";
 
@@ -984,7 +1229,7 @@ button:disabled {
 
         nameTop.innerText = name;
         roleDisplay.innerText = role;
-
+      
         updateUIBasedOnRole();
         loadProducts();
       }
@@ -1048,13 +1293,10 @@ button:disabled {
                                 <div class="product-price" id="price-${p.id}">
                                   ₹${p.selling_price + (firstVariant?.additional_price || 0)}
                                 </div>
+                                
 
                                 <div style="font-size:12px;color:gray;" id="sku-${p.id}">
                                   SKU: ${firstVariant?.sku || "-"}
-                                </div>
-
-                                <div style="font-size:12px;color:gray;" id="stock-${p.id}">
-                                  Stock: ${firstVariant?.stock || 0}
                                 </div>
 
                                 <!-- VARIANTS -->
@@ -1072,7 +1314,20 @@ button:disabled {
                                     )
                                     .join("")}
                                 </div>
-                              </div>
+
+
+                                ${!["admin", "inventory_manager", "supplier",].includes(currentUserRole) ? `
+                                      <button class="btn add-cart"
+                                        onclick='event.stopPropagation(); addToCartSimple(
+                                          "${p.id}",
+                                          "${p.name}",
+                                          ${p.selling_price}
+                                        )'>
+                                       🛒 Add to Cart
+                                      </button>
+                                ` : ""}
+
+                             </div>
 
                               ${actions}
                             </div>
@@ -1306,17 +1561,430 @@ button:disabled {
         loadProducts();
       }
 
+       /* ================= Add products to cart ================= */
+
+      // function addToCart(product) {
+      //   const existing = cart.find(i => i.product_id === product.product_id);
+
+      //   if (existing) {
+      //     if (existing.quantity >= product.stock) {
+      //        alert("Not enough stock");
+      //        return;
+      //     }
+      //     existing.quantity += 1;
+      //   } else {
+      //     cart.push({
+      //       product_id: product.product_id,
+      //       product_name: product.product_name,
+      //       price: product.selling_price,
+      //       quantity: 1,
+      //       stock: product.stock
+      //     });
+      //   }
+
+      //   updateCartUI();
+      // }
+
+    let cart = [];
+
+    function addToCartSimple(productId, productName, price) {
+       price = Number(price) || 0;
+
+       const existing = cart.find(i => i.product_id === productId);
+
+        if (existing) {
+          existing.quantity++;
+        } else {
+          cart.push({
+            product_id: productId,
+            product_name: productName,
+            price: price,
+            quantity: 1
+        
+         });
+       }
+         updateCartCount();  
+         renderSimpleCart();
+      }
+
+      
+
+      // ================= UPDATE CART UI =================
+
+    // function updateCartUI() {
+    //   document.getElementById("cartCount").innerText = cart.length;
+
+    //   const container = document.getElementById("cartItems");
+ 
+    //   let total = 0;
+
+    //   container.innerHTML = cart.map((item, index) => {
+    //     const itemTotal = item.price * item.quantity;
+    //     total += itemTotal;
+
+    //     return `
+    //       <div style="margin-bottom:10px;">
+    //         <b>${item.product_name}</b><br>
+
+    //         Qty:
+    //         <button onclick="changeQty(${index}, -1)">-</button>
+    //         ${item.quantity}
+    //         <button onclick="changeQty(${index}, 1)">+</button>
+
+    //         <br>
+    //         ₹${itemTotal}
+
+    //         <button onclick="removeItem(${index})">❌</button>
+    //       </div>
+    //     `;
+    //   }).join("");
+
+    //  document.getElementById("cartTotal").innerText = `Total: ₹${total}`;
+    // }
+
+
+  function renderSimpleCart() {
+      const container = document.getElementById("cartItems");
+      const totalBox = document.getElementById("cartTotal");
+
+       // 🔥 prevent crash
+      if (!container) return;
+
+      let total = 0;
+
+      container.innerHTML = cart.map((item,index) => {
+        const itemTotal = item.price * item.quantity;
+        total += itemTotal;
+
+    //   return `
+    //       <div style="border-bottom:1px solid #eee; padding:8px;">
+    //         <br>${item.product_name}<b><br>
+    //         Qty: ${item.quantity}<br>
+    //         ₹${itemTotal}
+    //       </div>
+    //     `;
+    //    }).join("");
+
+    //    totalBox.innerText = "₹" + total;
+    //  }
+
+      return `
+       <div style="border-bottom:1px solid #eee; padding:8px; display:flex; gap:10px; align-items:center;">
+        
+        <!-- IMAGE -->
+      
+        <div style="flex:1;">
+          <b>${item.product_name}</b><br>
+
+          <!-- QTY CONTROLS -->
+          <button onclick="changeQty(${index}, -1)">➖</button>
+          ${item.quantity}
+          <button onclick="changeQty(${index}, 1)">➕</button>
+
+          <br>₹${itemTotal}
+        </div>
+
+        <!-- REMOVE -->
+        <button onclick="removeItem(${index})">❌</button>
+
+      </div>
+     `;
+    }).join("");
+
+   totalBox.innerText = "₹" + total;
+   }
+
+
+function changeQty(index, change) {
+  cart[index].quantity += change;
+
+  if (cart[index].quantity <= 0) {
+    cart.splice(index, 1);
+  }
+
+  renderSimpleCart();
+  updateCartCount();
+}
+
+function removeItem(index) {
+  cart.splice(index, 1);
+  renderSimpleCart();
+  updateCartCount();
+}
+     
+
+  
+
+  function checkoutSimpleOrder() {
+      if (!cart.length) {
+       alert("Cart empty");
+       return;
+     }
+
+      let total = 0;
+      const GST_RATE = 0.18;
+      let gstTotal = 0;
+
+      document.getElementById("checkoutItems").innerHTML = `
+        <table style="width:100%; border-collapse:collapse;">
+          <tr style="border-bottom:1px solid #ccc;">
+              <th align="left">Product</th>
+              <th>Qty</th>
+              <th>Price</th>
+              <th>GST</th>
+              <th>Total</th>
+          </tr>
+
+          ${cart.map(i => {
+
+             const price = Number(i.price) || 0;
+             const qty = Number(i.quantity) || 0;
+             const name = i.product_name || "N/A";
+
+            const itemTotal = price * qty;
+            const gst = itemTotal * GST_RATE;
+            total += itemTotal;
+            gstTotal += gst;
+
+            return `
+              <tr style="border-bottom:1px solid #eee;">
+                <td>${name}</td>
+                <td align="center">${qty}</td>
+                <td align="center">₹${price}</td>
+                <td align="center">₹${gst.toFixed(2)}</td>
+                <td align="center">₹${(itemTotal + gst).toFixed(2)}</td>
+              </tr>
+           `;
+          }).join("")}
+       </table>
+     `;
+
+      //document.getElementById("checkoutTotal").innerText = "₹" + total;
+      //document.getElementById("checkoutModal").style.display = "block";
+      document.getElementById("checkoutTotal").innerText ="₹" + (total + gstTotal).toFixed(2);
+
+    }
+
+  async function confirmCheckout() {
+    const token = localStorage.getItem("token");
+
+    const name = document.getElementById("custName").value;
+    const phone = document.getElementById("custPhone").value;
+    const address = document.getElementById("custAddress").value;
+
+    if (!name || !phone || !address) {
+       alert("Fill all details");
+       return;
+     }
+
+    const payload = {
+       customer_name: name,
+       phone: phone,
+       address: address,
+
+    // keep for backend compatibility
+       warehouse_name: "Main Warehouse",
+
+       items: cart.map(i => ({
+         product_name: i.product_name,
+         quantity: i.quantity,
+         price: Number(i.price) || 0
+    }))
+  };
+
+      const res = await fetch(`${BASE_URL}/orders/`, {
+        method: "POST",
+        headers: {
+         "Content-Type": "application/json",
+         Authorization: `Bearer ${token}`
+      },
+        body: JSON.stringify(payload)
+     });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+       alert(JSON.stringify(data.detail));
+       return;
+     }
+
+      const orderId = data.id || data._id;
+
+  // 🔥 auto confirm
+      await fetch(`${BASE_URL}/orders/${orderId}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+           Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: "confirmed" })
+       });
+
+      alert("✅ Order placed successfully!");
+
+      cart = [];
+      renderSimpleCart();
+      updateCartCount();
+
+      closeCheckout();
+      closeCart();
+
+}
+
+//   function updateCartCount() {
+//     document.getElementById("cartCount").innerText = cart.length;
+//  }
+
+  function updateCartCount() {
+     document.getElementById("cartCount").innerText =
+       cart.reduce((sum, i) => sum + i.quantity, 0);
+  }
+
+  function openCart() {
+
+    //  document.getElementById("checkoutModal").style.display = "block";
+    
+    //  checkoutSimpleOrder(); 
+     document.getElementById("cartBox").style.display = "block";
+      renderSimpleCart(); 
+  }
+
+  function closeCart() {
+    //  document.getElementById("checkoutModal").style.display = "none";
+     document.getElementById("cartBox").style.display = "none";
+   }
+
+   function closeCheckout(event) {
+  if (!event || event.target.id === "checkoutModal") {
+    document.getElementById("checkoutModal").style.display = "none";
+  }
+}
+
+// function openCheckout() {
+//   if (!cart.length) {
+//     alert("Cart empty");
+//     return;
+//   }
+
+//   let total = 0;
+
+//   document.getElementById("checkoutItems").innerHTML = `
+//     <table style="width:100%">
+//       <tr>
+//         <th>Product</th>
+//         <th>Qty</th>
+//         <th>Total</th>
+//       </tr>
+
+//       ${cart.map(i => {
+//         const itemTotal = i.price * i.quantity;
+//         total += itemTotal;
+
+//         return `
+//           <tr>
+//             <td>${i.product_name}</td>
+//             <td align="center">${i.quantity}</td>
+//             <td align="center">₹${itemTotal}</td>
+//           </tr>
+//         `;
+//       }).join("")}
+//     </table>
+//   `;
+
+//   document.getElementById("checkoutTotal").innerText = "₹" + total;
+
+//   document.getElementById("checkoutModal").style.display = "block";
+
+//   //  cart = [];
+//   //  renderCart();
+//   //  updateCartCount();
+//   //  closeCart();
+//   //  closeCheckout();
+// }
+
+function openCheckout() {
+  if (!cart.length) {
+    alert("Cart empty");
+    return;
+  }
+
+  document.getElementById("cartBox").style.display = "none";
+
+  checkoutSimpleOrder(); // fills table
+
+  document.getElementById("checkoutModal").style.display = "block";
+}
+
+     // ================= OPEN / CLOSE CART=================
+
+    // function openCart() {
+    //   document.getElementById("cartModal").style.display = "block";
+    // }
+
+    // function closeCart() {
+    //   document.getElementById("cartModal").style.display = "none";
+    // }
+
+     // ================= CHECKOUT from cart =================
+
+    // async function checkoutOrder() {
+    //   const token = localStorage.getItem("token");
+
+    //   if (!cart.length) {
+    //     alert("Cart is empty");
+    //     return;
+    //   }
+
+    //   const payload = {
+    //     customer_name: "Walk-in Customer",
+    //     items: cart.map(i => ({
+    //       product_id: i.product_id,
+    //       product_name: i.product_name,
+    //       quantity: Number(i.quantity),
+    //       price: Number(i.price)
+    //     }))
+    //   };
+    //    console.log("SENDING PAYLOAD:", payload);
+
+    //   const res = await fetch(`${BASE_URL}/orders/`, {
+    //     method: "POST",
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //       Authorization: `Bearer ${token}`
+    //     },
+    //     body: JSON.stringify(payload)
+    //   });
+
+    //   const data = await res.json();
+
+    //   if (!res.ok) {
+        
+    //     alert(JSON.stringify(data.detail, null, 2) || "Order failed");
+    //     return;
+    //   }
+
+    //   alert("✅ Order placed successfully!");
+
+    // // reset cart
+    //   cart = [];
+    //   updateCartUI();
+    //   closeCart();
+
+    //  // 🔥 IMPORTANT: refresh stock UI
+    //   loadProductsWithStock();
+    //  }
+
       // ================= WAREHOUSE MODEL =================
 
-      function openWarehouseModal() {
+    function openWarehouseModal() {
         document.getElementById("warehouseModal").style.display = "block";
       }
 
-      function closeWarehouseModal() {
+    function closeWarehouseModal() {
         document.getElementById("warehouseModal").style.display = "none";
       }
 
-      async function saveWarehouse() {
+    async function saveWarehouse() {
         const token = localStorage.getItem("token");
 
         const payload = {
@@ -1741,14 +2409,23 @@ button:disabled {
       const price = Number(
       dropdown.options[dropdown.selectedIndex].dataset.price || 0);
 
+      const stock = Number(
+        dropdown.options[dropdown.selectedIndex].dataset.stock || 0
+       );
+
       const qty = Number(document.getElementById("orderQty").value);
+
+      if (qty > stock) {
+        alert(`Only ${stock} items available in this warehouse`);
+        return;
+      }
 
 
       if (!productId || !qty) {
         alert("Select product and quantity");
+        
         return;
        }
-      
 
       orderItems.push({
          product_id: productId,
@@ -1757,7 +2434,6 @@ button:disabled {
          price: price
         });
       
-      console.log("ALL ITEMS:", orderItems); // 🔥 DEBUG
 
       renderOrderItems();
      }
@@ -1824,41 +2500,130 @@ button:disabled {
 
       // ================= Submit Sales order =================
 
-    async function submitOrder() {
-      console.log("Submitting items:", orderItems);  
-      const token = localStorage.getItem("token");
+    function submitOrder() {
+      if (!orderItems.length) {
+         alert("Add at least one item");
+       return;
+    }
+
+      const customer = document.getElementById("customerName").value;
       const warehouseDropdown = document.getElementById("orderWarehouseDropdown");
 
-      const payload = {
-        customer_name: document.getElementById("customerName").value,
-        warehouse_id: warehouseDropdown.value,
-        warehouse_name: warehouseDropdown.options[warehouseDropdown.selectedIndex].text,
-        items: orderItems
-      };
-
-      const res = await fetch(`${BASE_URL}/orders`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          },
-        body: JSON.stringify(payload)
-       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-         alert(data.detail || "Error");
+      if (!customer) {
+         alert("Enter customer name");
          return;
       }
-      if (!orderItems.length) {
-       alert("Add at least one item");
-       return;
+
+      const warehouseName =
+         warehouseDropdown.options[warehouseDropdown.selectedIndex].text;
+
+      document.getElementById("summaryCustomer").innerText = customer;
+      document.getElementById("summaryWarehouse").innerText = warehouseName;
+
+      let total = 0;
+
+      document.getElementById("summaryItems").innerHTML = orderItems.map(item => {
+        const itemTotal = item.quantity * item.price;
+        total += itemTotal;
+
+       return `
+          <div>
+             ${item.product_name} | Qty: ${item.quantity} | ₹${itemTotal}
+         </div>
+         `;
+      }).join("");
+
+       document.getElementById("summaryTotal").innerText = "Total: ₹" + total;
+
+      document.getElementById("orderSummaryModal").style.display = "block";
      }
 
-      alert("Order Created!");
-      closeOrderModal();
-     }
+       // =================confirm Order Final =================
+
+    async function confirmOrderFinal() {
+      const token = localStorage.getItem("token");
+
+      const warehouseDropdown = document.getElementById("orderWarehouseDropdown");
+
+       const warehouseName =
+          warehouseDropdown.options[warehouseDropdown.selectedIndex]?.text;
+
+        if (!warehouseName) {
+           alert("Select warehouse");
+           return;
+        }
+
+         // ✅ FIX price issue
+        const cleanItems = orderItems.map(i => ({
+           product_name: i.product_name,
+           quantity: i.quantity,
+           price: Number(i.price) || 0
+         }));
+
+        const payload = {
+         customer_name: document.getElementById("customerName").value,
+         warehouse_name: warehouseName,
+         items: cleanItems
+        };
+
+       console.log("SENDING CLEAN PAYLOAD:", payload);
+
+        const res = await fetch(`${BASE_URL}/orders/`, {   // ✅ keep slash
+          method: "POST",
+          headers: {
+             "Content-Type": "application/json",
+             Authorization: `Bearer ${token}`
+         },
+         body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+       if (!res.ok) {
+        console.log("ERROR:", data);
+        alert(JSON.stringify(data.detail));
+        return;
+      }
+
+       alert("✅ Order Created!");
+       closeSummary();
+      }
+
+      
+      // =================Close summary =================
+
+    function closeSummary() {
+      document.getElementById("orderSummaryModal").style.display = "none";
+    }
+
+    // =================load validate product =================
+
+    async function loadProductsWithStock() {
+      const token = localStorage.getItem("token");
+
+      const warehouseId = document.getElementById("orderWarehouseDropdown").value;
+
+      if (!warehouseId) return;
+
+      const res = await fetch(`${BASE_URL}/warehouses/${warehouseId}/inventory`, {
+         headers: { Authorization: `Bearer ${token}` },
+       });
+
+       const data = await res.json();
+
+       const dropdown = document.getElementById("orderProductDropdown");
+
+       dropdown.innerHTML = `<option value="">Select Product</option>`;
+
+       data.forEach(p => {
+         dropdown.innerHTML += `
+           <option value="${p.product_id}" 
+                 data-stock="${p.stock}">
+                 ${p.product_name} (Stock: ${p.stock})
+           </option>
+         `;
+        });
+       }
 
       // ================= Load Sales Order =================
     async function loadOrders() {
@@ -1959,6 +2724,427 @@ button:disabled {
        document.getElementById("orderSection").style.display = "none";
     }
     }
+
+    // ================= PO - CREATE + ADD ITEMS =================
+
+    let poItems = [];
+
+    function openPurchaseModal() {
+      document.getElementById("purchaseModal").style.display = "block";
+      poItems = [];
+      document.getElementById("poItemsList").innerHTML = "";
+      
+      loadSuppliers();
+
+      loadProductsDropdownForOrders("poProductDropdown");
+      loadWarehouseDropdownForOrders("poWarehouseDropdown");
+    }
+
+    function closePurchaseModal() {
+      document.getElementById("purchaseModal").style.display = "none";
+   }
+
+   function addItemToPO() {
+     const dropdown = document.getElementById("poProductDropdown");
+
+     const productId = dropdown.value;
+     const productName = dropdown.options[dropdown.selectedIndex].text;
+
+     const qty = Number(document.getElementById("poQty").value);
+     const price = Number(document.getElementById("poPrice").value);
+
+     if (!productId || !qty || !price) {
+        alert("Fill all fields");
+        return;
+      }
+
+     poItems.push({
+       product_id: productId,
+       product_name: productName,
+       quantity: qty,
+       cost_price: price
+     });
+
+    renderPOItems();
+   }
+
+   function renderPOItems() {
+     const container = document.getElementById("poItemsList");
+
+     container.innerHTML = poItems.map(i => `
+      <div>
+         ${i.product_name} | Qty: ${i.quantity} | ₹${i.cost_price}
+      </div>
+     `).join("");
+    }
+
+    // ================= PO API=================
+
+   async function createPO() {
+       const token = localStorage.getItem("token");
+
+       const wh = document.getElementById("poWarehouseDropdown");
+       const supplierDropdown = document.getElementById("supplierDropdown");
+
+       const payload = {
+          supplier_id:  supplierDropdown.value,
+          supplier_name: supplierDropdown.options[supplierDropdown.selectedIndex].text,
+          warehouse_id: wh.value,
+          warehouse_name: wh.options[wh.selectedIndex].text,
+          items: poItems
+        };
+
+       const res = await fetch(`${BASE_URL}/purchase-orders/`, {
+         method: "POST",
+         headers: {
+             "Content-Type": "application/json",
+             Authorization: `Bearer ${token}`
+           },
+         body: JSON.stringify(payload)
+         });
+
+       const data = await res.json();
+       console.log("daaaaa",data)      
+
+
+       if (!res.ok) {
+         alert(data.detail);
+        return;
+       }
+
+       alert("PO Created!");
+       closePurchaseModal();
+       loadPurchaseOrders();
+    }
+
+      // ================= Load PO orders=================
+
+    async function loadPurchaseOrders() {
+        const token = localStorage.getItem("token");
+        const role = roleInput.value;
+
+        const res = await fetch(`${BASE_URL}/purchase-orders/`, {
+           headers: { Authorization: `Bearer ${token}` }
+       });
+
+        const data = await res.json();
+
+        const container = document.getElementById("purchaseList");
+         if (!container) return;
+
+
+        container.innerHTML = data.map(po => `
+           <div class="order-card">
+
+           <b>${po.supplier_name}</b><br>
+           📦 ${po.warehouse_name}<br>
+
+           ${po.items.map(i => `
+              <div>${i.product_name} (Ordered: ${i.quantity}, Received: ${i.received_quantity})</div>
+           `).join("")}
+
+           <br>
+           Status: <b>${po.status}</b><br><br>
+
+           ${getPOButtons(po)}
+
+          </div>
+       `).join("");
+      }
+
+      // ================= PO Action Buttons =================
+
+    function getPOButtons(po) {
+       const s = po.status;
+       const role = roleInput.value;
+
+        return `
+          ${role === "admin" ? `
+            <button onclick="updatePOStatus('${po.id}','submitted')" ${s !== "draft" ? "disabled":""}>Submit</button>
+
+            <button onclick="updatePOStatus('${po.id}','approved')" ${s !== "submitted" ? "disabled":""}>Approve</button>
+
+            <button onclick="updatePOStatus('${po.id}','rejected')" ${s !== "submitted" ? "disabled":""}>Reject</button>
+          ` : ""}
+
+        ${(role === "admin" || role === "warehouse_staff") ? `
+          <button onclick='openReceiveModal(${JSON.stringify(po)})'
+            ${s !== "approved" && s !== "partially_received" ? "disabled":""}>
+           📥 Receive
+          </button>
+        ` : ""}
+
+       ${(role === "admin" || role === "warehouse_staff") && s !== "draft" ? `
+          ${!po.invoice_number ? `
+        <button onclick="openInvoiceModal('${po.id}')">
+          🧾 Generate Invoice
+        </button>
+      ` : `
+        <button onclick='viewInvoice(${JSON.stringify(po)})'>
+          👁 View Invoice
+        </button>
+      `}
+    ` : ""}
+  `;
+}
+
+       // ================= Update PO Status =================
+
+    async function updatePOStatus(id, status) {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`${BASE_URL}/purchase-orders/${id}/status`, {
+          method: "PUT",
+          headers: {
+             "Content-Type": "application/json",
+             Authorization: `Bearer ${token}`
+           },
+          body: JSON.stringify({ status })
+         });
+
+      const data = await res.json();
+
+      alert(data.message);
+      loadPurchaseOrders();
+}
+
+  // ================= Open PO Receive Model =================
+
+  let currentPO = null;
+
+  function openReceiveModal(po) {
+      currentPO = po;
+      document.getElementById("receiveModal").style.display = "block";
+      console.log("PO :", currentPO);
+   }
+
+
+  async function submitReceive() {
+      const token = localStorage.getItem("token");
+      const qty = Number(document.getElementById("receiveQty").value);
+
+      if (!qty) {
+       alert("Enter quantity");
+       return;
+     }
+
+      if (!currentPO || !currentPO.items.length) {
+       alert("No PO items found");
+      return;
+     }
+
+  // 🔥 take first item (demo case)
+      const item = currentPO.items[0];
+
+      const payload = {
+        items: [
+           {
+              product_id: item.product_id,
+              product_name: item.product_name,
+              quantity: qty,
+              cost_price: item.cost_price || 0
+          }
+        ]
+      };
+
+       const res = await fetch(`${BASE_URL}/purchase-orders/${currentPO.id}/receive`, {
+          method: "PUT",
+          headers: {
+             "Content-Type": "application/json",
+             Authorization: `Bearer ${token}`
+            },
+          body: JSON.stringify(payload)
+         });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert(data.detail || "Error");
+          return;
+         }
+
+        alert(data.message);
+
+        closeReceiveModal();
+        loadPurchaseOrders();
+      }
+     // =================Open PO Invoice Model =================
+
+  let invoicePO = "";
+
+  function openInvoiceModal(id) {
+     invoicePO = id;
+     document.getElementById("invoiceModal").style.display = "block";
+   } 
+
+  async function submitInvoice() {
+      const token = localStorage.getItem("token");
+
+      // const number = document.getElementById("invoiceNumber").value || null;
+      const payload = {
+         invoice_number: null,   // let backend generate
+         invoice_date: document.getElementById("invoiceDate").value
+       };
+
+      const res = await fetch(
+         
+           `${BASE_URL}/purchase-orders/${invoicePO}/invoice`,
+         {
+           method: "PUT",
+           headers: { 
+             "Content-Type": "application/json", 
+            Authorization: `Bearer ${token}` 
+         },
+          body: JSON.stringify(payload)
+        }
+
+       );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.log("ERROR:", data);  
+        alert(data.detail || "Error");
+       return;
+      }
+
+      alert(`Invoice generated: ${data.invoice_number}`);
+      closeInvoiceModal();
+      loadPurchaseOrders();
+    }
+
+  function closeInvoiceModal() {
+      document.getElementById("invoiceModal").style.display = "none";
+  }
+
+// ================= View PO iNVOICE =================
+
+  function viewInvoice(po) {
+
+     let subtotal = 0;
+
+     const itemsHTML = po.items.map(item => {
+     const price = item.cost_price || 0;
+     const qty = item.received_quantity || 0;
+
+     if (qty === 0) return ""; 
+
+     const total = price * qty;
+     subtotal += total;
+
+     return `
+      <tr>
+        <td>${item.product_name}</td>
+        <td>${qty} / ${item.quantity}</td>
+        <td>₹${price}</td>
+        <td>₹${total}</td>
+      </tr>
+    `;
+  }).join("");
+
+    //  const tax = subtotal * 0.18; // 18% GST demo
+    //  const grandTotal = subtotal + tax;
+      const gstInput = document.getElementById("gstPercent");
+
+      const gstPercent = gstInput && gstInput.value 
+           ? Number(gstInput.value) 
+           : 18;
+
+      const tax = subtotal * (gstPercent / 100);
+      const grandTotal = subtotal + tax;
+
+     document.getElementById("invoiceContent").innerHTML = `
+       <b>Supplier:</b> ${po.supplier_name}<br>
+       <b>Warehouse:</b> ${po.warehouse_name}<br>
+       <b>Invoice Type:</b> ${po.status === "completed" ? "Final Invoice" : "Partial Invoice"}
+       <b>Invoice No:</b> ${po.invoice_number}<br>
+       <b>Date:</b> ${po.invoice_date}<br>
+
+     <hr>
+
+      <table border="1" width="100%" style="border-collapse:collapse;text-align:left">
+        <tr>
+           <th>Product</th>
+            <th>Qty</th>
+            <th>Price</th>
+            <th>Total</th>
+        </tr>
+      ${itemsHTML}
+    </table>
+
+    <br>
+
+      <b>Subtotal:</b> ₹${subtotal}<br>
+      <b>GST (${gstPercent}%):</b> ₹${tax.toFixed(2)}<br>
+       <h4>Total: ₹${grandTotal.toFixed(2)}</h4>
+   `;
+
+   document.getElementById("invoiceViewModal").style.display = "block";
+}
+
+function closeInvoiceView(event) {
+  if (!event || event.target.id === "invoiceViewModal") {
+    document.getElementById("invoiceViewModal").style.display = "none";
+  }
+}
+
+// ================= Load suppliers for PO=================
+
+async function loadSuppliers() {
+  const token = localStorage.getItem("token");
+
+  const res = await fetch(`${BASE_URL}/suppliers`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  const data = await res.json();
+
+  const dropdown = document.getElementById("supplierDropdown");
+
+  dropdown.innerHTML = `<option value="">Select Supplier</option>`;
+
+  data.forEach(s => {
+    dropdown.innerHTML += `
+      <option value="${s._id}">
+        ${s.name}
+      </option>
+    `;
+  });
+}
+
+
+function closeAllOverlays() {
+  document.querySelectorAll(".overlay").forEach(o => {
+    o.style.display = "none";
+  });
+}
+  
+
+
+
+  // ================= toggle po function =================
+  
+function togglePurchaseSection() {
+  const section = document.getElementById("purchaseSection");
+
+  if (section.style.display === "flex") {
+    section.style.display = "none";
+    return;
+  }
+
+  section.style.display = "flex";
+  loadPurchaseOrders();
+}
+
+function closePurchaseOverlay(event) {
+  if (!event || event.target.id === "purchaseSection") {
+    document.getElementById("purchaseSection").style.display = "none";
+  }
+}
+
+function closeReceiveModal() {
+  document.getElementById("receiveModal").style.display = "none";
+}
       
       // ================= Edit supplier profie =================
 

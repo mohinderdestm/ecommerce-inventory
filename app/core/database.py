@@ -17,7 +17,7 @@ print("DB_NAME:", DB_NAME)
 
 client = AsyncIOMotorClient(MONGO_URI)
 
-db = client["DB_NAME"]
+db = client[DB_NAME]
 users_collection = db["users"]
 products_collection = db["products"]
 suppliers_collection = db["suppliers"]

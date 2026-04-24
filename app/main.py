@@ -7,6 +7,7 @@ import app.core.cloudinary_config
 from app.routes.warehouses import router as warehouse_router
 from app.routes.inventory import router as inventory_router
 from app.routes.sales_order import router as sales_order_router
+from app.routes.purchase_order import router as purchase_order_router
 
 app = FastAPI(title="Ecommerce Inventory System")
 
@@ -25,6 +26,7 @@ app.include_router(supplier_router)
 app.include_router(warehouse_router)
 app.include_router(inventory_router)
 app.include_router(sales_order_router)
+app.include_router(purchase_order_router)
 
 
 @app.get("/")

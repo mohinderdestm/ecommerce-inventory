@@ -14,7 +14,9 @@ auth_service = AuthService()
 async def register(user: RegisterSchema):
     return await auth_service.register(user)
 
-
+# @router.post("/login")  # Remove async def login(user: loginSchema):
+# async def login():  # Temp dummy
+#     return {"access_token": "test-jwt"}
 @router.post("/login", status_code=status.HTTP_200_OK)
 async def login(user: loginSchema):
     return await auth_service.login(user)
