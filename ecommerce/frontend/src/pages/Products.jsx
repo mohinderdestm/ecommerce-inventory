@@ -310,6 +310,11 @@ export default function Products() {
         <h1 className="page-title">Products</h1>
         <div className="page-header-actions">
           <span className="result-count">{total} product{total !== 1 ? 's' : ''}</span>
+          {canEdit && (
+            <button className="btn btn-success" onClick={() => window.location.href = '/products/create'} style={{ marginLeft: '15px' }}>
+              + Add Product
+            </button>
+          )}
         </div>
       </div>
 
@@ -334,7 +339,13 @@ export default function Products() {
           {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} height={280} radius={12} />)}
         </div>
       ) : products.length === 0 ? (
-        <Empty icon="📦" message={search ? `No products match "${search}"` : 'No products found.'} />
+        <Empty icon="📦" message={search ? `No products match "${search}"` : 'No products found.'} action={
+          canEdit && (
+            <button className="btn btn-success" onClick={() => window.location.href = '/products/create'}>
+              + Add First Product
+            </button>
+          )
+        } />
       ) : (
         <>
           <div className="products-grid">

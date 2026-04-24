@@ -40,8 +40,8 @@ class UserRegisterRequest(UserBase):
 # Login 
 
 class UserLoginRequest(BaseModel):
-    email: EmailStr = Field(..., examples=["john@example.com"])
-    password: str = Field(..., examples=["SecurePass@123"])
+    email: EmailStr = Field(..., examples=["john@test.com"])
+    password: str = Field(..., examples=["Password123"])
 
 
 # Update

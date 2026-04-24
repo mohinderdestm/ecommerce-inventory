@@ -15,6 +15,10 @@ import SalesOrders from './pages/SalesOrders'
 import CreateOrder from './pages/CreateOrder'
 import Warehouses from './pages/Warehouses'
 import InventoryMovements from './pages/InventoryMovements'
+import PurchaseOrders from './pages/PurchaseOrders'
+import CreatePurchaseOrder from './pages/CreatePurchaseOrder'
+import AdminUsers from './pages/AdminUsers'
+import CreateProduct from './pages/CreateProduct'
 import { Categories, Variants, Profile } from './pages/OtherPages'
 import './App.css'
 
@@ -67,7 +71,9 @@ export default function App() {
 
               {/* Private */}
               <Route path="/dashboard" element={<PrivateLayout><Dashboard /></PrivateLayout>} />
+              {/* Inventory / Products */}
               <Route path="/products"  element={<PrivateLayout><Products /></PrivateLayout>} />
+              <Route path="/products/create" element={<PrivateLayout><CreateProduct /></PrivateLayout>} />
               <Route path="/categories"element={<PrivateLayout><Categories /></PrivateLayout>} />
               <Route path="/variants"  element={<PrivateLayout><Variants /></PrivateLayout>} />
               <Route path="/suppliers" element={<PrivateLayout><Suppliers /></PrivateLayout>} />
@@ -75,6 +81,11 @@ export default function App() {
               <Route path="/movements" element={<PrivateLayout><InventoryMovements /></PrivateLayout>} />
               <Route path="/orders"        element={<PrivateLayout><SalesOrders /></PrivateLayout>} />
               <Route path="/orders/create" element={<PrivateLayout><CreateOrder /></PrivateLayout>} />
+              <Route path="/purchase-orders"        element={<PrivateLayout><PurchaseOrders /></PrivateLayout>} />
+              <Route path="/purchase-orders/create" element={<PrivateLayout><CreatePurchaseOrder /></PrivateLayout>} />
+              
+              {/* Admin */}
+              <Route path="/admin/users"            element={<PrivateLayout><AdminUsers /></PrivateLayout>} />
               <Route path="/profile"   element={<PrivateLayout><Profile /></PrivateLayout>} />
 
               {/* Redirects */}

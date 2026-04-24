@@ -8,6 +8,7 @@ const ROLES = [
   { value: 'customer', label: 'Customer', desc: 'Browse and place orders' },
   { value: 'supplier', label: 'Supplier', desc: 'Manage product supply' },
   { value: 'warehouse_staff', label: 'Warehouse Staff', desc: 'Manage inventory' },
+  { value: 'inventory_manager', label: 'Inventory Manager', desc: 'Manage global inventory and POs' },
   { value: 'admin', label: 'Admin', desc: 'Full platform access' },
 ]
 

@@ -40,12 +40,9 @@ async def verify_warehouse_access(
     current_user: dict,
     service: WarehouseService,
 ):
-    """
-    Admins can access any warehouse.
-    Warehouse staff can only access warehouses they are assigned to.
-    """
-    if current_user["role"] == UserRole.ADMIN.value:
-        return  # admin passes always
+    
+    if current_user["role"] in [UserRole.ADMIN.value, UserRole.INVENTORY_MANAGER.value]:
+        return  # admin/manager passes always
 
     wh = await service.get_warehouse(warehouse_id)
     if current_user["_id"] not in wh.get("staff_ids", []):
@@ -204,12 +201,12 @@ async def get_stock_summary(
 
 @router.get(
     "/stock/product/{product_id}",
-    summary="Get stock for a product across all warehouses [Admin / Warehouse Staff]",
+    summary="Get stock for a product across all warehouses",
 )
 async def get_product_stock(
     product_id: str,
     service: WarehouseService = Depends(get_warehouse_service),
-    _: dict = Depends(require_admin_or_warehouse_staff),
+    _: dict = Depends(get_current_user),
 ):
     return await service.get_product_stock_across_warehouses(product_id)
 

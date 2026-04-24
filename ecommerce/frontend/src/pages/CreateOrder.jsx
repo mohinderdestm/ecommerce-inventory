@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { post } from '../api'
+import { get, post } from '../api'
 import { useCart } from '../context/CartContext'
 import { useToast } from '../components/Toast'
 import { Alert } from '../components/UI'
@@ -35,6 +35,24 @@ export default function CreateOrder() {
           _variant_label: item.variant_label,
         })),
       )
+      
+      // Auto-fill warehouse with max stock
+      const firstItem = cartItems[0]
+      if (firstItem && firstItem.product_id) {
+        get(`/warehouses/stock/product/${firstItem.product_id}`)
+          .then((data) => {
+            if (Array.isArray(data) && data.length > 0) {
+              const bestWarehouse = data.reduce((max, current) => 
+                (current.quantity > max.quantity) ? current : max
+              , data[0])
+              
+              if (bestWarehouse && bestWarehouse.warehouse_id) {
+                setWarehouseId(bestWarehouse.warehouse_id)
+              }
+            }
+          })
+          .catch(() => {})
+      }
     }
   }, [])
 

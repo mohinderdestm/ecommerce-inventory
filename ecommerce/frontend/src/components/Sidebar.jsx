@@ -28,6 +28,21 @@ const NAV = [
     ],
   },
   {
+    label: 'Purchases',
+    roles: ['admin', 'inventory_manager'],
+    links: [
+      { to: '/purchase-orders', icon: '🛒', label: 'Purchase Orders' },
+      { to: '/purchase-orders/create', icon: '➕', label: 'New PO' },
+    ],
+  },
+  {
+    label: 'Admin',
+    roles: ['admin'],
+    links: [
+      { to: '/admin/users', icon: '👥', label: 'Users' },
+    ],
+  },
+  {
     label: 'Orders',
     links: [
       { to: '/orders', icon: '🧾', label: 'Sales Orders' },
