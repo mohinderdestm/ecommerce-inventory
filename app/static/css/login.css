@@ -314,3 +314,160 @@ a {
     transform: translateY(-5px);
   }
 }
+
+body::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  pointer-events: none;
+  background: linear-gradient(
+    120deg,
+    transparent 15%,
+    rgba(56, 189, 248, 0.08),
+    transparent 85%
+  );
+  animation: loginSkySweep 12s linear infinite;
+  z-index: 1;
+}
+
+.login-card h2 {
+  background: linear-gradient(90deg, #f8fafc, #93c5fd, #f8fafc);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: loginHeadingGlow 5.5s ease-in-out infinite;
+}
+
+.login-card form > * {
+  animation: loginFieldRise 0.42s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+.login-card form > *:nth-child(1) {
+  animation-delay: 0.08s;
+}
+
+.login-card form > *:nth-child(2) {
+  animation-delay: 0.14s;
+}
+
+.login-card form > *:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.login-card input:focus {
+  animation: loginFocusPulse 0.4s ease;
+}
+
+.login-card button {
+  position: relative;
+  overflow: hidden;
+}
+
+.login-card button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 25%,
+    rgba(255, 255, 255, 0.3),
+    transparent 75%
+  );
+  transform: translateX(-120%);
+}
+
+.login-card button:hover::after {
+  animation: loginBtnSweep 0.7s ease forwards;
+}
+
+@keyframes loginSkySweep {
+  from {
+    transform: translateX(-10%) translateY(0);
+  }
+  to {
+    transform: translateX(10%) translateY(-2%);
+  }
+}
+
+@keyframes loginHeadingGlow {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes loginFieldRise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes loginFocusPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes loginBtnSweep {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(120%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  body::after,
+  .login-card,
+  .login-card * {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.error,
+.success {
+  width: 100%;
+  min-height: 40px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.error {
+  background: linear-gradient(
+    145deg,
+    rgba(127, 29, 29, 0.26),
+    rgba(69, 10, 10, 0.24)
+  );
+  border-color: rgba(248, 113, 113, 0.34);
+  color: #fecaca;
+}
+
+.success {
+  background: linear-gradient(
+    145deg,
+    rgba(6, 95, 70, 0.26),
+    rgba(4, 78, 63, 0.24)
+  );
+  border-color: rgba(52, 211, 153, 0.34);
+  color: #a7f3d0;
+}

@@ -1,0 +1,20 @@
+def notification_model(notification: dict) -> dict:
+    return {
+        "id": str(notification["_id"]),
+        "type": notification.get("type"),
+        "title": notification.get("title"),
+        "message": notification.get("message"),
+        "severity": notification.get("severity", "info"),
+        "target_roles": notification.get("target_roles", []),
+        "target_users": notification.get("target_users", []),
+        "reference_type": notification.get("reference_type"),
+        "reference_id": notification.get("reference_id"),
+        "metadata": notification.get("metadata", {}),
+        "channels": notification.get("channels", ["in_app"]),
+        "email_simulation": notification.get("email_simulation"),
+        "is_read": bool(notification.get("is_read", False)),
+        "read_at": notification.get("read_at"),
+        "dedupe_key": notification.get("dedupe_key"),
+        "created_at": notification.get("created_at"),
+        "updated_at": notification.get("updated_at"),
+    }

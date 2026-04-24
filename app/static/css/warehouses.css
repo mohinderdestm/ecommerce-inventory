@@ -832,3 +832,271 @@
   color: #ef4444;
   border: 1px solid #ef4444;
 }
+
+:root {
+  --wh-motion-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+#warehouseOverlay.show .warehouse-box,
+#addWarehouseOverlay.show .add-warehouse-box {
+  animation: whOverlayEnter 0.38s var(--wh-motion-ease) both;
+}
+
+.warehouse-container .warehouse-card {
+  animation: whCardEnter 0.46s var(--wh-motion-ease) both;
+}
+
+.warehouse-container .warehouse-card:nth-child(1) {
+  animation-delay: 0.04s;
+}
+
+.warehouse-container .warehouse-card:nth-child(2) {
+  animation-delay: 0.08s;
+}
+
+.warehouse-container .warehouse-card:nth-child(3) {
+  animation-delay: 0.12s;
+}
+
+.warehouse-container .warehouse-card:nth-child(4) {
+  animation-delay: 0.16s;
+}
+
+.warehouse-container .warehouse-card:nth-child(5) {
+  animation-delay: 0.2s;
+}
+
+.warehouse-container .warehouse-card:nth-child(6) {
+  animation-delay: 0.24s;
+}
+
+.warehouse-card {
+  transition:
+    transform 0.26s ease,
+    box-shadow 0.26s ease,
+    border-color 0.26s ease;
+}
+
+.warehouse-code {
+  animation: whCodeGlow 2.8s ease-in-out infinite;
+}
+
+.add-warehouse-btn,
+.submit-btn,
+.transfer-btn {
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    filter 0.22s ease;
+  background-size: 200% 100%;
+}
+
+.add-warehouse-btn:hover,
+.submit-btn:hover,
+.transfer-btn:hover {
+  filter: brightness(1.08);
+  animation: whBtnSweep 0.7s ease both;
+}
+
+.stock-box {
+  animation: whStockBoxEnter 0.42s var(--wh-motion-ease) both;
+}
+
+.stock-item-row {
+  transition:
+    transform 0.22s ease,
+    border-color 0.22s ease,
+    background-color 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+.stock-item-row:hover {
+  box-shadow: 0 14px 28px rgba(56, 189, 248, 0.14);
+}
+
+.picker-item {
+  animation: whPickerItemIn 0.36s var(--wh-motion-ease) both;
+}
+
+.picker-item:nth-child(1) {
+  animation-delay: 0.03s;
+}
+
+.picker-item:nth-child(2) {
+  animation-delay: 0.06s;
+}
+
+.picker-item:nth-child(3) {
+  animation-delay: 0.09s;
+}
+
+.picker-item:nth-child(4) {
+  animation-delay: 0.12s;
+}
+
+.picker-item:nth-child(5) {
+  animation-delay: 0.15s;
+}
+
+.picker-item:nth-child(6) {
+  animation-delay: 0.18s;
+}
+
+.variant-pill,
+.v-pill {
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.variant-pill:hover,
+.v-pill:hover {
+  transform: translateY(-1px);
+}
+
+.ui-message {
+  animation: whMessageIn 0.34s var(--wh-motion-ease) both;
+}
+
+@keyframes whOverlayEnter {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes whCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes whCodeGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(56, 189, 248, 0.09);
+  }
+}
+
+@keyframes whBtnSweep {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes whStockBoxEnter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes whPickerItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes whMessageIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #warehouseOverlay *,
+  #addWarehouseOverlay *,
+  .warehouse-container *,
+  .stock-box *,
+  .picker-container * {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.ui-message {
+  position: relative;
+  margin: 0 20px 14px 20px;
+  padding: 12px 14px 12px 48px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(15, 23, 42, 0.74);
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-align: left;
+  box-shadow: 0 12px 26px rgba(2, 6, 23, 0.3);
+}
+
+.ui-message::before {
+  content: "INFO";
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #7dd3fc;
+}
+
+.ui-message.success {
+  border-color: rgba(16, 185, 129, 0.42);
+  background: linear-gradient(
+    145deg,
+    rgba(6, 78, 59, 0.62),
+    rgba(6, 48, 43, 0.56)
+  );
+  color: #d1fae5;
+}
+
+.ui-message.success::before {
+  content: "OK";
+  color: #6ee7b7;
+}
+
+.ui-message.error {
+  border-color: rgba(239, 68, 68, 0.44);
+  background: linear-gradient(
+    145deg,
+    rgba(69, 10, 10, 0.64),
+    rgba(44, 11, 11, 0.58)
+  );
+  color: #fecaca;
+}
+
+.ui-message.error::before {
+  content: "ERR";
+  color: #fca5a5;
+}

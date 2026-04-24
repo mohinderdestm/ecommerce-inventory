@@ -450,7 +450,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }, 1000);
         }, 2000);
       } catch (err) {
-        showToast("Database update failed ❌");
+          showToast("Database update failed");
       }
     });
   }
@@ -669,7 +669,7 @@ document.addEventListener("DOMContentLoaded", () => {
           loadProducts();
         }
       } catch (err) {
-        showToast("Server error ❌");
+      showToast("Server error");
       }
     });
 
@@ -867,12 +867,11 @@ document.addEventListener("DOMContentLoaded", () => {
       ${renderWarehouseOrderSelector(orderWarehouses, selectedWarehouseIdValue, p.unit || "piece")}
       <div class="product-actions">
           <div class="qty-control">
-              <button id="qtyMinus" class="qty-btn" type="button">−</button>
+              <button id="qtyMinus" class="qty-btn" type="button">-</button>
               <input type="number" id="purchaseQty" value="${isOutOfStock ? 0 : 1}" min="1" max="${selectedWarehouseQty}" readonly />
               <button id="qtyPlus" class="qty-btn" type="button">+</button>
           </div>
           <button class="add-to-cart-premium" id="addToCartActionBtn" ${isOutOfStock ? "disabled" : ""}>
-              <span class="icon">🛒</span>
               <span class="text">${isOutOfStock ? "Out of Stock" : "Add to Cart"}</span>
           </button>
       </div>`
@@ -959,7 +958,7 @@ document.addEventListener("DOMContentLoaded", () => {
           });
         }
         updateCartUI();
-        showToast(`Added ${qty} item(s) to Cart! 🛒`);
+        showToast(`Added ${qty} item(s) to cart`);
       });
     }
 
@@ -1068,7 +1067,7 @@ document.addEventListener("DOMContentLoaded", () => {
           showToast(errorData.detail || "Upload failed");
         }
       } catch (err) {
-        showToast("Server error ❌");
+      showToast("Server error");
       } finally {
         isSubmitting = false;
       }
@@ -1147,7 +1146,7 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
-        showToast("Order confirmed! ✅");
+      showToast("Order confirmed successfully");
         loadAllOrders();
       } else {
         showToast("Failed to confirm order.");
@@ -1164,7 +1163,7 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
-        showToast("Order cancelled! ❌");
+      showToast("Order cancelled successfully");
         loadAllOrders();
       } else {
         showToast("Failed to cancel order.");
@@ -1247,8 +1246,8 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="order-item-row">
               <img src="${imgUrl}" alt="Product" class="order-item-img" />
               <div class="item-details">
-                <p class="item-name" style="font-weight: 600; color: #f8fafc;">${pName}</p>
-                <p class="item-meta" style="font-size: 12px; color: #94a3b8;">
+                <p class="item-name">${pName}</p>
+                <p class="item-meta">
                   Qty: ${item.quantity} | <span class="variant-label">${variantDisplay}</span>
                 </p>
               </div>
@@ -1263,25 +1262,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (isPending) {
           if (dRole === "admin") {
-            actionBtnHtml = `<button class="btn confirm-order-btn" style="background: #22c55e; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;" data-id="${order.id}">Confirm Order</button>`;
+            actionBtnHtml = `<button class="btn confirm-order-btn" data-id="${order.id}">Confirm Order</button>`;
           } else if (dRole === "viewer") {
-            actionBtnHtml = `<button class="btn cancel-order-btn" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;" data-id="${order.id}">Cancel Order</button>`;
+            actionBtnHtml = `<button class="btn cancel-order-btn" data-id="${order.id}">Cancel Order</button>`;
           }
         }
 
         card.innerHTML = `
-          <div class="order-card-header" style="display: flex; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid #334155;">
+          <div class="order-card-header">
             <div class="user-info">
               <strong>Customer:</strong> <span class="cust-name">${order.customer_name || "Guest"}</span> 
             </div>
-            <span class="order-id" style="color: #38bdf8;">#ORD-${order.id.slice(-6).toUpperCase()}</span>
+            <span class="order-id">#ORD-${order.id.slice(-6).toUpperCase()}</span>
           </div>
-          <div class="order-items-list" style="margin: 15px 0;">
+          <div class="order-items-list">
             ${itemsHtml}
           </div>
-          <div class="order-card-footer" style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #334155; padding-top: 10px;">
-            <div class="order-total" style="font-weight: bold;">Total: <span style="color: #22c55e;">₹ ${orderTotal}</span></div>
-            <div style="display: flex; gap: 10px; align-items: center;">
+          <div class="order-card-footer">
+            <div class="order-total">Total: <span>₹ ${orderTotal}</span></div>
+            <div class="order-footer-right">
               ${actionBtnHtml}
               <div class="status-pill status-${(order.status || "pending").toLowerCase()}">${order.status || "Pending"}</div>
             </div>
@@ -1318,3 +1317,5 @@ document.addEventListener("DOMContentLoaded", () => {
     if (userRole === "supplier") fetchWarehousesForProductForm();
   });
 });
+
+

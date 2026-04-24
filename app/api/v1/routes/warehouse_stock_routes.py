@@ -21,7 +21,13 @@ async def update_stock(
     warehouse_id: str, sku: str, data: UpdateStockSchema, user=Depends(get_current_user)
 ):
     return await WarehouseStockService.update_stock(
-        warehouse_id, sku, data.quantity, user
+        warehouse_id,
+        sku,
+        data.quantity,
+        user,
+        reference_type=data.reference_type,
+        reference_id=data.reference_id,
+        remarks=data.remarks,
     )
 
 

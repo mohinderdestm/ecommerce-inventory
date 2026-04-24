@@ -6,6 +6,9 @@ class AssignStockSchema(BaseModel):
     product_id: str
     variant_sku: str
     quantity: int = Field(..., ge=0)
+    reference_type: str = "manual_stock"
+    reference_id: str | None = None
+    remarks: str | None = None
 
 
 class TransferStockSchema(BaseModel):
@@ -13,7 +16,13 @@ class TransferStockSchema(BaseModel):
     to_warehouse: str
     variant_sku: str
     quantity: int = Field(..., gt=0)
+    reference_type: str = "warehouse_transfer"
+    reference_id: str | None = None
+    remarks: str | None = None
 
 
 class UpdateStockSchema(BaseModel):
     quantity: int = Field(..., ge=0)
+    reference_type: str = "manual_adjustment"
+    reference_id: str | None = None
+    remarks: str | None = None

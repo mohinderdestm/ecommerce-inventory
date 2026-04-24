@@ -6,9 +6,10 @@
     <title>Smart Inventory Dashboard</title>
     <link rel="stylesheet" href="/static/css/home.css" />
     <link rel="stylesheet" href="/static/css/warehouses.css" />
+    <link rel="stylesheet" href="/static/css/operations.css" />
   </head>
 
-  <body>
+  <body class="dashboard-shell">
     <nav class="navbar">
       <div class="nav-left">
         <div class="user-box" id="userBox">
@@ -21,12 +22,16 @@
       </div>
 
       <div class="nav-center">
-        <h2 class="logo">Smart Inventory</h2>
+        <div class="brand-block">
+          <h2 class="logo">Smart Inventory</h2>
+          <p class="logo-subtitle">Operations Control Workspace</p>
+        </div>
       </div>
 
       <div class="nav-right">
         <button id="cartBtn" class="btn cart-btn">
-          🛒 Cart <span id="cartBadge" class="badge">0</span>
+          Cart
+          <span id="cartBadge" class="badge">0</span>
         </button>
         <button id="adminOrdersBtn" class="btn admin-btn admin-only hidden">
           Order Details
@@ -155,9 +160,7 @@
           <div class="order-receipt-preview">
             <p>
               Transaction ID:
-              <span id="transactionId"
-                >#TRX-${Math.floor(Math.random()*1000000)}</span
-              >
+              <span id="transactionId">#TRX-000000</span>
             </p>
             <p>Status: <span class="status-success">Success</span></p>
           </div>
@@ -398,10 +401,10 @@
       <input name="quantity" type="number" placeholder="Quantity" min="1" required />
       <button type="submit" class="submit-btn">Execute Transfer</button>
     </form>
-  </div>
 </div>
 </div>
     <script src="/static/js/home.js"></script>
     <script src="/static/js/warehouses.js"></script>
+    <script src="/static/js/operations.js"></script>
   </body>
 </html>

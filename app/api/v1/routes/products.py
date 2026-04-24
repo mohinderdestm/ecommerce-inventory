@@ -45,8 +45,10 @@ async def create_product(
     cost_price: float = Form(...),
     selling_price: float = Form(...),
     reorder_level: int = Form(0),
+    low_stock_threshold: int = Form(5),
     tax: float = Form(0),
     unit: str = Form("piece"),
+    expiry_date: str | None = Form(None),
     variants: str = Form("[]"),
     warehouse_allocations: str = Form("[]"),
     image: UploadFile = File(None),
@@ -74,8 +76,10 @@ async def create_product(
         "cost_price": cost_price,
         "selling_price": selling_price,
         "reorder_level": reorder_level,
+        "low_stock_threshold": low_stock_threshold,
         "tax": tax,
         "unit": unit,
+        "expiry_date": expiry_date,
         "variants": parsed_variants,
         "warehouse_allocations": parsed_warehouse_allocations,
     }
@@ -105,8 +109,10 @@ async def update_product(
     cost_price: float = Form(0),
     selling_price: float = Form(...),
     reorder_level: int = Form(0),
+    low_stock_threshold: int = Form(5),
     tax: float = Form(0),
     unit: str = Form("piece"),
+    expiry_date: str | None = Form(None),
     variants: str = Form("[]"),
     warehouse_allocations: str = Form("[]"),
     image: UploadFile = File(None),
@@ -134,8 +140,10 @@ async def update_product(
         "cost_price": cost_price,
         "selling_price": selling_price,
         "reorder_level": reorder_level,
+        "low_stock_threshold": low_stock_threshold,
         "tax": tax,
         "unit": unit,
+        "expiry_date": expiry_date,
         "variants": parsed_variants,
         "warehouse_allocations": parsed_warehouse_allocations,
     }
@@ -153,7 +161,7 @@ async def update_product(
                     path = await save_upload_file(v_file, VARIANT_UPLOAD_DIR)
                     data["variants"][idx]["image"] = path
 
-    return await ProductService.update_product(product_id, data)
+    return await ProductService.update_product(product_id, data, user)
 
 
 @router.get("/")

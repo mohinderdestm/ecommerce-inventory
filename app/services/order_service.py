@@ -2,6 +2,7 @@ from app.repositories.order_repository import OrderRepository
 from app.repositories.product_repository import ProductRepository
 from app.services.warehouse_stock_service import WarehouseStockService
 from fastapi import HTTPException, status
+import uuid
 
 
 class OrderService:
@@ -16,6 +17,7 @@ class OrderService:
         processed_items = []
         total_price = 0
         user_id = str(current_user.get("id") or current_user.get("_id"))
+        order_reference = f"SO-{uuid.uuid4().hex[:10].upper()}"
 
         for item in order_in.items:
             product = await ProductRepository.get_product_by_id(item.product_id)
@@ -44,12 +46,25 @@ class OrderService:
             if item.warehouse_id:
                 stock_reservation = (
                     await WarehouseStockService.reserve_stock_from_selected_warehouse(
-                        product, item.variant_sku, item.warehouse_id, item.quantity
+                        product,
+                        item.variant_sku,
+                        item.warehouse_id,
+                        item.quantity,
+                        performed_by=current_user,
+                        reference_type="sales_order",
+                        reference_id=order_reference,
+                        remarks=f"Reserved for order {order_reference}",
                     )
                 )
             else:
                 stock_reservation = await WarehouseStockService.reserve_stock(
-                    product, item.variant_sku, item.quantity
+                    product,
+                    item.variant_sku,
+                    item.quantity,
+                    performed_by=current_user,
+                    reference_type="sales_order",
+                    reference_id=order_reference,
+                    remarks=f"Reserved for order {order_reference}",
                 )
 
             if not item.variant_sku:
@@ -81,6 +96,7 @@ class OrderService:
             "items": processed_items,
             "total_amount": total_price,
             "status": "pending",
+            "order_reference": order_reference,
             "user_details": {
                 "name": current_user.get("name", "User"),
                 "email": current_user.get("email"),
@@ -112,7 +128,7 @@ class OrderService:
         return {"message": "Order successfully confirmed."}
 
     @classmethod
-    async def cancel_order(cls, order_id: str):
+    async def cancel_order(cls, order_id: str, current_user: dict | None = None):
         order = await OrderRepository.get_order_by_id(order_id)
         if not order:
             raise HTTPException(status_code=404, detail="Order not found")
@@ -130,7 +146,19 @@ class OrderService:
             allocations = item.get("warehouse_allocations") or []
             if allocations:
                 await WarehouseStockService.restore_stock_allocations(
-                    product, sku, allocations
+                    product,
+                    sku,
+                    allocations,
+                    performed_by=current_user
+                    or {
+                        "id": None,
+                        "name": "Order System",
+                        "email": None,
+                        "role": "system",
+                    },
+                    reference_type="sales_order_cancellation",
+                    reference_id=order.get("order_reference") or order_id,
+                    remarks=f"Stock restored after cancellation of order {order_id}",
                 )
                 continue
 
@@ -149,6 +177,16 @@ class OrderService:
                         )
                     )[:1]
                 ],
+                performed_by=current_user
+                or {
+                    "id": None,
+                    "name": "Order System",
+                    "email": None,
+                    "role": "system",
+                },
+                reference_type="sales_order_cancellation",
+                reference_id=order.get("order_reference") or order_id,
+                remarks=f"Stock restored after cancellation of order {order_id}",
             )
 
         await OrderRepository.update_order_status(order_id, "cancelled")

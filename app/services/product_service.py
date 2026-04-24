@@ -60,6 +60,9 @@ class ProductService:
         enriched_products = []
         for product in products:
             product_copy = dict(product)
+            product_copy["low_stock_threshold"] = int(
+                product_copy.get("low_stock_threshold") or 5
+            )
             base_summary = stock_map.get(
                 (product_copy["id"], product_copy.get("sku")),
                 {"total": 0, "warehouses": []},
@@ -77,6 +80,11 @@ class ProductService:
                 variant_stock = variant_summary["total"]
                 variant_copy["stock"] = variant_stock
                 variant_copy["reorder_level"] = variant_stock
+                variant_copy["low_stock_threshold"] = int(
+                    variant_copy.get("low_stock_threshold")
+                    if variant_copy.get("low_stock_threshold") is not None
+                    else product_copy.get("low_stock_threshold", 5)
+                )
                 variant_copy["warehouse_stock"] = variant_summary["warehouses"]
                 total_stock += variant_stock
                 variants.append(variant_copy)
@@ -96,6 +104,9 @@ class ProductService:
         product: dict,
         base_allocations: list[dict],
         variant_allocation_map: dict[str, list[dict]],
+        performed_by: dict | None = None,
+        reference_type: str = "product_stock_allocation",
+        reference_id: str | None = None,
     ):
         for allocation in base_allocations:
             await WarehouseStockService.assign_stock_entry(
@@ -104,6 +115,9 @@ class ProductService:
                 product["sku"],
                 allocation["quantity"],
                 variant_name="Base Product",
+                performed_by=performed_by,
+                reference_type=reference_type,
+                reference_id=reference_id,
             )
 
         for variant in product.get("variants", []):
@@ -114,6 +128,9 @@ class ProductService:
                     variant["sku"],
                     allocation["quantity"],
                     variant_name=variant.get("name", "Variant"),
+                    performed_by=performed_by,
+                    reference_type=reference_type,
+                    reference_id=reference_id,
                 )
 
     @classmethod
@@ -137,6 +154,7 @@ class ProductService:
         data["created_by"] = user.get("id")
         data["supplier_email"] = user.get("email")
         data["reorder_level"] = 0
+        data["low_stock_threshold"] = int(data.get("low_stock_threshold") or 5)
 
         variants = []
         variant_allocation_map = {}
@@ -147,6 +165,11 @@ class ProductService:
             )
             variant["reorder_level"] = 0
             variant["stock"] = 0
+            variant["low_stock_threshold"] = int(
+                variant.get("low_stock_threshold")
+                if variant.get("low_stock_threshold") is not None
+                else data.get("low_stock_threshold", 5)
+            )
 
             if not variant.get("sku"):
                 variant_suffix = variant.get("name", "VAR").replace(" ", "").upper()[:3]
@@ -163,7 +186,12 @@ class ProductService:
 
         product = await ProductRepository.create_product(data)
         await cls._assign_warehouse_allocations(
-            product, base_allocations, variant_allocation_map
+            product,
+            base_allocations,
+            variant_allocation_map,
+            performed_by=user,
+            reference_type="product_stock_allocation",
+            reference_id=product["id"],
         )
         return await cls.get_product_with_stock(product["id"])
 
@@ -181,7 +209,7 @@ class ProductService:
         return await cls._attach_warehouse_stock(products)
 
     @classmethod
-    async def update_product(cls, product_id: str, data: dict):
+    async def update_product(cls, product_id: str, data: dict, user: dict):
         data = dict(data)
         base_allocations = cls._normalize_allocations(
             data.pop("warehouse_allocations", [])
@@ -189,6 +217,12 @@ class ProductService:
         existing = await ProductRepository.get_product_by_id(product_id)
         if not existing:
             raise HTTPException(status_code=404, detail="Product not found")
+
+        data["low_stock_threshold"] = int(
+            data.get("low_stock_threshold")
+            if data.get("low_stock_threshold") is not None
+            else existing.get("low_stock_threshold", 5)
+        )
 
         variant_allocation_map = {}
         if "variants" in data and isinstance(data["variants"], list):
@@ -202,6 +236,13 @@ class ProductService:
                 )
                 variant["reorder_level"] = 0
                 variant["stock"] = 0
+                variant["low_stock_threshold"] = int(
+                    variant.get("low_stock_threshold")
+                    if variant.get("low_stock_threshold") is not None
+                    else data.get(
+                        "low_stock_threshold", existing.get("low_stock_threshold", 5)
+                    )
+                )
 
                 if not variant.get("sku"):
                     variant_suffix = (
@@ -223,7 +264,12 @@ class ProductService:
 
         updated_product = await ProductRepository.get_product_by_id(product_id)
         await cls._assign_warehouse_allocations(
-            updated_product, base_allocations, variant_allocation_map
+            updated_product,
+            base_allocations,
+            variant_allocation_map,
+            performed_by=user,
+            reference_type="product_stock_update",
+            reference_id=product_id,
         )
         updated_product = await cls.get_product_with_stock(product_id)
 
