@@ -14,6 +14,14 @@ class Settings(BaseSettings):
     APP_TITLE: str = "Ecommerce "
     APP_VERSION: str = "1.0.0"
 
+    # SMTP Configuration
+    SMTP_HOST: str = Field(default="smtp.gmail.com")
+    SMTP_PORT: int = Field(default=587)
+    SMTP_USER: str = Field(default="")
+    SMTP_PASSWORD: str = Field(default="")
+    FROM_EMAIL: str = Field(default="noreply@ecommerce.local")
+    ENABLE_EMAILS: bool = Field(default=False)
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

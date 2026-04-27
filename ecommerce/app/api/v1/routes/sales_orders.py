@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, status, BackgroundTasks
 
 from app.schemas.sales_order import (
     SalesOrderCreateRequest, StatusUpdateRequest, ReturnRequest,
@@ -10,6 +10,8 @@ from app.repositories.sales_order_repository import SalesOrderRepository
 from app.repositories.product_repository import ProductRepository
 from app.repositories.warehouse_repository import WarehouseRepository
 from app.repositories.variant_repository import VariantRepository
+from app.repositories.user_repository import UserRepository
+from app.services.email_service import EmailService
 from app.utils.dependencies import get_current_user, require_admin, require_roles, get_db
 from app.models.user import UserRole
 from app.models.sales_order import SalesOrderStatus
@@ -20,13 +22,18 @@ router = APIRouter(prefix="/sales-orders", tags=["Sales Orders"])
 
 from app.repositories.inventory_movement_repository import InventoryMovementRepository
 
-def get_order_service(db: AsyncIOMotorDatabase = Depends(get_db)) -> SalesOrderService:
+def get_order_service(
+    background_tasks: BackgroundTasks,
+    db: AsyncIOMotorDatabase = Depends(get_db)
+) -> SalesOrderService:
     return SalesOrderService(
         order_repo=SalesOrderRepository(db),
         product_repo=ProductRepository(db),
         warehouse_repo=WarehouseRepository(db),
         variant_repo=VariantRepository(db),
         movement_repo=InventoryMovementRepository(db),
+        email_service=EmailService(background_tasks),
+        user_repo=UserRepository(db),
     )
 
 

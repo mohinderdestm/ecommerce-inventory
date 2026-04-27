@@ -37,6 +37,10 @@ class UserRepository:
         doc = await self.collection.find_one({"username": username.lower().strip()})
         return self._serialize(doc) if doc else None
 
+    async def get_admins(self) -> list[dict]:
+        cursor = self.collection.find({"role": "ADMIN"})
+        return [self._serialize(doc) async for doc in cursor]
+
     async def email_exists(self, email: str) -> bool:
         count = await self.collection.count_documents({"email": email.lower().strip()})
         return count > 0

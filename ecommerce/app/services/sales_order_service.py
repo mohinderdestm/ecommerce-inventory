@@ -16,6 +16,8 @@ from app.schemas.sales_order import (
 )
 from app.repositories.inventory_movement_repository import InventoryMovementRepository
 from app.models.inventory_movement import build_inventory_movement_document, MovementType
+from app.services.email_service import EmailService
+from app.repositories.user_repository import UserRepository
 
 logger = logging.getLogger(__name__)
 
@@ -28,12 +30,16 @@ class SalesOrderService:
         warehouse_repo: WarehouseRepository,
         variant_repo: VariantRepository,
         movement_repo: InventoryMovementRepository = None,
+        email_service: EmailService = None,
+        user_repo: UserRepository = None,
     ):
         self.order_repo = order_repo
         self.product_repo = product_repo
         self.warehouse_repo = warehouse_repo
         self.variant_repo = variant_repo
         self.movement_repo = movement_repo
+        self.email_service = email_service
+        self.user_repo = user_repo
 
     # ── Create Order (Draft) ──────────────────────────────────────────────────
 
@@ -103,6 +109,18 @@ class SalesOrderService:
         )
         created = await self.order_repo.create(doc)
         logger.info(f"Sales order {created['order_number']} created by {customer['_id']}")
+
+        # Trigger emails
+        if self.email_service and self.user_repo:
+            customer_email = customer.get("email")
+            if customer_email:
+                self.email_service.send_order_drafted_customer(customer_email, created['order_number'])
+            
+            admins = await self.user_repo.get_admins()
+            admin_emails = [admin.get("email") for admin in admins if admin.get("email")]
+            if admin_emails:
+                self.email_service.send_order_drafted_admin(admin_emails, created['order_number'], created['customer_name'])
+
         return created
 
     # ── Get / List ────────────────────────────────────────────────────────────
@@ -229,6 +247,12 @@ class SalesOrderService:
             payload.notes or "Order confirmed and stock reserved."
         )
         logger.info(f"Order {order['order_number']} confirmed by {updated_by}")
+        
+        if self.email_service and self.user_repo:
+            customer_data = await self.user_repo.find_by_id(order["customer_id"])
+            if customer_data and customer_data.get("email"):
+                self.email_service.send_order_status_update(customer_data["email"], order['order_number'], SalesOrderStatus.CONFIRMED.value)
+
         return await self.order_repo.find_by_id(order_id)
 
     # ── Pack ──────────────────────────────────────────────────────────────────
@@ -246,6 +270,12 @@ class SalesOrderService:
             order_id, SalesOrderStatus.PACKED, updated_by, payload.notes or "Order packed."
         )
         logger.info(f"Order {order['order_number']} packed by {updated_by}")
+
+        if self.email_service and self.user_repo:
+            customer_data = await self.user_repo.find_by_id(order["customer_id"])
+            if customer_data and customer_data.get("email"):
+                self.email_service.send_order_status_update(customer_data["email"], order['order_number'], SalesOrderStatus.PACKED.value)
+
         return await self.order_repo.find_by_id(order_id)
 
     # Shipping
@@ -263,6 +293,12 @@ class SalesOrderService:
             order_id, SalesOrderStatus.SHIPPED, updated_by, payload.notes or "Order dispatched."
         )
         logger.info(f"Order {order['order_number']} shipped by {updated_by}")
+
+        if self.email_service and self.user_repo:
+            customer_data = await self.user_repo.find_by_id(order["customer_id"])
+            if customer_data and customer_data.get("email"):
+                self.email_service.send_order_status_update(customer_data["email"], order['order_number'], SalesOrderStatus.SHIPPED.value)
+
         return await self.order_repo.find_by_id(order_id)
 
     # Deliver 
@@ -281,6 +317,12 @@ class SalesOrderService:
             payload.notes or "Order delivered successfully."
         )
         logger.info(f"Order {order['order_number']} delivered by {updated_by}")
+
+        if self.email_service and self.user_repo:
+            customer_data = await self.user_repo.find_by_id(order["customer_id"])
+            if customer_data and customer_data.get("email"):
+                self.email_service.send_order_status_update(customer_data["email"], order['order_number'], SalesOrderStatus.DELIVERED.value)
+
         return await self.order_repo.find_by_id(order_id)
 
     # Cancel 
@@ -324,6 +366,12 @@ class SalesOrderService:
             payload.notes or "Order cancelled."
         )
         logger.info(f"Order {order['order_number']} cancelled by {updated_by}")
+
+        if self.email_service and self.user_repo:
+            customer_data = await self.user_repo.find_by_id(order["customer_id"])
+            if customer_data and customer_data.get("email"):
+                self.email_service.send_order_status_update(customer_data["email"], order['order_number'], SalesOrderStatus.CANCELLED.value)
+
         return await self.order_repo.find_by_id(order_id)
 
     # Return 
@@ -374,6 +422,12 @@ class SalesOrderService:
             f"Returned: {payload.reason}"
         )
         logger.info(f"Order {order['order_number']} returned. Reason: {payload.reason}")
+
+        if self.email_service and self.user_repo:
+            customer_data = await self.user_repo.find_by_id(order["customer_id"])
+            if customer_data and customer_data.get("email"):
+                self.email_service.send_order_status_update(customer_data["email"], order['order_number'], SalesOrderStatus.RETURNED.value)
+
         return await self.order_repo.find_by_id(order_id)
 
     # Order Summary 
