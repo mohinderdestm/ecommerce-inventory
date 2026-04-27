@@ -1,8 +1,10 @@
 from app.repositories.order_repository import OrderRepository
 from app.repositories.product_repository import ProductRepository
 from app.services.warehouse_stock_service import WarehouseStockService
+from app.utils.email_service import send_order_confirmation_email
 from fastapi import HTTPException, status
 import uuid
+import re
 
 
 class OrderService:
@@ -14,6 +16,32 @@ class OrderService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Only viewers can place orders.",
             )
+
+        customer_name = (
+            order_in.customer_name or current_user.get("name") or "Customer"
+        ).strip()
+        customer_email = (
+            (order_in.customer_email or current_user.get("email") or "").strip().lower()
+        )
+        shipping_address = (order_in.shipping_address or "").strip()
+        raw_payment_method = getattr(
+            order_in.payment_method, "value", order_in.payment_method
+        )
+        payment_method = str(raw_payment_method or "cod").strip().lower()
+
+        if len(customer_name) < 2:
+            raise HTTPException(status_code=400, detail="Customer name is required.")
+        if customer_email and not re.match(
+            r"^[^@\s]+@[^@\s]+\.[^@\s]+$", customer_email
+        ):
+            raise HTTPException(
+                status_code=400, detail="Valid customer email is required."
+            )
+        if len(shipping_address) < 10:
+            shipping_address = "Address will be confirmed with customer"
+        if payment_method not in {"upi", "card", "netbanking", "cod"}:
+            payment_method = "cod"
+
         processed_items = []
         total_price = 0
         user_id = str(current_user.get("id") or current_user.get("_id"))
@@ -92,7 +120,10 @@ class OrderService:
 
         order_dict = {
             "user_id": user_id,
-            "customer_name": order_in.customer_name,
+            "customer_name": customer_name,
+            "customer_email": customer_email or current_user.get("email"),
+            "shipping_address": shipping_address,
+            "payment_method": payment_method,
             "items": processed_items,
             "total_amount": total_price,
             "status": "pending",
@@ -103,7 +134,18 @@ class OrderService:
                 "role": user_role,
             },
         }
-        return await OrderRepository.create_order(order_dict)
+        saved_order = await OrderRepository.create_order(order_dict)
+
+        email_sent, invoice_file_name, email_error = (
+            await send_order_confirmation_email(saved_order)
+        )
+        if not email_sent and not email_error:
+            email_error = "Email service is not configured on server"
+        saved_order["confirmation_email_sent"] = email_sent
+        saved_order["invoice_file_name"] = invoice_file_name
+        saved_order["confirmation_email_error"] = email_error
+
+        return saved_order
 
     @classmethod
     async def confirm_order(cls, order_id: str, current_user: dict):

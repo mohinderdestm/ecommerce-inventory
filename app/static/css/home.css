@@ -3655,6 +3655,147 @@ body {
   }
 }
 
+.dashboard-shell .checkout-box {
+  width: min(760px, 96vw);
+  max-width: min(760px, 96vw);
+  border-radius: 22px;
+  border: 1px solid rgba(56, 189, 248, 0.24);
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(56, 189, 248, 0.14),
+      transparent 36%
+    ),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(2, 8, 24, 0.96));
+  box-shadow: 0 28px 66px rgba(2, 6, 23, 0.62);
+}
+
+.dashboard-shell .checkout-form {
+  padding: 18px 20px 20px;
+  display: grid;
+  gap: 14px;
+}
+
+.dashboard-shell .checkout-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.dashboard-shell .checkout-field {
+  display: grid;
+  gap: 6px;
+}
+
+.dashboard-shell .checkout-field.full {
+  grid-column: 1 / -1;
+}
+
+.dashboard-shell .checkout-field label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7dd3fc;
+}
+
+.dashboard-shell .checkout-field input,
+.dashboard-shell .checkout-field textarea,
+.dashboard-shell .checkout-field select {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.76);
+  color: #e2e8f0;
+  padding: 11px 12px;
+  font-size: 14px;
+}
+
+.dashboard-shell .checkout-field input:focus,
+.dashboard-shell .checkout-field textarea:focus,
+.dashboard-shell .checkout-field select:focus {
+  outline: none;
+  border-color: rgba(56, 189, 248, 0.48);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12);
+}
+
+.dashboard-shell .checkout-summary-card {
+  border-radius: 14px;
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  background: rgba(3, 12, 30, 0.72);
+  padding: 12px 14px;
+}
+
+.dashboard-shell .checkout-summary-card p {
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.5;
+  font-size: 13px;
+}
+
+.dashboard-shell .checkout-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.dashboard-shell .checkout-back-btn,
+.dashboard-shell .checkout-submit-btn {
+  min-height: 44px;
+  min-width: 170px;
+}
+
+.dashboard-shell #ordersOverlay .order-customer-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(2, 18, 40, 0.5);
+  border: 1px solid rgba(56, 189, 248, 0.16);
+  color: #bfdbfe;
+  font-size: 12px;
+}
+
+.dashboard-shell #ordersOverlay .order-address {
+  margin: 8px 0 10px;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (max-width: 760px) {
+  .dashboard-shell .checkout-box {
+    width: 100vw;
+    max-width: 100vw;
+    border-radius: 0;
+  }
+
+  .dashboard-shell .checkout-form {
+    padding: 14px;
+  }
+
+  .dashboard-shell .checkout-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-shell .checkout-actions {
+    flex-direction: column;
+  }
+
+  .dashboard-shell .checkout-back-btn,
+  .dashboard-shell .checkout-submit-btn {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .dashboard-shell #ordersOverlay .order-customer-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 .dashboard-shell .toast {
   top: 16px;
   left: 50%;

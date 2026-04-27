@@ -4,9 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Smart Inventory Dashboard</title>
-    <link rel="stylesheet" href="/static/css/home.css" />
-    <link rel="stylesheet" href="/static/css/warehouses.css" />
-    <link rel="stylesheet" href="/static/css/operations.css" />
+    <link rel="stylesheet" href="/static/css/home.css?v=20260427a" />
+    <link rel="stylesheet" href="/static/css/warehouses.css?v=20260427a" />
+    <link rel="stylesheet" href="/static/css/operations.css?v=20260427a" />
   </head>
 
   <body class="dashboard-shell">
@@ -140,6 +140,69 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div id="checkoutOverlay" class="overlay hidden">
+      <div class="overlay-content checkout-box">
+        <div class="overlay-header">
+          <div class="header-main">
+            <h2>Complete Your Order</h2>
+            <span id="checkoutItemCount" class="item-count-pill">0 Items</span>
+          </div>
+          <button id="closeCheckoutOverlay" class="close-btn">&times;</button>
+        </div>
+        <form id="checkoutForm" class="checkout-form">
+          <div class="checkout-grid">
+            <div class="checkout-field">
+              <label for="checkoutName">Full Name</label>
+              <input id="checkoutName" type="text" required />
+            </div>
+            <div class="checkout-field">
+              <label for="checkoutEmail">Email</label>
+              <input id="checkoutEmail" type="email" required />
+            </div>
+            <div class="checkout-field full">
+              <label for="checkoutAddress">Delivery Address</label>
+              <textarea
+                id="checkoutAddress"
+                rows="3"
+                placeholder="House/Flat, Street, City, State, Pincode"
+                required
+              ></textarea>
+            </div>
+            <div class="checkout-field full">
+              <label for="checkoutPaymentMethod">Payment Method</label>
+              <select id="checkoutPaymentMethod" required>
+                <option value="upi">UPI</option>
+                <option value="card">Card</option>
+                <option value="netbanking">Net Banking</option>
+                <option value="cod">Cash on Delivery</option>
+              </select>
+            </div>
+          </div>
+          <div class="checkout-summary-card">
+            <p id="checkoutSummaryText">
+              Review your details and confirm the order.
+            </p>
+          </div>
+          <div class="checkout-actions">
+            <button
+              type="button"
+              id="cancelCheckoutBtn"
+              class="btn btn-clear checkout-back-btn"
+            >
+              Back to Cart
+            </button>
+            <button
+              type="submit"
+              id="confirmCheckoutBtn"
+              class="btn btn-order checkout-submit-btn"
+            >
+              Confirm & Place Order
+            </button>
+          </div>
+        </form>
       </div>
     </div>
 
@@ -297,21 +360,21 @@
       <div class="overlay-content warehouse-box">
         <div class="overlay-header">
           <h2>Warehouse Management</h2>
-           <div class="header-actions">
-    <button id="addWarehouseBtn" class="add-warehouse-btn">
-      + Add Warehouse
-    </button>
-    <button id="closeWarehouseOverlay" class="close-btn">&times;</button>
-  </div>
-</div>
-        
+          <div class="header-actions">
+            <button id="addWarehouseBtn" class="add-warehouse-btn">
+              + Add Warehouse
+            </button>
+            <button id="closeWarehouseOverlay" class="close-btn">
+              &times;
+            </button>
+          </div>
+        </div>
 
         <div id="warehouseContainer" class="warehouse-container">
           <p class="loading-text">Loading warehouses...</p>
         </div>
       </div>
     </div>
-
 
     <div id="addWarehouseOverlay" class="overlay hidden">
       <div class="overlay-content add-warehouse-box">
@@ -340,70 +403,115 @@
         </form>
       </div>
     </div>
-<div id="stockOverlay" class="overlay hidden">
-  <div class="overlay-content stock-box">
-    <div class="overlay-header">
-      <h2 id="stockTitle">Warehouse Details</h2>
-      <button id="closeStockOverlay" class="close-btn" type="button">&times;</button>
+    <div id="stockOverlay" class="overlay hidden">
+      <div class="overlay-content stock-box">
+        <div class="overlay-header">
+          <h2 id="stockTitle">Warehouse Details</h2>
+          <button id="closeStockOverlay" class="close-btn" type="button">
+            &times;
+          </button>
+        </div>
+
+        <div id="warehouseDetailHeader" class="warehouse-detail-display"></div>
+
+        <div class="stock-action-bar">
+          <h3>Inventory Stock</h3>
+          <div class="action-btns">
+            <button
+              id="openAssignStockBtn"
+              class="add-warehouse-btn"
+              type="button"
+            >
+              + Add Stock
+            </button>
+            <button id="openTransferBtn" class="transfer-btn" type="button">
+              Transfer Stock
+            </button>
+          </div>
+        </div>
+
+        <div id="stockListContainer" class="stock-list"></div>
+      </div>
     </div>
+    <div id="assignStockOverlay" class="overlay hidden">
+      <div class="overlay-content add-warehouse-box">
+        <div id="assignMsg" class="ui-message hidden"></div>
+        <div class="overlay-header">
+          <h2>Assign New Stock</h2>
+          <button id="closeAssignStockOverlay" class="close-btn" type="button">
+            &times;
+          </button>
+        </div>
+        <div class="picker-label">Click a variant to select:</div>
+        <div id="assignProductResults" class="picker-results list-mode"></div>
 
-    <div id="warehouseDetailHeader" class="warehouse-detail-display"></div>
-
-    <div class="stock-action-bar">
-      <h3>Inventory Stock</h3>
-      <div class="action-btns">
-        <button id="openAssignStockBtn" class="add-warehouse-btn" type="button">+ Add Stock</button>
-        <button id="openTransferBtn" class="transfer-btn" type="button">Transfer Stock</button>
+        <form id="assignStockForm" class="warehouse-form">
+          <input type="hidden" name="warehouse_id" id="assignWarehouseId" />
+          <input
+            type="text"
+            id="selectedAssignProdName"
+            placeholder="No product selected"
+            readonly
+            required
+          />
+          <input type="hidden" name="product_id" id="assignProdId" />
+          <input
+            type="text"
+            name="variant_sku"
+            id="assignVariantSku"
+            placeholder="Variant SKU"
+            readonly
+            required
+          />
+          <input
+            name="quantity"
+            type="number"
+            placeholder="Enter quantity"
+            min="1"
+            required
+          />
+          <button type="submit" class="submit-btn">Add Stock</button>
+        </form>
       </div>
     </div>
 
-    <div id="stockListContainer" class="stock-list"></div>
-  </div>
-</div>
-<div id="assignStockOverlay" class="overlay hidden">
-  <div class="overlay-content add-warehouse-box">
-    <div id="assignMsg" class="ui-message hidden"></div>
-    <div class="overlay-header">
-      <h2>Assign New Stock</h2>
-      <button id="closeAssignStockOverlay" class="close-btn" type="button">&times;</button>
-    </div>
-    <div class="picker-label">Click a variant to select:</div>
-    <div id="assignProductResults" class="picker-results list-mode"></div>
-    
-    <form id="assignStockForm" class="warehouse-form">
-      <input type="hidden" name="warehouse_id" id="assignWarehouseId">
-      <input type="text" id="selectedAssignProdName" placeholder="No product selected" readonly required />
-      <input type="hidden" name="product_id" id="assignProdId">
-      <input type="text" name="variant_sku" id="assignVariantSku" placeholder="Variant SKU" readonly required />
-      <input name="quantity" type="number" placeholder="Enter quantity" min="1" required />
-      <button type="submit" class="submit-btn">Add Stock</button>
-    </form>
-  </div>
-</div>
+    <div id="transferOverlay" class="overlay hidden">
+      <div class="overlay-content add-warehouse-box">
+        <div id="transferMsg" class="ui-message hidden"></div>
+        <div class="overlay-header">
+          <h2>Transfer Stock</h2>
+          <button id="closeTransferOverlay" class="close-btn" type="button">
+            &times;
+          </button>
+        </div>
+        <div class="picker-label">Available inventory in this warehouse:</div>
+        <div id="transferProductResults" class="picker-results list-mode"></div>
 
-<div id="transferOverlay" class="overlay hidden">
-  <div class="overlay-content add-warehouse-box">
-    <div id="transferMsg" class="ui-message hidden"></div>
-    <div class="overlay-header">
-      <h2>Transfer Stock</h2>
-      <button id="closeTransferOverlay" class="close-btn" type="button">&times;</button>
+        <form id="transferForm" class="warehouse-form">
+          <input type="hidden" name="from_warehouse" id="fromWarehouseId" />
+          <select name="to_warehouse" id="toWarehouseSelect" required>
+            <option value="">Select Destination</option>
+          </select>
+          <input
+            type="text"
+            id="selectedTransferProdName"
+            placeholder="Select from list above"
+            readonly
+            required
+          />
+          <input type="hidden" name="variant_sku" id="transferVariantSku" />
+          <input
+            name="quantity"
+            type="number"
+            placeholder="Quantity"
+            min="1"
+            required
+          />
+          <button type="submit" class="submit-btn">Execute Transfer</button>
+        </form>
+      </div>
     </div>
-    <div class="picker-label">Available inventory in this warehouse:</div>
-    <div id="transferProductResults" class="picker-results list-mode"></div>
-    
-    <form id="transferForm" class="warehouse-form">
-      <input type="hidden" name="from_warehouse" id="fromWarehouseId">
-      <select name="to_warehouse" id="toWarehouseSelect" required>
-        <option value="">Select Destination</option>
-      </select>
-      <input type="text" id="selectedTransferProdName" placeholder="Select from list above" readonly required />
-      <input type="hidden" name="variant_sku" id="transferVariantSku">
-      <input name="quantity" type="number" placeholder="Quantity" min="1" required />
-      <button type="submit" class="submit-btn">Execute Transfer</button>
-    </form>
-</div>
-</div>
-    <script src="/static/js/home.js"></script>
+    <script src="/static/js/home.js?v=20260427a"></script>
     <script src="/static/js/warehouses.js"></script>
     <script src="/static/js/operations.js"></script>
   </body>

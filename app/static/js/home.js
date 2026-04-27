@@ -58,6 +58,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const cartBadge = getEl("cartBadge");
   const clearCartBtn = getEl("clearCartBtn");
   const placeOrderBtn = getEl("placeOrderBtn");
+  const checkoutOverlay = getEl("checkoutOverlay");
+  const checkoutForm = getEl("checkoutForm");
+  const checkoutName = getEl("checkoutName");
+  const checkoutEmail = getEl("checkoutEmail");
+  const checkoutAddress = getEl("checkoutAddress");
+  const checkoutPaymentMethod = getEl("checkoutPaymentMethod");
+  const checkoutSummaryText = getEl("checkoutSummaryText");
+  const checkoutItemCount = getEl("checkoutItemCount");
+  const confirmCheckoutBtn = getEl("confirmCheckoutBtn");
   const orderSuccessOverlay = getEl("orderSuccessOverlay");
 
   const adminOrdersBtn = getEl("adminOrdersBtn");
@@ -78,6 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let editProductId = null;
   let deleteProductId = null;
   let isSubmitting = false;
+  let pendingCheckoutItems = [];
   let availableWarehouses = [];
   let warehousesLoaded = false;
 
@@ -254,6 +264,32 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
   };
 
+  const openCheckoutOverlay = (selectedItems) => {
+    pendingCheckoutItems = selectedItems;
+
+    const cachedName = localStorage.getItem("user_name") || userName;
+    const cachedEmail = localStorage.getItem("user_email") || userEmail || "";
+
+    if (checkoutName) checkoutName.value = cachedName;
+    if (checkoutEmail) checkoutEmail.value = cachedEmail;
+    if (checkoutAddress) checkoutAddress.value = "";
+    if (checkoutPaymentMethod) checkoutPaymentMethod.value = "upi";
+
+    if (checkoutItemCount)
+      checkoutItemCount.innerText = `${selectedItems.length} Items`;
+
+    const estimate = selectedItems.reduce(
+      (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
+      0,
+    );
+    if (checkoutSummaryText) {
+      checkoutSummaryText.innerText = `You are placing ${selectedItems.length} item(s). Estimated total: INR ${estimate.toFixed(2)}.`;
+    }
+
+    cartOverlay?.classList.add("hidden");
+    checkoutOverlay?.classList.remove("hidden");
+  };
+
   const closeAllOverlays = () => {
     [
       overlay,
@@ -262,12 +298,15 @@ document.addEventListener("DOMContentLoaded", () => {
       profileOverlay,
       detailOverlay,
       cartOverlay,
+      checkoutOverlay,
       orderSuccessOverlay,
       ordersOverlay,
     ].forEach((ov) => ov?.classList.add("hidden"));
     if (form) form.reset();
     if (variantsContainer) variantsContainer.innerHTML = "";
     if (baseWarehouseAllocations) baseWarehouseAllocations.innerHTML = "";
+    if (checkoutForm) checkoutForm.reset();
+    pendingCheckoutItems = [];
     editMode = false;
     deleteProductId = null;
   };
@@ -280,6 +319,7 @@ document.addEventListener("DOMContentLoaded", () => {
       e.target === profileOverlay ||
       e.target === detailOverlay ||
       e.target === cartOverlay ||
+      e.target === checkoutOverlay ||
       e.target === ordersOverlay ||
       (e.target.classList && e.target.classList.contains("overlay-container"))
     ) {
@@ -301,6 +341,14 @@ document.addEventListener("DOMContentLoaded", () => {
     btn?.addEventListener("click", (e) => {
       e.preventDefault();
       closeAllOverlays();
+    });
+  });
+
+  [getEl("closeCheckoutOverlay"), getEl("cancelCheckoutBtn")].forEach((btn) => {
+    btn?.addEventListener("click", (e) => {
+      e.preventDefault();
+      checkoutOverlay?.classList.add("hidden");
+      cartOverlay?.classList.remove("hidden");
     });
   });
 
@@ -384,7 +432,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (placeOrderBtn) {
-    placeOrderBtn.addEventListener("click", async () => {
+    placeOrderBtn.addEventListener("click", () => {
       const selectedItems = cart.filter((i) => i.selected);
       if (selectedItems.length === 0) {
         showToast("Select items to place order!");
@@ -394,16 +442,48 @@ document.addEventListener("DOMContentLoaded", () => {
         showToast("Each cart item must have a selected warehouse");
         return;
       }
+      openCheckoutOverlay(selectedItems);
+    });
+  }
+
+  if (checkoutForm) {
+    checkoutForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      if (!pendingCheckoutItems.length) {
+        showToast("Select items before checkout");
+        checkoutOverlay?.classList.add("hidden");
+        cartOverlay?.classList.remove("hidden");
+        return;
+      }
+
+      const name = checkoutName?.value?.trim();
+      const email = checkoutEmail?.value?.trim().toLowerCase();
+      const address = checkoutAddress?.value?.trim();
+      const paymentMethod = checkoutPaymentMethod?.value;
+
+      if (!name || !email || !address || !paymentMethod) {
+        showToast("Please complete all checkout details");
+        return;
+      }
 
       const orderPayload = {
-        customer_name: localStorage.getItem("user_name") || userName,
-        items: selectedItems.map((item) => ({
+        customer_name: name,
+        customer_email: email,
+        shipping_address: address,
+        payment_method: paymentMethod,
+        items: pendingCheckoutItems.map((item) => ({
           product_id: item.id,
           quantity: item.quantity,
           variant_sku: item.sku || null,
           warehouse_id: item.warehouse_id || null,
         })),
       };
+
+      if (confirmCheckoutBtn) {
+        confirmCheckoutBtn.disabled = true;
+        confirmCheckoutBtn.innerText = "Placing Order...";
+      }
 
       try {
         const res = await fetch("/api/v1/orders/", {
@@ -417,13 +497,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (!res.ok) {
           const errData = await res.json();
-          console.error("Backend Error Details:", errData);
-          throw new Error("Failed to save order");
+          throw new Error(errData?.detail || "Failed to place order");
         }
 
         const savedOrder = await res.json();
 
-        cartOverlay?.classList.add("hidden");
+        checkoutOverlay?.classList.add("hidden");
         orderSuccessOverlay?.classList.remove("hidden");
         getEl("processingState")?.classList.remove("hidden");
         getEl("successState")?.classList.add("hidden");
@@ -435,7 +514,20 @@ document.addEventListener("DOMContentLoaded", () => {
           if (getEl("transactionId"))
             getEl("transactionId").innerText = `#${savedOrder.id}`;
 
+          const subMsgEl = getEl("subSuccessMsg");
+          if (subMsgEl) {
+            if (savedOrder.confirmation_email_sent) {
+              subMsgEl.innerText = `Order placed successfully. Invoice has been sent to ${savedOrder.customer_email || email}.`;
+            } else if (savedOrder.confirmation_email_error) {
+              subMsgEl.innerText = `Order placed successfully. Email was not sent: ${savedOrder.confirmation_email_error}.`;
+            } else {
+              subMsgEl.innerText =
+                "Order placed successfully. Email was not sent because SMTP is not configured on server.";
+            }
+          }
+
           cart = cart.filter((i) => !i.selected);
+          pendingCheckoutItems = [];
           updateCartUI();
 
           let count = 5;
@@ -448,9 +540,14 @@ document.addEventListener("DOMContentLoaded", () => {
               window.location.reload();
             }
           }, 1000);
-        }, 2000);
+        }, 1800);
       } catch (err) {
-          showToast("Database update failed");
+        showToast(err.message || "Order placement failed");
+      } finally {
+        if (confirmCheckoutBtn) {
+          confirmCheckoutBtn.disabled = false;
+          confirmCheckoutBtn.innerText = "Confirm & Place Order";
+        }
       }
     });
   }
@@ -669,7 +766,7 @@ document.addEventListener("DOMContentLoaded", () => {
           loadProducts();
         }
       } catch (err) {
-      showToast("Server error");
+        showToast("Server error");
       }
     });
 
@@ -1067,7 +1164,7 @@ document.addEventListener("DOMContentLoaded", () => {
           showToast(errorData.detail || "Upload failed");
         }
       } catch (err) {
-      showToast("Server error");
+        showToast("Server error");
       } finally {
         isSubmitting = false;
       }
@@ -1146,7 +1243,7 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
-      showToast("Order confirmed successfully");
+        showToast("Order confirmed successfully");
         loadAllOrders();
       } else {
         showToast("Failed to confirm order.");
@@ -1163,7 +1260,7 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
-      showToast("Order cancelled successfully");
+        showToast("Order cancelled successfully");
         loadAllOrders();
       } else {
         showToast("Failed to cancel order.");
@@ -1275,6 +1372,11 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
             <span class="order-id">#ORD-${order.id.slice(-6).toUpperCase()}</span>
           </div>
+          <div class="order-customer-meta">
+            <span>${order.customer_email || order.user_details?.email || "N/A"}</span>
+            <span>${(order.payment_method || "N/A").toUpperCase()}</span>
+          </div>
+          <p class="order-address">${order.shipping_address || "Address not available"}</p>
           <div class="order-items-list">
             ${itemsHtml}
           </div>
@@ -1317,5 +1419,3 @@ document.addEventListener("DOMContentLoaded", () => {
     if (userRole === "supplier") fetchWarehousesForProductForm();
   });
 });
-
-
