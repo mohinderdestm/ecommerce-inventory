@@ -208,11 +208,9 @@ Automate operational and business-critical notifications.
 
 **Features**
 - Low-stock alerts
-- Expiry alerts for products with expiry dates
-- Delayed purchase order alerts
 - Unfulfilled sales order alerts
 - Notification logs
-- Email simulation or in-app alerts
+- Email simulation 
 
 This module can be implemented using scheduled background jobs.
 
@@ -222,11 +220,9 @@ Provide management-level visibility into inventory and operations.
 
 **Features**
 - Stock summary by warehouse
-- Product-wise movement report
 - Low-stock report
 - Top-selling products
 - Supplier-wise purchase report
-- Sales trends by date range
 - Dead stock report
 - Monthly inward vs outward report
 
