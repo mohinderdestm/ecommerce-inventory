@@ -258,6 +258,11 @@ a {
   animation: shakeFade 0.4s ease forwards;
 }
 
+.auth-alt-link {
+  margin-top: 15px !important;
+  margin-bottom: 0 !important;
+}
+
 @keyframes shakeFade {
   0% {
     opacity: 0;

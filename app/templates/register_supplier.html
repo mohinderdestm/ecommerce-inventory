@@ -5,76 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Supplier Registration - Inventory System</title>
     <link rel="stylesheet" href="/static/css/register.css" />
-    <style>
-      .login-card {
-        width: 650px;
-        margin: 40px auto;
-      }
-
-      .form-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0 15px;
-        text-align: left;
-      }
-
-      .full-width {
-        grid-column: span 2;
-      }
-
-      body {
-        height: 100vh;
-        overflow-y: overlay;
-        overflow-x: hidden;
-        display: block;
-        padding: 20px 0;
-      }
-
-      body::before {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        z-index: -1;
-      }
-
-      .container {
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        min-height: 100%;
-        padding: 40px 0;
-      }
-
-      .login-card input {
-        margin: 8px 0;
-      }
-
-      @media (max-width: 680px) {
-        .login-card {
-          width: 90%;
-          margin: 20px auto;
-        }
-        .form-grid {
-          grid-template-columns: 1fr;
-        }
-        .full-width {
-          grid-column: span 1;
-        }
-      }
-    </style>
   </head>
-  <body>
+  <body class="supplier-register-page">
     <div class="container">
-      <div class="login-card">
+      <div class="login-card supplier-card">
         <h2>Partner Registration</h2>
         <p>Register your business to start supplying</p>
 
         <form id="supplierForm">
           <div class="form-grid">
             <div class="full-width">
-              <small style="color: #60a5fa">Account Details</small>
+              <small class="section-caption">Account Details</small>
             </div>
             <input
               type="email"
@@ -89,8 +30,8 @@
               required
             />
 
-            <div class="full-width" style="margin-top: 10px">
-              <small style="color: #60a5fa">Business Details</small>
+            <div class="full-width section-gap">
+              <small class="section-caption">Business Details</small>
             </div>
             <input
               type="text"
@@ -126,7 +67,11 @@
           <button type="submit" id="submitBtn">Register Business</button>
         </form>
 
-        <button onclick="window.location.href = '/register'">
+        <button
+          type="button"
+          class="secondary-btn back-role-btn"
+          onclick="window.location.href = '/register'"
+        >
           Back to Roles
         </button>
 

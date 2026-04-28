@@ -1,4 +1,17 @@
 document.addEventListener("DOMContentLoaded", () => {
+  const token = localStorage.getItem("access_token");
+  if (!token) return;
+
+  const role = (
+    localStorage.getItem("user_role") ||
+    localStorage.getItem("role") ||
+    "viewer"
+  )
+    .toLowerCase()
+    .trim();
+  const canViewWarehouses = role === "admin" || role === "manager";
+  const canManageWarehouseStaff = role === "manager";
+
   const warehouseBtn = document.getElementById("warehouseBtn");
   const warehouseOverlay = document.getElementById("warehouseOverlay");
   const closeWarehouseOverlay = document.getElementById(
@@ -35,99 +48,411 @@ document.addEventListener("DOMContentLoaded", () => {
   const toWarehouseSelect = document.getElementById("toWarehouseSelect");
   const fromWarehouseIdInput = document.getElementById("fromWarehouseId");
 
-  const token = localStorage.getItem("access_token");
+  const openAssignStaffBtn = document.getElementById("openAssignStaffBtn");
+  const assignStaffOverlay = document.getElementById("assignStaffOverlay");
+  const closeAssignStaffOverlay = document.getElementById(
+    "closeAssignStaffOverlay",
+  );
+  const assignStaffWarehouseMeta = document.getElementById(
+    "assignStaffWarehouseMeta",
+  );
+  const assignStaffOptions = document.getElementById("assignStaffOptions");
+  const assignedWarehouseStaffList = document.getElementById(
+    "assignedWarehouseStaffList",
+  );
+  const assignedWarehouseStaffCount = document.getElementById(
+    "assignedWarehouseStaffCount",
+  );
+  const assignStaffSelectionBadge = document.getElementById(
+    "assignStaffSelectionBadge",
+  );
+  const saveWarehouseStaffBtn = document.getElementById(
+    "saveWarehouseStaffBtn",
+  );
 
-  let allProductsCache = [];
-  let currentWarehouseStock = [];
-
-  let role = "";
-  try {
-    const user = JSON.parse(localStorage.getItem("user"));
-    role = user?.role || "";
-  } catch {}
-  if (!role) {
-    role =
-      localStorage.getItem("role") || localStorage.getItem("user_role") || "";
-  }
-  role = (role || "").toLowerCase().trim();
-
-  if (warehouseBtn) {
-    if (role === "admin" || role === "manager") {
-      warehouseBtn.classList.remove("hidden");
-      warehouseBtn.style.setProperty("display", "inline-flex", "important");
-    } else {
-      warehouseBtn.style.display = "none";
-      return;
-    }
-  }
-
-  const safe = (val, fallback = "N/A") => {
-    if (val === undefined || val === null || val === "" || val === "null")
-      return fallback;
-    return val;
+  const state = {
+    warehouses: [],
+    products: [],
+    currentWarehouseStock: [],
+    activeWarehouse: null,
+    staff: [],
+    currentAssignments: [],
   };
 
-  function showUIMessage(elementId, message, type = "success") {
-    const msgDiv = document.getElementById(elementId);
-    if (!msgDiv) return;
-    msgDiv.textContent = message;
-    msgDiv.className = `ui-message ${type}`;
-    msgDiv.classList.remove("hidden");
-    setTimeout(() => msgDiv.classList.add("hidden"), 4000);
+  if (!warehouseBtn || !canViewWarehouses) {
+    if (warehouseBtn) warehouseBtn.style.display = "none";
+    return;
   }
 
-  async function fetchInitialProductData() {
+  warehouseBtn.classList.remove("hidden");
+  warehouseBtn.style.display = "inline-flex";
+
+  if (openAssignStaffBtn) {
+    openAssignStaffBtn.classList.toggle("hidden", !canManageWarehouseStaff);
+    openAssignStaffBtn.style.display = canManageWarehouseStaff
+      ? "inline-flex"
+      : "none";
+  }
+
+  function safe(value, fallback = "N/A") {
+    return value === undefined ||
+      value === null ||
+      value === "" ||
+      value === "null"
+      ? fallback
+      : value;
+  }
+
+  function showToast(message) {
+    const toast = document.getElementById("toast");
+    if (!toast) return;
+    toast.textContent = message;
+    toast.classList.remove("hidden");
+    toast.classList.add("show");
+    setTimeout(() => {
+      toast.classList.remove("show");
+      setTimeout(() => toast.classList.add("hidden"), 260);
+    }, 2200);
+  }
+
+  function showUIMessage(elementId, message, type = "success") {
+    const messageBox = document.getElementById(elementId);
+    if (!messageBox) return;
+    messageBox.textContent = message;
+    messageBox.className = `ui-message ${type}`;
+    messageBox.classList.remove("hidden");
+    setTimeout(() => messageBox.classList.add("hidden"), 2800);
+  }
+
+  function showOverlay(overlay) {
+    if (!overlay) return;
+    overlay.classList.remove("hidden");
+    overlay.style.display = "flex";
+  }
+
+  function hideOverlay(overlay) {
+    if (!overlay) return;
+    overlay.classList.add("hidden");
+    overlay.style.display = "none";
+  }
+
+  function renderAssignedStaffPreview(staffList = []) {
+    if (!staffList.length) {
+      return '<span class="staff-muted-chip">No staff assigned yet</span>';
+    }
+    return staffList
+      .map(
+        (member) => `
+          <span class="staff-warehouse-chip">
+            ${member.name || "Staff"}${member.role ? ` | ${String(member.role).replace(/_/g, " ")}` : ""}
+          </span>
+        `,
+      )
+      .join("");
+  }
+
+  async function fetchProducts() {
     try {
-      const res = await fetch("/api/v1/products/", {
+      const response = await fetch("/api/v1/products/", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      allProductsCache = await res.json();
-    } catch (err) {
-      console.error("Initial product load failed", err);
+      const payload = await response.json();
+      state.products = Array.isArray(payload) ? payload : [];
+    } catch {
+      state.products = [];
     }
   }
-  fetchInitialProductData();
 
-  function renderAllProductsForAssign() {
-    const container = document.getElementById("assignProductResults");
-    if (!container) return;
+  async function fetchStaffDirectory() {
+    if (!canManageWarehouseStaff && role !== "admin") {
+      state.staff = [];
+      return [];
+    }
 
-    container.innerHTML = allProductsCache
-      .map((p) => {
-        const imgPath = p.image_url || p.image || "/static/img/placeholder.png";
-        return `
-        <div class="picker-item">
-          <img src="${imgPath}" class="picker-img" onerror="this.src='/static/img/placeholder.png'">
-          <div class="picker-info">
-            <div class="picker-name">${p.name}</div>
-            <div class="picker-variants">
-              ${p.variants
-                .map(
-                  (v) => `
-                <button type="button" class="v-pill" 
-                  data-pid="${p._id || p.id}" 
-                  data-pname="${p.name}" 
-                  data-vname="${v.name}" 
-                  data-sku="${v.sku}">
-                  ${v.name} (${v.sku})
-                </button>
-              `,
-                )
-                .join("")}
+    const response = await fetch("/api/v1/staff/", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.detail || "Unable to load staff list");
+    }
+    state.staff = Array.isArray(payload) ? payload : [];
+    return state.staff;
+  }
+
+  async function fetchWarehouseAssignments(warehouseId) {
+    const response = await fetch(`/api/v1/warehouse-staff/${warehouseId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.detail || "Unable to load warehouse staff");
+    }
+    state.currentAssignments = Array.isArray(payload) ? payload : [];
+    return state.currentAssignments;
+  }
+
+  function buildWarehouseCard(warehouse) {
+    const staffCount = Array.isArray(warehouse.staff)
+      ? warehouse.staff.length
+      : 0;
+    const activeStatus = warehouse.is_active ? "Active" : "Inactive";
+    return `
+      <div class="warehouse-card">
+        <div class="warehouse-card-top">
+          <div class="warehouse-card-title-block">
+            <h3>${safe(warehouse.name)}</h3>
+            <p>${safe(warehouse.email)}</p>
+          </div>
+          <div class="warehouse-card-badges">
+            <span class="warehouse-code">${safe(warehouse.code)}</span>
+            <span class="warehouse-state-pill ${warehouse.is_active ? "active" : "inactive"}">${activeStatus}</span>
+          </div>
+        </div>
+        <div class="warehouse-card-metrics">
+          <div class="warehouse-metric">
+            <span>Capacity</span>
+            <strong>${warehouse.capacity ?? 0}</strong>
+          </div>
+          <div class="warehouse-metric">
+            <span>Staff</span>
+            <strong>${staffCount}</strong>
+          </div>
+          <div class="warehouse-metric">
+            <span>City</span>
+            <strong>${safe(warehouse.address?.city, "N/A")}</strong>
+          </div>
+        </div>
+        <div class="warehouse-footer">
+          <div class="assignment-chip-row">
+            ${renderAssignedStaffPreview((warehouse.staff || []).slice(0, 3))}
+          </div>
+          <span>Open inventory, transfers, and staffing</span>
+        </div>
+      </div>
+    `;
+  }
+
+  async function loadWarehouses() {
+    warehouseContainer.innerHTML =
+      '<p class="loading-text">Loading warehouses...</p>';
+
+    try {
+      const response = await fetch("/api/v1/warehouses/", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.detail || "Unable to load warehouses");
+      }
+
+      state.warehouses = Array.isArray(payload) ? payload : [];
+
+      if (!state.warehouses.length) {
+        warehouseContainer.innerHTML =
+          '<p class="empty-text">No warehouses found.</p>';
+        return;
+      }
+
+      if (toWarehouseSelect) {
+        toWarehouseSelect.innerHTML =
+          '<option value="">Select Destination</option>';
+        state.warehouses.forEach((warehouse) => {
+          if (warehouse.id === state.activeWarehouse?.id) return;
+          const option = document.createElement("option");
+          option.value = warehouse.id;
+          option.textContent = warehouse.name;
+          toWarehouseSelect.appendChild(option);
+        });
+      }
+
+      warehouseContainer.innerHTML = "";
+      state.warehouses.forEach((warehouse) => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = buildWarehouseCard(warehouse);
+        const card = wrapper.firstElementChild;
+        card.style.cursor = "pointer";
+        card.addEventListener("click", () => openDetailedStockView(warehouse));
+        warehouseContainer.appendChild(card);
+      });
+    } catch (error) {
+      warehouseContainer.innerHTML = `
+        <p class="error-text">${error.message || "Failed to load warehouses."}</p>
+      `;
+    }
+  }
+
+  function renderWarehouseDetailHeader(warehouse) {
+    const address =
+      warehouse.address && typeof warehouse.address === "object"
+        ? `${safe(warehouse.address.street)}, ${safe(warehouse.address.city)}, ${safe(warehouse.address.state)}, ${safe(warehouse.address.country)}`
+        : "No address provided";
+    const createdBy = safe(warehouse.created_by?.name, "System Admin");
+    const staffCount = Array.isArray(warehouse.staff)
+      ? warehouse.staff.length
+      : 0;
+
+    warehouseDetailHeader.innerHTML = `
+      <div class="warehouse-detail-hero">
+        <div class="warehouse-detail-main">
+          <div class="warehouse-detail-title-row">
+            <div>
+              <span class="warehouse-detail-kicker">Warehouse Node</span>
+              <h3>${safe(warehouse.name)}</h3>
+            </div>
+            <div class="warehouse-detail-badges">
+              <span class="warehouse-code">${safe(warehouse.code)}</span>
+              <span class="warehouse-state-pill ${warehouse.is_active ? "active" : "inactive"}">
+                ${warehouse.is_active ? "Active" : "Inactive"}
+              </span>
+            </div>
+          </div>
+
+          <p class="warehouse-detail-address">${address}</p>
+
+          <div class="warehouse-detail-meta-grid">
+            <div class="warehouse-detail-stat">
+              <span>Contact Email</span>
+              <strong>${safe(warehouse.email)}</strong>
+            </div>
+            <div class="warehouse-detail-stat">
+              <span>Capacity</span>
+              <strong>${warehouse.capacity ?? 0} units</strong>
+            </div>
+            <div class="warehouse-detail-stat">
+              <span>Manager</span>
+              <strong>${createdBy}</strong>
+            </div>
+            <div class="warehouse-detail-stat">
+              <span>Assigned Staff</span>
+              <strong>${staffCount}</strong>
             </div>
           </div>
         </div>
+
+        <div class="warehouse-detail-sidecard">
+          <span class="warehouse-detail-side-label">Coverage</span>
+          <div class="assignment-chip-row">
+            ${renderAssignedStaffPreview(warehouse.staff || [])}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  async function loadStockData(warehouseId) {
+    try {
+      stockListContainer.innerHTML =
+        '<p class="loading-text">Fetching inventory list...</p>';
+      const response = await fetch(`/api/v1/warehouse-stock/${warehouseId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.detail || "Unable to load stock");
+      }
+
+      state.currentWarehouseStock = Array.isArray(payload) ? payload : [];
+      if (!state.currentWarehouseStock.length) {
+        stockListContainer.innerHTML =
+          '<p class="empty-text">No items currently in stock.</p>';
+        return;
+      }
+
+      stockListContainer.innerHTML = state.currentWarehouseStock
+        .map(
+          (item) => `
+            <div class="stock-item-row">
+              <div class="stock-info">
+                <span class="stock-prod-name"><strong>${item.product_name}</strong></span>
+                <span class="stock-variant">${item.variant_name}</span>
+                <code class="stock-sku">SKU: ${item.variant_sku}</code>
+              </div>
+              <div class="stock-value">
+                <span class="qty-badge">${item.quantity} Qty</span>
+              </div>
+            </div>
+          `,
+        )
+        .join("");
+    } catch (error) {
+      stockListContainer.innerHTML = `
+        <p class="error-text">${error.message || "Failed to fetch stock data."}</p>
       `;
+    }
+  }
+
+  async function openDetailedStockView(warehouse) {
+    state.activeWarehouse = warehouse;
+    renderWarehouseDetailHeader(warehouse);
+    if (assignWarehouseIdInput) assignWarehouseIdInput.value = warehouse.id;
+    if (fromWarehouseIdInput) fromWarehouseIdInput.value = warehouse.id;
+    if (openAssignStaffBtn) {
+      openAssignStaffBtn.classList.toggle("hidden", !canManageWarehouseStaff);
+      openAssignStaffBtn.style.display = canManageWarehouseStaff
+        ? "inline-flex"
+        : "none";
+    }
+    hideOverlay(warehouseOverlay);
+    showOverlay(stockOverlay);
+    await loadStockData(warehouse.id);
+  }
+
+  function renderProductsForAssign() {
+    const container = document.getElementById("assignProductResults");
+    if (!container) return;
+
+    container.innerHTML = state.products
+      .map((product) => {
+        const imagePath =
+          product.image_url || product.image || "/static/img/placeholder.png";
+        const buttons = [
+          `
+            <button
+              type="button"
+              class="v-pill"
+              data-pid="${product.id}"
+              data-pname="${product.name}"
+              data-vname="Base Product"
+              data-sku="${product.sku}"
+            >
+              Base Product (${product.sku})
+            </button>
+          `,
+          ...(product.variants || []).map(
+            (variant) => `
+              <button
+                type="button"
+                class="v-pill"
+                data-pid="${product.id}"
+                data-pname="${product.name}"
+                data-vname="${variant.name}"
+                data-sku="${variant.sku}"
+              >
+                ${variant.name} (${variant.sku})
+              </button>
+            `,
+          ),
+        ].join("");
+
+        return `
+          <div class="picker-item">
+            <img src="${imagePath}" class="picker-img" onerror="this.src='/static/img/placeholder.png'">
+            <div class="picker-info">
+              <div class="picker-name">${product.name}</div>
+              <div class="picker-variants">${buttons}</div>
+            </div>
+          </div>
+        `;
       })
       .join("");
 
-    container.querySelectorAll(".v-pill").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const d = btn.dataset;
+    container.querySelectorAll(".v-pill").forEach((button) => {
+      button.addEventListener("click", () => {
         document.getElementById("selectedAssignProdName").value =
-          `${d.pname} - ${d.vname}`;
-        document.getElementById("assignProdId").value = d.pid;
-        document.getElementById("assignVariantSku").value = d.sku;
+          `${button.dataset.pname} - ${button.dataset.vname}`;
+        document.getElementById("assignProdId").value = button.dataset.pid;
+        document.getElementById("assignVariantSku").value = button.dataset.sku;
       });
     });
   }
@@ -136,236 +461,335 @@ document.addEventListener("DOMContentLoaded", () => {
     const container = document.getElementById("transferProductResults");
     if (!container) return;
 
-    if (currentWarehouseStock.length === 0) {
+    if (!state.currentWarehouseStock.length) {
       container.innerHTML =
         '<p class="empty-text">No items in this warehouse to transfer.</p>';
       return;
     }
 
-    container.innerHTML = currentWarehouseStock
+    container.innerHTML = state.currentWarehouseStock
       .map(
         (item) => `
-      <div class="picker-item">
-        <div class="picker-info">
-          <div class="picker-name">${item.product_name}</div>
-          <div class="picker-variants">
-            <button type="button" class="v-pill transfer-select-btn" 
-              data-pname="${item.product_name}" 
-              data-vname="${item.variant_name}" 
-              data-sku="${item.variant_sku}"
-              data-qty="${item.quantity}">
-              ${item.variant_name} (${item.variant_sku}) - Available: ${item.quantity}
-            </button>
+          <div class="picker-item">
+            <div class="picker-info">
+              <div class="picker-name">${item.product_name}</div>
+              <div class="picker-variants">
+                <button
+                  type="button"
+                  class="v-pill transfer-select-btn"
+                  data-pname="${item.product_name}"
+                  data-vname="${item.variant_name}"
+                  data-sku="${item.variant_sku}"
+                  data-qty="${item.quantity}"
+                >
+                  ${item.variant_name} (${item.variant_sku}) - Available: ${item.quantity}
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    `,
+        `,
       )
       .join("");
 
-    container.querySelectorAll(".transfer-select-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const d = btn.dataset;
+    container.querySelectorAll(".transfer-select-btn").forEach((button) => {
+      button.addEventListener("click", () => {
         document.getElementById("selectedTransferProdName").value =
-          `${d.pname} - ${d.vname} (Max: ${d.qty})`;
-        document.getElementById("transferVariantSku").value = d.sku;
-
-        const qInput = document.querySelector(
-          "#transferForm [name='quantity']",
-        );
-        if (qInput) qInput.max = d.qty;
+          `${button.dataset.pname} - ${button.dataset.vname} (Max: ${button.dataset.qty})`;
+        document.getElementById("transferVariantSku").value =
+          button.dataset.sku;
+        const quantityInput = transferForm?.querySelector("[name='quantity']");
+        if (quantityInput) quantityInput.max = button.dataset.qty;
       });
     });
   }
 
-  warehouseBtn.addEventListener("click", async (e) => {
-    e.preventDefault();
-    warehouseOverlay.classList.remove("hidden");
-    warehouseOverlay.style.display = "flex";
+  function updateSelectionBadge() {
+    const selected = assignStaffOptions.querySelectorAll(
+      "input[type='checkbox']:checked",
+    ).length;
+    if (assignStaffSelectionBadge) {
+      assignStaffSelectionBadge.textContent = `${selected} selected`;
+    }
+  }
+
+  function renderAssignStaffOptions() {
+    const assignedIds = new Set(
+      state.currentAssignments.map((assignment) => assignment.staff_id),
+    );
+
+    assignStaffOptions.innerHTML = state.staff.length
+      ? state.staff
+          .map(
+            (member) => `
+              <div class="assign-staff-option">
+                <label>
+                  <input
+                    type="checkbox"
+                    value="${member.id}"
+                    ${assignedIds.has(member.id) ? "checked" : ""}
+                  />
+                  <div>
+                    <h4>${member.name || "Staff Member"}</h4>
+                    <p>${member.email || "-"} | ${String(member.role || "staff").replace(/_/g, " ")}</p>
+                  </div>
+                </label>
+              </div>
+            `,
+          )
+          .join("")
+      : '<div class="staff-empty-state">Create staff members first to assign them.</div>';
+
+    assignStaffOptions
+      .querySelectorAll("input[type='checkbox']")
+      .forEach((checkbox) =>
+        checkbox.addEventListener("change", () => updateSelectionBadge()),
+      );
+    updateSelectionBadge();
+  }
+
+  function renderCurrentAssignments() {
+    if (assignedWarehouseStaffCount) {
+      assignedWarehouseStaffCount.textContent = `${state.currentAssignments.length} assigned`;
+    }
+
+    assignedWarehouseStaffList.innerHTML = state.currentAssignments.length
+      ? state.currentAssignments
+          .map(
+            (assignment) => `
+            <div class="assigned-staff-card">
+              <div class="assigned-staff-card-top">
+                <div>
+                  <h4>${assignment.staff?.name || "Staff Member"}</h4>
+                  <p>${assignment.staff?.email || "-"} | ${String(assignment.staff?.role || "staff").replace(/_/g, " ")}</p>
+                </div>
+                ${
+                  canManageWarehouseStaff
+                    ? `
+                      <button
+                        type="button"
+                        class="assigned-staff-remove-btn"
+                        data-staff-id="${assignment.staff_id}"
+                      >
+                        Remove
+                      </button>
+                    `
+                    : ""
+                }
+              </div>
+              <p>Status: ${assignment.staff?.is_active ? "Active" : "Inactive"}</p>
+            </div>
+          `,
+          )
+          .join("")
+      : '<div class="staff-empty-state">No staff assigned to this warehouse yet.</div>';
+
+    if (canManageWarehouseStaff) {
+      assignedWarehouseStaffList
+        .querySelectorAll(".assigned-staff-remove-btn")
+        .forEach((button) => {
+          button.addEventListener("click", () =>
+            removeWarehouseStaff(button.dataset.staffId),
+          );
+        });
+    }
+  }
+
+  async function refreshWarehouseWorkspace() {
+    await loadWarehouses();
+
+    if (state.activeWarehouse?.id) {
+      const nextWarehouse = state.warehouses.find(
+        (warehouse) => warehouse.id === state.activeWarehouse.id,
+      );
+      if (nextWarehouse) {
+        state.activeWarehouse = nextWarehouse;
+        renderWarehouseDetailHeader(nextWarehouse);
+      }
+    }
+  }
+
+  async function openAssignStaffWorkspace() {
+    if (!state.activeWarehouse || !canManageWarehouseStaff) return;
+
+    try {
+      assignStaffWarehouseMeta.innerHTML = `
+        <strong>${state.activeWarehouse.name}</strong><br>
+        ${safe(state.activeWarehouse.code)} | ${safe(state.activeWarehouse.email)}
+      `;
+      await Promise.all([
+        fetchStaffDirectory(),
+        fetchWarehouseAssignments(state.activeWarehouse.id),
+      ]);
+      renderAssignStaffOptions();
+      renderCurrentAssignments();
+      hideOverlay(stockOverlay);
+      showOverlay(assignStaffOverlay);
+    } catch (error) {
+      showToast(error.message || "Unable to open assignment workspace");
+    }
+  }
+
+  async function removeWarehouseStaff(staffId) {
+    if (!staffId || !state.activeWarehouse?.id || !canManageWarehouseStaff)
+      return;
+
+    try {
+      const response = await fetch(
+        `/api/v1/warehouse-staff/${state.activeWarehouse.id}/${staffId}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.detail || "Unable to remove warehouse staff");
+      }
+
+      showUIMessage("assignStaffMsg", "Staff member removed");
+      await Promise.all([
+        fetchWarehouseAssignments(state.activeWarehouse.id),
+        refreshWarehouseWorkspace(),
+      ]);
+      renderCurrentAssignments();
+      renderAssignStaffOptions();
+      if (typeof window.refreshStaffWorkspace === "function") {
+        await window.refreshStaffWorkspace();
+      }
+    } catch (error) {
+      showUIMessage(
+        "assignStaffMsg",
+        error.message || "Unable to remove warehouse staff",
+        "error",
+      );
+    }
+  }
+
+  async function saveWarehouseStaffAssignments() {
+    if (!state.activeWarehouse?.id || !canManageWarehouseStaff) return;
+
+    const selectedIds = Array.from(
+      assignStaffOptions.querySelectorAll("input[type='checkbox']:checked"),
+    ).map((checkbox) => checkbox.value);
+
+    if (!selectedIds.length) {
+      showUIMessage(
+        "assignStaffMsg",
+        "Select at least one staff member",
+        "error",
+      );
+      return;
+    }
+
+    try {
+      saveWarehouseStaffBtn.disabled = true;
+      saveWarehouseStaffBtn.textContent = "Assigning...";
+
+      const response = await fetch("/api/v1/warehouse-staff/bulk-assign", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          warehouse_id: state.activeWarehouse.id,
+          staff_ids: selectedIds,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.detail || "Unable to assign staff");
+      }
+
+      showUIMessage("assignStaffMsg", "Warehouse staff assignments updated");
+      await Promise.all([
+        fetchWarehouseAssignments(state.activeWarehouse.id),
+        refreshWarehouseWorkspace(),
+      ]);
+      renderCurrentAssignments();
+      renderAssignStaffOptions();
+      if (typeof window.refreshStaffWorkspace === "function") {
+        await window.refreshStaffWorkspace();
+      }
+    } catch (error) {
+      showUIMessage(
+        "assignStaffMsg",
+        error.message || "Unable to assign staff",
+        "error",
+      );
+    } finally {
+      saveWarehouseStaffBtn.disabled = false;
+      saveWarehouseStaffBtn.textContent = "Assign Selected";
+    }
+  }
+
+  warehouseBtn.addEventListener("click", async (event) => {
+    event.preventDefault();
+    showOverlay(warehouseOverlay);
     await loadWarehouses();
   });
 
-  closeWarehouseOverlay?.addEventListener("click", () => {
-    warehouseOverlay.style.display = "none";
+  closeWarehouseOverlay?.addEventListener("click", () =>
+    hideOverlay(warehouseOverlay),
+  );
+  closeStockOverlay?.addEventListener("click", () => {
+    hideOverlay(stockOverlay);
+    showOverlay(warehouseOverlay);
+  });
+  closeAssignStockOverlay?.addEventListener("click", () => {
+    hideOverlay(assignStockOverlay);
+    showOverlay(stockOverlay);
+  });
+  closeTransferOverlay?.addEventListener("click", () => {
+    hideOverlay(transferOverlay);
+    showOverlay(stockOverlay);
+  });
+  closeAddWarehouseOverlay?.addEventListener("click", () => {
+    hideOverlay(addWarehouseOverlay);
+    showOverlay(warehouseOverlay);
+  });
+  closeAssignStaffOverlay?.addEventListener("click", () => {
+    hideOverlay(assignStaffOverlay);
+    showOverlay(stockOverlay);
   });
 
-  async function loadWarehouses() {
-    try {
-      warehouseContainer.innerHTML = `<p class="loading-text">Loading warehouses...</p>`;
-      const res = await fetch("/api/v1/warehouses/", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-
-      if (!Array.isArray(data) || !data.length) {
-        warehouseContainer.innerHTML = `<p class="empty-text">No warehouses found</p>`;
-        return;
-      }
-
-      warehouseContainer.innerHTML = "";
-
-      if (toWarehouseSelect) {
-        toWarehouseSelect.innerHTML =
-          '<option value="">Select Destination</option>';
-
-        const currentId = fromWarehouseIdInput?.value;
-
-        data.forEach((w) => {
-          const wid = w._id || w.id;
-
-          if (wid === currentId) return;
-
-          const opt = document.createElement("option");
-          opt.value = wid;
-          opt.textContent = w.name;
-
-          toWarehouseSelect.appendChild(opt);
-        });
-      }
-
-      data.forEach((w) => {
-        const card = document.createElement("div");
-        card.className = "warehouse-card";
-        card.style.cursor = "pointer";
-        card.innerHTML = `
-          <div class="warehouse-header">
-            <h3>${safe(w.name)}</h3>
-            <span class="warehouse-code">${safe(w.code)}</span>
-          </div>
-          <div class="warehouse-grid">
-            <p><strong>Capacity:</strong> ${w.capacity ?? 0}</p>
-            <p><strong>Status:</strong> ${w.is_active ? "Active" : "Inactive"}</p>
-          </div>
-          <div class="warehouse-footer">Click to view details and stock</div>
-        `;
-
-        card.addEventListener("click", (e) => {
-          e.stopPropagation();
-          openDetailedStockView(w);
-        });
-
-        warehouseContainer.appendChild(card);
-      });
-    } catch {
-      warehouseContainer.innerHTML = `<p class="error-text">Failed to load warehouses</p>`;
-    }
-  }
-
-  function openDetailedStockView(warehouse) {
-    const warehouseId = warehouse._id || warehouse.id;
-    warehouseOverlay.style.display = "none";
-    stockOverlay.classList.remove("hidden");
-    stockOverlay.style.display = "flex";
-
-    if (fromWarehouseIdInput) fromWarehouseIdInput.value = warehouseId;
-    if (assignWarehouseIdInput) assignWarehouseIdInput.value = warehouseId;
-
-    let addr = "No address provided";
-    if (warehouse.address && typeof warehouse.address === "object") {
-      addr = `${safe(warehouse.address.street)}, ${safe(warehouse.address.city)}, ${safe(warehouse.address.state)}`;
-    } else if (warehouse.street) {
-      addr = `${safe(warehouse.street)}, ${safe(warehouse.city)}`;
-    }
-
-    warehouseDetailHeader.innerHTML = `
-      <div class="detail-grid">
-        <div class="detail-col">
-          <p><strong>Warehouse Name:</strong> ${safe(warehouse.name)}</p>
-          <p><strong>Code:</strong> ${safe(warehouse.code)}</p>
-          <p><strong>Contact Email:</strong> ${safe(warehouse.email)}</p>
-        </div>
-        <div class="detail-col">
-          <p><strong>Location:</strong> ${addr}</p>
-          <p><strong>Capacity:</strong> ${warehouse.capacity ?? 0} units</p>
-          <p><strong>Manager:</strong> ${safe(warehouse.created_by?.name, "System Admin")}</p>
-        </div>
-      </div>
-    `;
-
-    loadStockData(warehouseId);
-  }
-
-  async function loadStockData(warehouseId) {
-    try {
-      stockListContainer.innerHTML =
-        '<p class="loading-text">Fetching inventory list...</p>';
-      const res = await fetch(`/api/v1/warehouse-stock/${warehouseId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      currentWarehouseStock = data || [];
-
-      if (!data || data.length === 0) {
-        stockListContainer.innerHTML =
-          '<p class="empty-text">No items currently in stock.</p>';
-        return;
-      }
-
-      stockListContainer.innerHTML = data
-        .map(
-          (item) => `
-        <div class="stock-item-row">
-          <div class="stock-info">
-            <span class="stock-prod-name"><strong>${item.product_name}</strong></span>
-            <span class="stock-variant">${item.variant_name}</span>
-            <code class="stock-sku">SKU: ${item.variant_sku}</code>
-          </div>
-          <div class="stock-value">
-            <span class="qty-badge">${item.quantity} Qty</span>
-          </div>
-        </div>
-      `,
-        )
-        .join("");
-    } catch {
-      stockListContainer.innerHTML =
-        '<p class="error-text">Failed to fetch stock data.</p>';
-    }
-  }
-
-  openAssignStockBtn?.addEventListener("click", (e) => {
-    e.preventDefault();
-    stockOverlay.style.display = "none";
-    assignStockOverlay.classList.remove("hidden");
-    assignStockOverlay.style.display = "flex";
-    renderAllProductsForAssign();
+  addWarehouseBtn?.addEventListener("click", () => {
+    hideOverlay(warehouseOverlay);
+    showOverlay(addWarehouseOverlay);
   });
 
-  openTransferBtn?.addEventListener("click", (e) => {
-    e.preventDefault();
-    stockOverlay.style.display = "none";
-    transferOverlay.classList.remove("hidden");
-    transferOverlay.style.display = "flex";
+  openAssignStockBtn?.addEventListener("click", async (event) => {
+    event.preventDefault();
+    hideOverlay(stockOverlay);
+    showOverlay(assignStockOverlay);
+    if (!state.products.length) await fetchProducts();
+    renderProductsForAssign();
+  });
+
+  openTransferBtn?.addEventListener("click", (event) => {
+    event.preventDefault();
+    hideOverlay(stockOverlay);
+    showOverlay(transferOverlay);
     renderStockForTransfer();
   });
 
-  closeStockOverlay?.addEventListener("click", () => {
-    stockOverlay.style.display = "none";
-    warehouseOverlay.style.display = "flex";
+  openAssignStaffBtn?.addEventListener("click", async (event) => {
+    event.preventDefault();
+    await openAssignStaffWorkspace();
   });
 
-  closeAssignStockOverlay?.addEventListener("click", () => {
-    assignStockOverlay.style.display = "none";
-    stockOverlay.style.display = "flex";
-  });
-
-  closeTransferOverlay?.addEventListener("click", () => {
-    transferOverlay.style.display = "none";
-    stockOverlay.style.display = "flex";
-  });
-
-  assignStockForm?.addEventListener("submit", async (e) => {
-    e.preventDefault();
+  assignStockForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
     const formData = new FormData(assignStockForm);
     const payload = {
       warehouse_id: formData.get("warehouse_id"),
       product_id: formData.get("product_id"),
       variant_sku: formData.get("variant_sku"),
-      quantity: parseInt(formData.get("quantity")),
+      quantity: Number(formData.get("quantity") || 0),
     };
 
     try {
-      const res = await fetch("/api/v1/warehouse-stock/assign", {
+      const response = await fetch("/api/v1/warehouse-stock/assign", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -373,34 +797,38 @@ document.addEventListener("DOMContentLoaded", () => {
         },
         body: JSON.stringify(payload),
       });
-      if (res.ok) {
-        showUIMessage("assignMsg", "Stock updated successfully");
-        assignStockForm.reset();
-        setTimeout(() => {
-          assignStockOverlay.style.display = "none";
-          stockOverlay.style.display = "flex";
-        }, 1500);
-        await loadStockData(payload.warehouse_id);
-      } else {
-        showUIMessage("assignMsg", "Failed to update stock", "error");
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.detail || "Unable to assign stock");
       }
-    } catch (err) {
-      showUIMessage("assignMsg", "Connection error", "error");
+      showUIMessage("assignMsg", "Stock updated successfully");
+      assignStockForm.reset();
+      await loadStockData(payload.warehouse_id);
+      setTimeout(() => {
+        hideOverlay(assignStockOverlay);
+        showOverlay(stockOverlay);
+      }, 900);
+    } catch (error) {
+      showUIMessage(
+        "assignMsg",
+        error.message || "Unable to assign stock",
+        "error",
+      );
     }
   });
 
-  transferForm?.addEventListener("submit", async (e) => {
-    e.preventDefault();
+  transferForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
     const formData = new FormData(transferForm);
     const payload = {
       from_warehouse: formData.get("from_warehouse"),
       to_warehouse: formData.get("to_warehouse"),
       variant_sku: formData.get("variant_sku"),
-      quantity: parseInt(formData.get("quantity")),
+      quantity: Number(formData.get("quantity") || 0),
     };
 
     try {
-      const res = await fetch("/api/v1/warehouse-stock/transfer", {
+      const response = await fetch("/api/v1/warehouse-stock/transfer", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -408,35 +836,28 @@ document.addEventListener("DOMContentLoaded", () => {
         },
         body: JSON.stringify(payload),
       });
-      if (res.ok) {
-        showUIMessage("transferMsg", "Transfer successful");
-        transferForm.reset();
-        setTimeout(() => {
-          transferOverlay.style.display = "none";
-          stockOverlay.style.display = "flex";
-        }, 1500);
-        await loadStockData(payload.from_warehouse);
-      } else {
-        showUIMessage("transferMsg", "Transfer failed", "error");
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.detail || "Unable to transfer stock");
       }
-    } catch (err) {
-      showUIMessage("transferMsg", "Connection error", "error");
+      showUIMessage("transferMsg", "Transfer successful");
+      transferForm.reset();
+      await loadStockData(payload.from_warehouse);
+      setTimeout(() => {
+        hideOverlay(transferOverlay);
+        showOverlay(stockOverlay);
+      }, 900);
+    } catch (error) {
+      showUIMessage(
+        "transferMsg",
+        error.message || "Unable to transfer stock",
+        "error",
+      );
     }
   });
 
-  addWarehouseBtn?.addEventListener("click", () => {
-    warehouseOverlay.style.display = "none";
-    addWarehouseOverlay.classList.remove("hidden");
-    addWarehouseOverlay.style.display = "flex";
-  });
-
-  closeAddWarehouseOverlay?.addEventListener("click", () => {
-    addWarehouseOverlay.style.display = "none";
-    warehouseOverlay.style.display = "flex";
-  });
-
-  addWarehouseForm?.addEventListener("submit", async (e) => {
-    e.preventDefault();
+  addWarehouseForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
     const formData = new FormData(addWarehouseForm);
     const payload = {
       name: formData.get("name"),
@@ -452,46 +873,60 @@ document.addEventListener("DOMContentLoaded", () => {
       is_active: true,
     };
 
-    const res = await fetch("/api/v1/warehouses/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const response = await fetch("/api/v1/warehouses/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.detail || "Unable to create warehouse");
+      }
 
-    if (res.ok) {
-      addWarehouseOverlay.style.display = "none";
-      warehouseOverlay.style.display = "flex";
       addWarehouseForm.reset();
+      hideOverlay(addWarehouseOverlay);
+      showOverlay(warehouseOverlay);
       await loadWarehouses();
+      if (typeof window.refreshStaffWorkspace === "function") {
+        await window.refreshStaffWorkspace();
+      }
+    } catch (error) {
+      showToast(error.message || "Unable to create warehouse");
     }
   });
 
-  document.addEventListener("click", (e) => {
-    if (warehouseOverlay && e.target === warehouseOverlay) {
-      warehouseOverlay.style.display = "none";
-    }
+  saveWarehouseStaffBtn?.addEventListener(
+    "click",
+    saveWarehouseStaffAssignments,
+  );
 
-    if (addWarehouseOverlay && e.target === addWarehouseOverlay) {
-      addWarehouseOverlay.style.display = "none";
-      warehouseOverlay.style.display = "flex";
-    }
-
-    if (stockOverlay && e.target === stockOverlay) {
-      stockOverlay.style.display = "none";
-      warehouseOverlay.style.display = "flex";
-    }
-
-    if (assignStockOverlay && e.target === assignStockOverlay) {
-      assignStockOverlay.style.display = "none";
-      stockOverlay.style.display = "flex";
-    }
-
-    if (transferOverlay && e.target === transferOverlay) {
-      transferOverlay.style.display = "none";
-      stockOverlay.style.display = "flex";
-    }
+  [
+    warehouseOverlay,
+    addWarehouseOverlay,
+    stockOverlay,
+    assignStockOverlay,
+    transferOverlay,
+    assignStaffOverlay,
+  ].forEach((overlay) => {
+    overlay?.addEventListener("click", (event) => {
+      if (event.target !== overlay) return;
+      hideOverlay(overlay);
+      if (overlay === stockOverlay) {
+        showOverlay(warehouseOverlay);
+      }
+      if (overlay === assignStaffOverlay) {
+        showOverlay(stockOverlay);
+      }
+      if (overlay === assignStockOverlay || overlay === transferOverlay) {
+        showOverlay(stockOverlay);
+      }
+    });
   });
+
+  fetchProducts();
+  window.refreshWarehouseWorkspace = refreshWarehouseWorkspace;
 });

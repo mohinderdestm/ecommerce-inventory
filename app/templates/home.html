@@ -4,7 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Smart Inventory Dashboard</title>
-    <link rel="stylesheet" href="/static/css/home.css?v=20260427a" />
+    <link rel="stylesheet" href="/static/css/home.css?v=20260427d" />
+    <link rel="stylesheet" href="/static/css/reports.css?v=20260427a" />
+    <link rel="stylesheet" href="/static/css/staff.css?v=20260427a" />
     <link rel="stylesheet" href="/static/css/warehouses.css?v=20260427a" />
     <link rel="stylesheet" href="/static/css/operations.css?v=20260427a" />
   </head>
@@ -29,17 +31,49 @@
       </div>
 
       <div class="nav-right">
-        <button id="cartBtn" class="btn cart-btn">
-          Cart
-          <span id="cartBadge" class="badge">0</span>
-        </button>
-        <button id="adminOrdersBtn" class="btn admin-btn admin-only hidden">
-          Order Details
-        </button>
-        <button id="warehouseBtn" class="btn warehouse-btn hidden">
-          Warehouses
-        </button>
-        <button id="openAddProduct" class="btn add-btn">Add Product</button>
+        <div id="navActionsDropdown" class="nav-actions-dropdown">
+          <button
+            id="navActionToggle"
+            class="btn nav-action-toggle"
+            type="button"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >
+            <span class="nav-action-toggle-copy">
+              <strong>Workspace</strong>
+              <small id="navActionLabel">Role actions</small>
+            </span>
+            <span class="nav-action-toggle-meta">
+              <span id="navActionCount" class="nav-action-count">0</span>
+              <span class="nav-action-chevron"></span>
+            </span>
+          </button>
+
+          <div id="navActionMenu" class="nav-action-menu hidden">
+            <button id="cartBtn" class="btn cart-btn nav-menu-btn">
+              Cart
+              <span id="cartBadge" class="badge">0</span>
+            </button>
+            <button
+              id="adminOrdersBtn"
+              class="btn admin-btn admin-only nav-menu-btn hidden"
+            >
+              Order Details
+            </button>
+            <button id="warehouseBtn" class="btn warehouse-btn nav-menu-btn hidden">
+              Warehouses
+            </button>
+            <button id="reportsBtn" class="btn reports-btn nav-menu-btn hidden">
+              Reports
+            </button>
+            <button id="staffBtn" class="btn staff-btn nav-menu-btn hidden">
+              Staff
+            </button>
+            <button id="openAddProduct" class="btn add-btn nav-menu-btn">
+              Add Product
+            </button>
+          </div>
+        </div>
         <button id="logoutBtn" class="btn logout-btn">Logout</button>
       </div>
     </nav>
@@ -113,7 +147,7 @@
             <div class="summary-details">
               <div class="summary-row">
                 <span>Subtotal</span>
-                <span id="summarySubtotal">₹ 0</span>
+                <span id="summarySubtotal">INR 0.00</span>
               </div>
               <div class="summary-row">
                 <span>Estimated Tax (GST)</span>
@@ -126,7 +160,7 @@
               <hr class="summary-divider" />
               <div class="summary-row total">
                 <span>Total Amount</span>
-                <span id="cartTotalValue">₹ 0</span>
+                <span id="cartTotalValue">INR 0.00</span>
               </div>
             </div>
 
@@ -235,55 +269,156 @@
     </div>
 
     <div id="productOverlay" class="overlay hidden">
-      <div class="overlay-content">
-        <div class="overlay-header">
+      <div class="overlay-content product-editor-shell">
+        <div class="overlay-header product-editor-header">
           <h2 id="formTitle">Add Product</h2>
           <button id="closeOverlay" class="close-btn">&times;</button>
         </div>
-        <form id="productForm">
-          <input type="text" id="name" placeholder="Product Name" required />
-          <textarea id="description" placeholder="Description"></textarea>
-          <input type="text" id="category" placeholder="Category" />
-          <input type="text" id="brand" placeholder="Brand" />
-          <input type="number" id="cost_price" placeholder="Cost Price" />
-          <input
-            type="number"
-            id="price"
-            placeholder="Selling Price"
-            required
-          />
-          <input type="number" id="tax" placeholder="Tax %" />
-          <select id="unit">
-            <option value="piece">Piece</option>
-            <option value="kg">Kilogram</option>
-            <option value="litre">Litre</option>
-          </select>
-          <div class="warehouse-allocation-block">
-            <div class="warehouse-allocation-header">
-              <label>Base Product Warehouse Stock</label>
-              <button
-                type="button"
-                id="addBaseAllocationBtn"
-                class="add-variant-btn"
-              >
-                + Add Warehouse Stock
-              </button>
-            </div>
-            <div id="baseWarehouseAllocations"></div>
-            <p class="warehouse-allocation-note">
-              Choose a warehouse and the quantity to store there. Orders will be
-              fulfilled from this warehouse stock.
-            </p>
+        <form id="productForm" class="product-editor-form">
+          <div class="product-form-body">
+            <section class="product-form-section">
+              <div class="product-section-head">
+                <div>
+                  <h3>Product Basics</h3>
+                  <p>Set the core catalog information for this product.</p>
+                </div>
+              </div>
+
+              <div class="product-editor-grid">
+                <label class="product-field product-field-span-2">
+                  <span>Product Name</span>
+                  <input
+                    type="text"
+                    id="name"
+                    placeholder="Product Name"
+                    required
+                  />
+                </label>
+
+                <label class="product-field product-field-span-2">
+                  <span>Description</span>
+                  <textarea
+                    id="description"
+                    placeholder="Description"
+                  ></textarea>
+                </label>
+
+                <label class="product-field">
+                  <span>Category</span>
+                  <input type="text" id="category" placeholder="Category" />
+                </label>
+
+                <label class="product-field">
+                  <span>Brand</span>
+                  <input type="text" id="brand" placeholder="Brand" />
+                </label>
+              </div>
+            </section>
+
+            <section class="product-form-section">
+              <div class="product-section-head">
+                <div>
+                  <h3>Pricing and Unit</h3>
+                  <p>Keep price, tax, and selling unit aligned with your catalog.</p>
+                </div>
+              </div>
+
+              <div class="product-editor-grid product-editor-grid-compact">
+                <label class="product-field">
+                  <span>Cost Price</span>
+                  <input
+                    type="number"
+                    id="cost_price"
+                    placeholder="Cost Price"
+                  />
+                </label>
+
+                <label class="product-field">
+                  <span>Selling Price</span>
+                  <input
+                    type="number"
+                    id="price"
+                    placeholder="Selling Price"
+                    required
+                  />
+                </label>
+
+                <label class="product-field">
+                  <span>Tax %</span>
+                  <input type="number" id="tax" placeholder="Tax %" />
+                </label>
+
+                <label class="product-field">
+                  <span>Unit</span>
+                  <select id="unit">
+                    <option value="piece">Piece</option>
+                    <option value="kg">Kilogram</option>
+                    <option value="litre">Litre</option>
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <section class="product-form-section">
+              <div class="product-section-head">
+                <div>
+                  <h3>Warehouse Allocation</h3>
+                  <p>Choose how base inventory is distributed across warehouses.</p>
+                </div>
+                <button
+                  type="button"
+                  id="addBaseAllocationBtn"
+                  class="add-variant-btn"
+                >
+                  + Add Warehouse Stock
+                </button>
+              </div>
+
+              <div class="warehouse-allocation-block product-section-panel">
+                <div id="baseWarehouseAllocations"></div>
+                <p class="warehouse-allocation-note">
+                  Choose a warehouse and quantity so order fulfillment starts from
+                  the right stock location.
+                </p>
+              </div>
+            </section>
+
+            <section class="product-form-section">
+              <div class="product-section-head">
+                <div>
+                  <h3>Product Variants</h3>
+                  <p>Add size, flavor, color, or other variant stock combinations.</p>
+                </div>
+              </div>
+
+              <div class="variants-section product-section-panel">
+                <div id="variantsContainer"></div>
+                <button type="button" id="addVariantBtn" class="add-variant-btn">
+                  + Add Variant
+                </button>
+              </div>
+            </section>
+
+            <section class="product-form-section">
+              <div class="product-section-head">
+                <div>
+                  <h3>Media</h3>
+                  <p>Upload the main image that will appear in the catalog.</p>
+                </div>
+              </div>
+
+              <label class="product-field product-field-file">
+                <span>Product Image</span>
+                <input type="file" id="image" />
+              </label>
+            </section>
           </div>
-          <div class="variants-section">
-            <label>Product Variants</label>
-            <div id="variantsContainer"></div>
-            <button type="button" id="addVariantBtn" class="add-variant-btn">
-              + Add Variant
+
+          <div class="product-form-footer">
+            <button type="submit" class="submit-btn product-submit-btn">
+              Save Product
             </button>
           </div>
-          <input type="file" id="image" />
-          <button type="submit" class="submit-btn">Save Product</button>
         </form>
       </div>
     </div>
@@ -295,7 +430,11 @@
           <button id="closeLogoutOverlay" class="close-btn">&times;</button>
         </div>
         <div class="logout-body">
-          <p>Do you want to logout?</p>
+          <p class="logout-lead">You're about to end your current session.</p>
+          <p class="logout-note">
+            You can sign back in any time to continue managing products,
+            warehouses, staff, and reports.
+          </p>
           <div class="logout-actions">
             <button id="cancelLogout" class="btn cancel-btn">Back</button>
             <button id="confirmLogout" class="btn logout-btn">Logout</button>
@@ -356,8 +495,209 @@
       </div>
     </div>
 
+    <div id="reportsOverlay" class="overlay hidden">
+      <div class="overlay-content reports-shell">
+        <div class="overlay-header reports-header">
+          <div class="header-main">
+            <h2>Reports and Analytics</h2>
+            <span id="reportsRoleBadge" class="item-count-pill"
+              >Operations visibility</span
+            >
+          </div>
+          <button id="closeReportsOverlay" class="close-btn" type="button">
+            &times;
+          </button>
+        </div>
+
+        <div class="reports-layout">
+          <aside class="reports-menu-panel">
+            <div class="reports-menu-copy">
+              <h3>Report Center</h3>
+              <p>
+                Monitor inventory health, sales velocity, supplier purchasing,
+                and stock movement in one place.
+              </p>
+            </div>
+            <div id="reportsMenu" class="reports-menu"></div>
+          </aside>
+
+          <section class="reports-content-panel">
+            <div class="reports-toolbar">
+              <div class="reports-toolbar-copy">
+                <h3 id="activeReportTitle">Select a report</h3>
+                <p id="activeReportSubtitle">
+                  Role-based analytics will appear here.
+                </p>
+              </div>
+
+              <div class="reports-toolbar-actions">
+                <label class="report-filter-field">
+                  <span>Months</span>
+                  <input
+                    id="reportMonthsInput"
+                    type="number"
+                    min="1"
+                    max="24"
+                    value="6"
+                  />
+                </label>
+                <label class="report-filter-field">
+                  <span>Top Limit</span>
+                  <select id="reportLimitSelect">
+                    <option value="5">Top 5</option>
+                    <option value="10" selected>Top 10</option>
+                    <option value="15">Top 15</option>
+                    <option value="20">Top 20</option>
+                  </select>
+                </label>
+                <label class="report-filter-field">
+                  <span>Dead Stock Days</span>
+                  <select id="reportInactiveDaysSelect">
+                    <option value="30">30 Days</option>
+                    <option value="45">45 Days</option>
+                    <option value="60" selected>60 Days</option>
+                    <option value="90">90 Days</option>
+                  </select>
+                </label>
+                <button id="refreshReportBtn" class="btn report-refresh-btn">
+                  Refresh
+                </button>
+                <button id="downloadReportBtn" class="btn report-download-btn">
+                  Download PDF
+                </button>
+              </div>
+            </div>
+
+            <div id="reportSummaryCards" class="report-summary-grid"></div>
+
+            <div id="reportInsightBanner" class="report-insight-banner hidden">
+              <div class="report-insight-copy">
+                <span class="report-insight-kicker">Operational Pulse</span>
+                <p id="reportInsightText">Report insight will show here.</p>
+              </div>
+            </div>
+
+            <div class="report-table-card">
+              <div class="report-table-header">
+                <h4 id="reportTableTitle">Report Results</h4>
+                <span id="reportGeneratedAt" class="report-meta-chip"
+                  >Awaiting data</span
+                >
+              </div>
+
+              <div id="reportsLoadingState" class="reports-loading-state hidden">
+                <div class="report-loading-bars">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+                <p>Refreshing analytics feed...</p>
+              </div>
+
+              <div id="reportTableWrapper" class="report-table-wrapper hidden">
+                <table class="report-table">
+                  <thead id="reportTableHead"></thead>
+                  <tbody id="reportTableBody"></tbody>
+                </table>
+              </div>
+
+              <div id="reportEmptyState" class="report-empty-state hidden">
+                No report data available for the current filters.
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <div id="staffOverlay" class="overlay hidden">
+      <div class="overlay-content staff-shell">
+        <div class="overlay-header staff-header">
+          <div class="header-main">
+            <h2>Staff Workspace</h2>
+            <span id="staffRoleBadge" class="item-count-pill"
+              >Manager operations</span
+            >
+          </div>
+          <button id="closeStaffOverlay" class="close-btn" type="button">
+            &times;
+          </button>
+        </div>
+
+        <div class="staff-layout">
+          <section class="staff-create-panel">
+            <div class="staff-panel-head">
+              <h3>Staff Directory Controls</h3>
+              <p id="staffPanelSubtext">
+                Managers can create and manage staff members. Admins can review
+                the roster and warehouse assignments.
+              </p>
+            </div>
+
+            <div id="staffAccessNote" class="staff-access-note hidden"></div>
+
+            <form id="staffCreateForm" class="staff-create-form">
+              <div class="staff-form-grid">
+                <label>
+                  <span>Full Name</span>
+                  <input id="staffNameInput" name="name" type="text" required />
+                </label>
+                <label>
+                  <span>Email</span>
+                  <input
+                    id="staffEmailInput"
+                    name="email"
+                    type="email"
+                    required
+                  />
+                </label>
+                <label>
+                  <span>Phone</span>
+                  <input id="staffPhoneInput" name="phone" type="text" />
+                </label>
+                <label>
+                  <span>Role</span>
+                  <select id="staffRoleInput" name="role" required>
+                    <option value="warehouse_operator">Warehouse Operator</option>
+                    <option value="inventory_controller">
+                      Inventory Controller
+                    </option>
+                    <option value="dispatch_coordinator">
+                      Dispatch Coordinator
+                    </option>
+                    <option value="stock_supervisor">Stock Supervisor</option>
+                  </select>
+                </label>
+              </div>
+              <button id="createStaffSubmitBtn" type="submit" class="btn staff-submit-btn">
+                Create Staff Member
+              </button>
+            </form>
+          </section>
+
+          <section class="staff-directory-panel">
+            <div class="staff-panel-head">
+              <h3>Staff Members</h3>
+              <span id="staffCountBadge" class="report-meta-chip">0 members</span>
+            </div>
+            <div id="staffListContainer" class="staff-list-container"></div>
+          </section>
+
+          <section class="staff-assignment-panel">
+            <div class="staff-panel-head">
+              <h3>Warehouse Assignments</h3>
+              <span id="assignmentCountBadge" class="report-meta-chip"
+                >0 mappings</span
+              >
+            </div>
+            <div id="staffAssignmentOverview" class="staff-assignment-overview"></div>
+          </section>
+        </div>
+      </div>
+    </div>
+
     <div id="warehouseOverlay" class="overlay hidden">
-      <div class="overlay-content warehouse-box">
+      <div class="overlay-content warehouse-box warehouse-shell">
         <div class="overlay-header">
           <h2>Warehouse Management</h2>
           <div class="header-actions">
@@ -370,6 +710,21 @@
           </div>
         </div>
 
+        <div class="warehouse-shell-intro">
+          <div class="warehouse-shell-copy">
+            <h3>Network Visibility</h3>
+            <p>
+              Review storage locations, capacity, live activity, and staffing
+              coverage from one operations workspace.
+            </p>
+          </div>
+          <div class="warehouse-shell-badges">
+            <span class="warehouse-shell-badge">Inventory Ready</span>
+            <span class="warehouse-shell-badge">Transfer Enabled</span>
+            <span class="warehouse-shell-badge">Staff Aware</span>
+          </div>
+        </div>
+
         <div id="warehouseContainer" class="warehouse-container">
           <p class="loading-text">Loading warehouses...</p>
         </div>
@@ -377,7 +732,7 @@
     </div>
 
     <div id="addWarehouseOverlay" class="overlay hidden">
-      <div class="overlay-content add-warehouse-box">
+      <div class="overlay-content add-warehouse-box warehouse-form-shell">
         <div class="overlay-header">
           <h2>Add Warehouse</h2>
           <button id="closeAddWarehouseOverlay" class="close-btn">
@@ -385,26 +740,79 @@
           </button>
         </div>
 
-        <form id="addWarehouseForm" class="warehouse-form">
-          <input name="name" placeholder="Warehouse Name" required />
-          <input name="code" placeholder="Code" required />
-          <input name="email" placeholder="Email" required />
-          <input name="phone" placeholder="Phone" />
+        <div class="warehouse-form-intro">
+          <h3>Create a New Storage Node</h3>
+          <p>
+            Add identification, contact, and location details with a cleaner
+            operations-first layout.
+          </p>
+        </div>
 
-          <input name="street" placeholder="Street" required />
-          <input name="city" placeholder="City" required />
-          <input name="state" placeholder="State" required />
-          <input name="country" placeholder="Country" required />
-          <input name="pincode" placeholder="Pincode" required />
+        <form id="addWarehouseForm" class="warehouse-form warehouse-form-modern">
+          <section class="warehouse-form-section-card">
+            <div class="warehouse-form-section-head">
+              <h4>Warehouse Identity</h4>
+            </div>
+            <div class="warehouse-form-grid">
+              <label class="warehouse-field">
+                <span>Warehouse Name</span>
+                <input name="name" placeholder="Warehouse Name" required />
+              </label>
+              <label class="warehouse-field">
+                <span>Code</span>
+                <input name="code" placeholder="Code" required />
+              </label>
+              <label class="warehouse-field">
+                <span>Email</span>
+                <input name="email" placeholder="Email" required />
+              </label>
+              <label class="warehouse-field">
+                <span>Phone</span>
+                <input name="phone" placeholder="Phone" />
+              </label>
+            </div>
+          </section>
 
-          <input name="capacity" type="number" placeholder="Capacity" />
+          <section class="warehouse-form-section-card">
+            <div class="warehouse-form-section-head">
+              <h4>Location and Capacity</h4>
+            </div>
+            <div class="warehouse-form-grid warehouse-form-grid-wide">
+              <label class="warehouse-field warehouse-field-span-2">
+                <span>Street</span>
+                <input name="street" placeholder="Street" required />
+              </label>
+              <label class="warehouse-field">
+                <span>City</span>
+                <input name="city" placeholder="City" required />
+              </label>
+              <label class="warehouse-field">
+                <span>State</span>
+                <input name="state" placeholder="State" required />
+              </label>
+              <label class="warehouse-field">
+                <span>Country</span>
+                <input name="country" placeholder="Country" required />
+              </label>
+              <label class="warehouse-field">
+                <span>Pincode</span>
+                <input name="pincode" placeholder="Pincode" required />
+              </label>
+              <label class="warehouse-field warehouse-field-span-2">
+                <span>Capacity</span>
+                <input name="capacity" type="number" placeholder="Capacity" />
+              </label>
+            </div>
+          </section>
 
-          <button type="submit" class="submit-btn">Create Warehouse</button>
+          <div class="warehouse-form-footer">
+            <button type="submit" class="submit-btn">Create Warehouse</button>
+          </div>
         </form>
       </div>
     </div>
     <div id="stockOverlay" class="overlay hidden">
-      <div class="overlay-content stock-box">
+      <div class="overlay-content stock-box warehouse-detail-shell">
         <div class="overlay-header">
           <h2 id="stockTitle">Warehouse Details</h2>
           <button id="closeStockOverlay" class="close-btn" type="button">
@@ -415,8 +823,18 @@
         <div id="warehouseDetailHeader" class="warehouse-detail-display"></div>
 
         <div class="stock-action-bar">
-          <h3>Inventory Stock</h3>
+          <div class="stock-action-copy">
+            <h3>Inventory Stock</h3>
+            <p>Manage stock entries, transfers, and staff allocation for this site.</p>
+          </div>
           <div class="action-btns">
+            <button
+              id="openAssignStaffBtn"
+              class="staff-assign-btn hidden"
+              type="button"
+            >
+              Assign Staff
+            </button>
             <button
               id="openAssignStockBtn"
               class="add-warehouse-btn"
@@ -434,7 +852,7 @@
       </div>
     </div>
     <div id="assignStockOverlay" class="overlay hidden">
-      <div class="overlay-content add-warehouse-box">
+      <div class="overlay-content add-warehouse-box stock-workflow-shell">
         <div id="assignMsg" class="ui-message hidden"></div>
         <div class="overlay-header">
           <h2>Assign New Stock</h2>
@@ -442,41 +860,63 @@
             &times;
           </button>
         </div>
-        <div class="picker-label">Click a variant to select:</div>
-        <div id="assignProductResults" class="picker-results list-mode"></div>
+        <div class="stock-workflow-layout">
+          <div class="stock-workflow-picker">
+            <div class="picker-label">Click a variant to select:</div>
+            <div id="assignProductResults" class="picker-results list-mode"></div>
+          </div>
 
-        <form id="assignStockForm" class="warehouse-form">
-          <input type="hidden" name="warehouse_id" id="assignWarehouseId" />
-          <input
-            type="text"
-            id="selectedAssignProdName"
-            placeholder="No product selected"
-            readonly
-            required
-          />
-          <input type="hidden" name="product_id" id="assignProdId" />
-          <input
-            type="text"
-            name="variant_sku"
-            id="assignVariantSku"
-            placeholder="Variant SKU"
-            readonly
-            required
-          />
-          <input
-            name="quantity"
-            type="number"
-            placeholder="Enter quantity"
-            min="1"
-            required
-          />
-          <button type="submit" class="submit-btn">Add Stock</button>
-        </form>
+          <form id="assignStockForm" class="warehouse-form warehouse-form-modern">
+            <input type="hidden" name="warehouse_id" id="assignWarehouseId" />
+            <div class="warehouse-form-section-card compact">
+              <div class="warehouse-form-section-head">
+                <h4>Selected Variant</h4>
+              </div>
+              <div class="warehouse-form-grid">
+                <label class="warehouse-field warehouse-field-span-2">
+                  <span>Product</span>
+                  <input
+                    type="text"
+                    id="selectedAssignProdName"
+                    placeholder="No product selected"
+                    readonly
+                    required
+                  />
+                </label>
+                <input type="hidden" name="product_id" id="assignProdId" />
+                <label class="warehouse-field warehouse-field-span-2">
+                  <span>Variant SKU</span>
+                  <input
+                    type="text"
+                    name="variant_sku"
+                    id="assignVariantSku"
+                    placeholder="Variant SKU"
+                    readonly
+                    required
+                  />
+                </label>
+                <label class="warehouse-field warehouse-field-span-2">
+                  <span>Quantity</span>
+                  <input
+                    name="quantity"
+                    type="number"
+                    placeholder="Enter quantity"
+                    min="1"
+                    required
+                  />
+                </label>
+              </div>
+            </div>
+            <div class="warehouse-form-footer">
+              <button type="submit" class="submit-btn">Add Stock</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 
     <div id="transferOverlay" class="overlay hidden">
-      <div class="overlay-content add-warehouse-box">
+      <div class="overlay-content add-warehouse-box stock-workflow-shell">
         <div id="transferMsg" class="ui-message hidden"></div>
         <div class="overlay-header">
           <h2>Transfer Stock</h2>
@@ -484,34 +924,106 @@
             &times;
           </button>
         </div>
-        <div class="picker-label">Available inventory in this warehouse:</div>
-        <div id="transferProductResults" class="picker-results list-mode"></div>
+        <div class="stock-workflow-layout">
+          <div class="stock-workflow-picker">
+            <div class="picker-label">Available inventory in this warehouse:</div>
+            <div id="transferProductResults" class="picker-results list-mode"></div>
+          </div>
 
-        <form id="transferForm" class="warehouse-form">
-          <input type="hidden" name="from_warehouse" id="fromWarehouseId" />
-          <select name="to_warehouse" id="toWarehouseSelect" required>
-            <option value="">Select Destination</option>
-          </select>
-          <input
-            type="text"
-            id="selectedTransferProdName"
-            placeholder="Select from list above"
-            readonly
-            required
-          />
-          <input type="hidden" name="variant_sku" id="transferVariantSku" />
-          <input
-            name="quantity"
-            type="number"
-            placeholder="Quantity"
-            min="1"
-            required
-          />
-          <button type="submit" class="submit-btn">Execute Transfer</button>
-        </form>
+          <form id="transferForm" class="warehouse-form warehouse-form-modern">
+            <input type="hidden" name="from_warehouse" id="fromWarehouseId" />
+            <div class="warehouse-form-section-card compact">
+              <div class="warehouse-form-section-head">
+                <h4>Transfer Details</h4>
+              </div>
+              <div class="warehouse-form-grid">
+                <label class="warehouse-field warehouse-field-span-2">
+                  <span>Destination Warehouse</span>
+                  <select name="to_warehouse" id="toWarehouseSelect" required>
+                    <option value="">Select Destination</option>
+                  </select>
+                </label>
+                <label class="warehouse-field warehouse-field-span-2">
+                  <span>Selected Variant</span>
+                  <input
+                    type="text"
+                    id="selectedTransferProdName"
+                    placeholder="Select from list above"
+                    readonly
+                    required
+                  />
+                </label>
+                <input type="hidden" name="variant_sku" id="transferVariantSku" />
+                <label class="warehouse-field warehouse-field-span-2">
+                  <span>Quantity</span>
+                  <input
+                    name="quantity"
+                    type="number"
+                    placeholder="Quantity"
+                    min="1"
+                    required
+                  />
+                </label>
+              </div>
+            </div>
+            <div class="warehouse-form-footer">
+              <button type="submit" class="submit-btn">Execute Transfer</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
-    <script src="/static/js/home.js?v=20260427a"></script>
+
+    <div id="assignStaffOverlay" class="overlay hidden">
+      <div class="overlay-content assign-staff-shell">
+        <div id="assignStaffMsg" class="ui-message hidden"></div>
+        <div class="overlay-header">
+          <div class="header-main">
+            <h2>Assign Staff to Warehouse</h2>
+            <span id="assignStaffSelectionBadge" class="item-count-pill"
+              >0 selected</span
+            >
+          </div>
+          <button id="closeAssignStaffOverlay" class="close-btn" type="button">
+            &times;
+          </button>
+        </div>
+
+        <div id="assignStaffWarehouseMeta" class="assign-staff-warehouse-meta"></div>
+
+        <div class="assign-staff-layout">
+          <section class="assign-staff-options-panel">
+            <div class="assign-staff-panel-head">
+              <h3>Select Staff Members</h3>
+              <button
+                id="saveWarehouseStaffBtn"
+                class="btn staff-submit-btn"
+                type="button"
+              >
+                Assign Selected
+              </button>
+            </div>
+            <div id="assignStaffOptions" class="assign-staff-options"></div>
+          </section>
+
+          <section class="assign-staff-current-panel">
+            <div class="assign-staff-panel-head">
+              <h3>Assigned Staff</h3>
+              <span id="assignedWarehouseStaffCount" class="report-meta-chip"
+                >0 assigned</span
+              >
+            </div>
+            <div
+              id="assignedWarehouseStaffList"
+              class="assigned-warehouse-staff-list"
+            ></div>
+          </section>
+        </div>
+      </div>
+    </div>
+    <script src="/static/js/home.js?v=20260427d"></script>
+    <script src="/static/js/reports.js?v=20260427a"></script>
+    <script src="/static/js/staff.js?v=20260427a"></script>
     <script src="/static/js/warehouses.js"></script>
     <script src="/static/js/operations.js"></script>
   </body>

@@ -504,3 +504,95 @@ body::after {
   border-color: rgba(52, 211, 153, 0.34);
   color: #a7f3d0;
 }
+
+.login-card .secondary-btn {
+  background: transparent;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  color: #93c5fd;
+}
+
+.login-card .secondary-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.back-login-btn,
+.back-role-btn {
+  margin-top: 10px;
+}
+
+body.supplier-register-page {
+  height: auto;
+  min-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: block;
+  padding: 20px 0;
+}
+
+body.supplier-register-page::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+}
+
+body.supplier-register-page .container {
+  align-items: flex-start;
+  min-height: 100%;
+  padding: 40px 0;
+}
+
+body.supplier-register-page .supplier-card {
+  width: min(760px, 92vw);
+  margin: 20px auto;
+}
+
+body.supplier-register-page .supplier-card h2,
+body.supplier-register-page .supplier-card > p {
+  text-align: center;
+}
+
+body.supplier-register-page .supplier-card form {
+  text-align: left;
+}
+
+body.supplier-register-page .supplier-card input {
+  margin: 8px 0;
+}
+
+body.supplier-register-page .form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 15px;
+}
+
+body.supplier-register-page .full-width {
+  grid-column: span 2;
+}
+
+body.supplier-register-page .section-caption {
+  color: #60a5fa;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+body.supplier-register-page .section-gap {
+  margin-top: 10px;
+}
+
+@media (max-width: 680px) {
+  body.supplier-register-page .supplier-card {
+    width: 92%;
+    margin: 16px auto;
+    padding: 30px 22px;
+  }
+
+  body.supplier-register-page .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body.supplier-register-page .full-width {
+    grid-column: span 1;
+  }
+}

@@ -41,6 +41,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const roleEl = getEl("userRole");
   const logoutBtn = getEl("logoutBtn");
   const addBtn = getEl("openAddProduct");
+  const warehouseBtn = getEl("warehouseBtn");
+  const reportsBtn = getEl("reportsBtn");
+  const staffBtn = getEl("staffBtn");
   const toast = getEl("toast");
   const container = getEl("productsContainer");
 
@@ -52,6 +55,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const detailBody = getEl("productDetailBody");
 
   const cartBtn = getEl("cartBtn");
+  const navActionsDropdown = getEl("navActionsDropdown");
+  const navActionToggle = getEl("navActionToggle");
+  const navActionMenu = getEl("navActionMenu");
+  const navActionCount = getEl("navActionCount");
+  const navActionLabel = getEl("navActionLabel");
   const cartOverlay = getEl("cartOverlay");
   const cartItemsContainer = getEl("cartItemsContainer");
   const cartTotalValue = getEl("cartTotalValue");
@@ -90,6 +98,14 @@ document.addEventListener("DOMContentLoaded", () => {
   let pendingCheckoutItems = [];
   let availableWarehouses = [];
   let warehousesLoaded = false;
+  const dropdownActionButtons = [
+    cartBtn,
+    adminOrdersBtn,
+    warehouseBtn,
+    reportsBtn,
+    staffBtn,
+    addBtn,
+  ].filter(Boolean);
 
   if (addBtn) {
     addBtn.style.display = userRole === "supplier" ? "flex" : "none";
@@ -97,6 +113,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const formatText = (text) =>
     text ? text.charAt(0).toUpperCase() + text.slice(1) : "User";
+  const formatCurrency = (value) => {
+    const numericValue = Number(value || 0);
+    return `INR ${numericValue.toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
 
   const updateHeaderUI = () => {
     const dName = localStorage.getItem("user_name") || userName;
@@ -115,6 +138,45 @@ document.addEventListener("DOMContentLoaded", () => {
       adminOrdersBtn.style.display = canSeeOrders ? "flex" : "none";
       adminOrdersBtn.classList.toggle("hidden", !canSeeOrders);
     }
+
+    refreshActionDropdown();
+  };
+
+  const closeActionDropdown = () => {
+    if (!navActionsDropdown || !navActionMenu || !navActionToggle) return;
+    navActionsDropdown.classList.remove("open");
+    navActionMenu.classList.add("hidden");
+    navActionToggle.setAttribute("aria-expanded", "false");
+  };
+
+  const openActionDropdown = () => {
+    if (!navActionsDropdown || !navActionMenu || !navActionToggle) return;
+    navActionsDropdown.classList.add("open");
+    navActionMenu.classList.remove("hidden");
+    navActionToggle.setAttribute("aria-expanded", "true");
+  };
+
+  const refreshActionDropdown = () => {
+    if (!navActionsDropdown || !navActionToggle || !navActionCount) return;
+
+    const visibleActions = dropdownActionButtons.filter((btn) => {
+      if (!btn) return false;
+      if (btn.classList.contains("hidden")) return false;
+      return window.getComputedStyle(btn).display !== "none";
+    });
+
+    navActionCount.innerText = visibleActions.length;
+    if (navActionLabel) {
+      const dRole = (localStorage.getItem("user_role") || userRole).toLowerCase();
+      navActionLabel.innerText = visibleActions.length
+        ? `${formatText(dRole)} actions`
+        : "No actions";
+    }
+
+    navActionsDropdown.style.display = visibleActions.length
+      ? "inline-flex"
+      : "none";
+    if (!visibleActions.length) closeActionDropdown();
   };
 
   const showToast = (msg) => {
@@ -254,7 +316,7 @@ document.addEventListener("DOMContentLoaded", () => {
             .map(
               (entry) => `
                 <option value="${entry.warehouse_id}" ${entry.warehouse_id === resolvedWarehouseId ? "selected" : ""}>
-                  ${entry.warehouse_name} • ${entry.quantity} ${unit}
+                  ${entry.warehouse_name} | ${entry.quantity} ${unit}
                 </option>
               `,
             )
@@ -283,7 +345,7 @@ document.addEventListener("DOMContentLoaded", () => {
       0,
     );
     if (checkoutSummaryText) {
-      checkoutSummaryText.innerText = `You are placing ${selectedItems.length} item(s). Estimated total: INR ${estimate.toFixed(2)}.`;
+      checkoutSummaryText.innerText = `You are placing ${selectedItems.length} item(s). Estimated total: ${formatCurrency(estimate)}.`;
     }
 
     cartOverlay?.classList.add("hidden");
@@ -325,7 +387,48 @@ document.addEventListener("DOMContentLoaded", () => {
     ) {
       closeAllOverlays();
     }
+
+    if (
+      navActionsDropdown &&
+      !navActionsDropdown.contains(e.target) &&
+      !navActionMenu?.classList.contains("hidden")
+    ) {
+      closeActionDropdown();
+    }
   });
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeAllOverlays();
+      closeActionDropdown();
+    }
+  });
+
+  navActionToggle?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (navActionMenu?.classList.contains("hidden")) {
+      openActionDropdown();
+    } else {
+      closeActionDropdown();
+    }
+  });
+
+  dropdownActionButtons.forEach((button) => {
+    button?.addEventListener("click", () => {
+      closeActionDropdown();
+    });
+  });
+
+  if (window.MutationObserver) {
+    const actionObserver = new MutationObserver(() => refreshActionDropdown());
+    dropdownActionButtons.forEach((button) => {
+      if (!button) return;
+      actionObserver.observe(button, {
+        attributes: true,
+        attributeFilter: ["style", "class"],
+      });
+    });
+  }
 
   [
     getEl("closeOverlay"),
@@ -362,8 +465,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (cart.length === 0) {
       cartItemsContainer.innerHTML = `
-        <div class="empty-msg">
-            <p style="text-align:center; padding: 20px; color: #94a3b8;">Your cart is empty.</p>
+        <div class="empty-msg cart-empty-state">
+            <p class="cart-empty-text">Your cart is empty.</p>
         </div>`;
       if (getEl("cartItemCountDisplay"))
         getEl("cartItemCountDisplay").innerText = "0 Items";
@@ -382,7 +485,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="cart-item-info">
             <h4>${item.name}</h4>
             <p class="cart-warehouse-line">${item.warehouse_name || "Warehouse not selected"}</p>
-            <p>₹ ${item.price} x ${item.quantity}</p>
+            <p class="cart-price-line">${formatCurrency(item.price)} x ${item.quantity}</p>
           </div>
           <button class="remove-cart-item" data-index="${index}">&times;</button>
         `;
@@ -393,7 +496,7 @@ document.addEventListener("DOMContentLoaded", () => {
           `${selectedCount} Total Items`;
     }
 
-    const formattedPrice = `₹ ${subtotal}`;
+    const formattedPrice = formatCurrency(subtotal);
     if (getEl("summarySubtotal"))
       getEl("summarySubtotal").innerText = formattedPrice;
     if (cartTotalValue) cartTotalValue.innerText = formattedPrice;
@@ -788,14 +891,14 @@ document.addEventListener("DOMContentLoaded", () => {
         : variant.additional_price;
 
     div.innerHTML = `
-      <div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
-        <div style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap;">
+      <div class="variant-fields">
+        <div class="variant-top-row">
             <input type="text" class="v-name" placeholder="Variant Name" value="${variant.name || ""}" required />
             <input type="number" class="v-price" placeholder="Price" value="${priceVal}" required />
             <button type="button" class="remove-variant-btn">&times;</button>
         </div>
         <input type="file" class="v-image" accept="image/*" />
-        ${variant.image ? `<small style="color: #38bdf8; font-size: 10px;">Current: ${variant.image.split("/").pop()}</small>` : ""}
+        ${variant.image ? `<small class="variant-current-image">Current: ${variant.image.split("/").pop()}</small>` : ""}
         <div class="warehouse-allocation-block compact">
           <div class="warehouse-allocation-header">
             <label>Variant Warehouse Stock</label>
@@ -984,7 +1087,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <h2 class="detail-title">${displayTitle}</h2>
           <p class="detail-brand">Brand: ${p.brand || "Generic"}</p>
           <div class="detail-pricing">
-             <span class="detail-price">₹ ${displayPrice}</span>
+             <span class="detail-price">${formatCurrency(displayPrice)}</span>
              <span class="detail-tax">+ ${p.tax}% Tax</span>
           </div>
           <p class="detail-stock">Available Stock: <strong>${displayStock} ${p.unit || "piece"}</strong></p>
@@ -1175,7 +1278,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!container) return;
     container.innerHTML = "";
     if (products.length === 0) {
-      container.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #94a3b8;">No products found.</p>`;
+      container.innerHTML = `<p class="empty-msg grid-empty-msg">No products found.</p>`;
       return;
     }
     products.forEach((p) => {
@@ -1186,8 +1289,8 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="card-body">
           <h3>${p.name}</h3>
           <p>${p.description || ""}</p>
-          <div class="meta"><span class="price">₹ ${p.selling_price}</span><span class="qty">Stock: ${p.reorder_level}</span></div>
-          <p class="extra">${p.brand || "Generic"} • ${p.category || "Uncategorized"}</p>
+          <div class="meta"><span class="price">${formatCurrency(p.selling_price)}</span><span class="qty">Stock: ${p.reorder_level}</span></div>
+          <p class="extra">${p.brand || "Generic"} | ${p.category || "Uncategorized"}</p>
         </div>`;
       const stockLabel = card.querySelector(".qty");
       if (stockLabel) stockLabel.innerText = `Stock: ${p.stock || 0}`;
@@ -1381,7 +1484,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ${itemsHtml}
           </div>
           <div class="order-card-footer">
-            <div class="order-total">Total: <span>₹ ${orderTotal}</span></div>
+            <div class="order-total">Total: <span>${formatCurrency(orderTotal)}</span></div>
             <div class="order-footer-right">
               ${actionBtnHtml}
               <div class="status-pill status-${(order.status || "pending").toLowerCase()}">${order.status || "Pending"}</div>
@@ -1416,6 +1519,7 @@ document.addEventListener("DOMContentLoaded", () => {
   fetchUserData().then(() => {
     loadProducts();
     updateCartUI();
+    refreshActionDropdown();
     if (userRole === "supplier") fetchWarehousesForProductForm();
   });
 });
