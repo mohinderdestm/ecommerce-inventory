@@ -41,6 +41,8 @@ class InventoryService:
 
             await InventoryService.check_low_stock(product_id, warehouse_id)
 
+            await InventoryService.check_low_stock(product_id, warehouse_id)
+
             await movements.insert_one({
                 "product_id": product_id,
                 "product_name": product_name,
@@ -67,6 +69,7 @@ class InventoryService:
                 raise HTTPException(400, "Insufficient stock")
 
             await self.repo.update_stock(product_id, warehouse_id, -qty)
+            await InventoryService.check_low_stock(product_id, warehouse_id)
             await InventoryService.check_low_stock(product_id, warehouse_id)
 
             await movements.insert_one({
@@ -105,9 +108,12 @@ class InventoryService:
             # deduct from source
             await self.repo.update_stock(product_id, from_wh, -qty)
             await InventoryService.check_low_stock(product_id, from_wh)
+            await InventoryService.check_low_stock(product_id, from_wh)
 
             # add to destination
             await self.repo.update_stock(product_id, to_wh, qty)
+            await InventoryService.check_low_stock(product_id, to_wh)
+            
             await InventoryService.check_low_stock(product_id, to_wh)
             
 

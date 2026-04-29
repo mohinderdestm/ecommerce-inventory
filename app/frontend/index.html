@@ -532,6 +532,29 @@ button:disabled {
       </button> 
      <button id="editProfileBtn" onclick="openProfileModal()">👤 Profile</button>
      <button onclick="logout()">Logout</button>
+
+      <div style="position:relative; display:inline-block;">
+  <button onclick="toggleNotif()">🔔</button>
+
+  <span id="notifDot"
+        style="
+          position:absolute;
+          top:2px;
+          right:2px;
+          width:10px;
+          height:10px;
+          background:red;
+          border-radius:50%;
+          display:none;
+        ">
+  </span>
+</div>
+      
+      <button id="cartBtn"  onclick="openCart()">
+          🛒 Cart (<span id="cartCount">0</span>)
+      </button> 
+     <button id="editProfileBtn" onclick="openProfileModal()">👤 Profile</button>
+     <button onclick="logout()">Logout</button>
   </div>
 
 </div>
@@ -601,6 +624,9 @@ button:disabled {
     <label>Email</label>
     <input id="custEmail" placeholder="Enter email" style="width:100%; margin-bottom:10px;">
 
+    <label>Email</label>
+    <input id="custEmail" placeholder="Enter email" style="width:100%; margin-bottom:10px;">
+
     <label>Address</label>
     <textarea id="custAddress" placeholder="Enter address" style="width:100%; margin-bottom:10px;"></textarea>
 
@@ -620,6 +646,7 @@ button:disabled {
   </div>
 </div>
 
+`
 `
 <!-- Purchase Order Overlay -->
 <div id="purchaseSection" class="overlay" onclick="closePurchaseOverlay(event)" style="display:none;">
@@ -1003,6 +1030,78 @@ button:disabled {
 
 
 
+<div id="notifBox"
+  style="display:none; position:fixed; right:20px; top:60px;
+         width:320px; background:#fff; border-radius:10px;
+         box-shadow:0 4px 10px rgba(0,0,0,0.2);
+         max-height:400px; overflow:auto; z-index:999;">
+
+
+  <div style="padding:10px; border-bottom:1px solid #eee;">
+
+
+    <b>🔔 Notifications</b>
+  </div>
+
+
+  <div id="notifList"></div>
+
+
+  <div style="padding:10px; text-align:center;">
+    <a href="#" onclick="openAllNotifications()">View All</a>
+  </div>
+</div>
+
+
+
+<!-- Full page history for notification -->
+
+
+<!-- <div id="allNotificationsPage" style="display:none; padding:20px;">
+  <h2>🔔 All Notifications</h2>
+
+
+  <div id="allNotifList"></div>
+
+
+  <button onclick="closeAllNotifications()">Close</button>
+</div> -->
+
+
+<div id="allNotifModal"
+     style="display:none; position:fixed; top:0; left:0;
+            width:100%; height:100%;
+            background:rgba(0,0,0,0.5);
+            z-index:1000;">
+
+
+  <div id="allNotifContent" class="modal-content" style="
+        width:500px;
+        max-height:80%;
+        overflow:auto;
+        background:#fff;
+        margin:50px auto;
+        padding:20px;
+        border-radius:10px;
+      ">
+
+
+    <h3>🔔 All Notifications</h3>
+
+
+    <div id="allNotifList"></div>
+
+
+    <br>
+    <button onclick="closeAllNotifications()">Close</button>
+  </div>
+</div>
+
+
+
+
+
+
 
     <!-- Assign Staff Modal-->
     <div class="modal" id="assignStaffModal">
@@ -1269,6 +1368,16 @@ button:disabled {
               // localStorage.setItem("role", user.role);  
 
               
+              localStorage.setItem("user_id", data.user.id);
+              localStorage.setItem("role", data.user.role);
+
+              console.log("Stored user_id:", localStorage.getItem("user_id"));
+              console.log("Stored role:", localStorage.getItem("role"));
+              // const user = data.user; 
+              // localStorage.setItem("user_id", user._id);
+              // localStorage.setItem("role", user.role);  
+
+              
              closeAllOverlays();
 
               loadDashboard();
@@ -1462,6 +1571,8 @@ button:disabled {
                                 <div style="font-size:12px;color:gray;" id="sku-${p.id}">
                                   SKU: ${firstVariant?.sku || "-"}
                                 </div>
+
+                                
 
                                 
 
@@ -1882,14 +1993,19 @@ function removeItem(index) {
        address: address,
       email: document.getElementById("custEmail").value, 
      
+      email: document.getElementById("custEmail").value, 
+     
 
        items: cart.map(i => ({
+         product_id: i.product_id,
          product_id: i.product_id,
          product_name: i.product_name,
          quantity: i.quantity,
          price: Number(i.price) || 0
     }))
   };
+
+     console.log("FINAL PAYLOAD:", payload);
 
      console.log("FINAL PAYLOAD:", payload);
 
@@ -1930,6 +2046,7 @@ function removeItem(index) {
       closeCheckout();
       closeCart();
     
+    
 }
 
 
@@ -1968,109 +2085,8 @@ function openCheckout() {
 }
 
 
-  // ================= Toggle Bell for Notification =================
+  // ================= Load Notification =================
 
-  // async function toggleNotif() {
-  //     const box = document.getElementById("notifBox");
-
-  //     if (box.style.display === "block") {
-  //         box.style.display = "none";
-  //     } else {
-  //         box.style.display = "block";
-  //         await loadNotifications();
-
-  //          // ✅ mark as read
-  //         const token = localStorage.getItem("token");
-
-  //         await fetch(`${BASE_URL}/notifications/read-all`, {
-  //           method: "PUT",
-  //           headers: { Authorization: `Bearer ${token}` }
-  //         });
-
-         
-
-  //         await loadNotifications();
-
-  //        }
-        // }
-
-
-    // ================= Load Notification =================
-
-  // async function loadNotifications() {
-  //   const token = localStorage.getItem("token");
-
-  //   const res = await fetch(`${BASE_URL}/notifications/`, {
-  //      headers: { Authorization: `Bearer ${token}` }
-  //    });
-
-  //   const data = await res.json();
-
-  //   if (!Array.isArray(data)) return;
-
-  //   const unread = data.filter(n => !n.is_read).length;
-  //   document.getElementById("notifCount").innerText = unread;
-
-  //   document.getElementById("notifList").innerHTML =
-  //      data.slice(0, 5).map(n => `
-  //         <div style="
-  //           padding:8px;
-  //           border-bottom:1px solid #eee;
-  //           background:${n.is_read ? "#fff" : "#eef6ff"};
-  //          ">
-  //          <b>${n.title}</b><br>
-  //          ${n.message}
-  //          </div>
-  //          `).join("");
-  //        }
-
-  //     // ================= Open and close all notification =================
-
-  // function openAllNotifications() {
-  //    document.getElementById("notifBox").style.display = "none";
-  //    //document.getElementById("allNotificationsPage").style.display = "block";
-  //    document.getElementById("allNotifModal").style.display = "block";
-
-  //   loadAllNotifications();
-
-  //   if (!window.notifInterval) {
-  //     window.notifInterval = setInterval(() => {
-  //      loadAllNotifications();
-  //   }, 5000);
-  //  }
-  //  }
-
-  // function closeAllNotifications() {
-  //    document.getElementById("allNotifModal").style.display = "none";
-  // }
-
-  // // ================= load notification history =================
-
-
-  // async function loadAllNotifications() {
-  //     const token = localStorage.getItem("token");
- 
-  //     const res = await fetch(`${BASE_URL}/notifications/`, {
-  //      headers: { Authorization: `Bearer ${token}` }
-  //     });
-
-  //     const data = await res.json();
-
-  //     if (!Array.isArray(data)) return;
-
-  //     document.getElementById("allNotifList").innerHTML =
-  //        data.map(n => `
-  //          <div style="
-  //            padding:10px;
-  //            border-bottom:1px solid #eee;
-  //            background:${n.is_read ? "#fff" : "#eef6ff"};
-  //          ">
-  //            <b>${n.title}</b><br>
-  //            ${n.message}<br>
-  //            <small>${new Date(n.created_at).toLocaleString()}</small>
-  //          </div>
-  //        `).join("");
-  //      }
 const userId = localStorage.getItem("user_id");
 const role = localStorage.getItem("role");
 
@@ -2139,338 +2155,44 @@ async function loadNotifications() {
 //     return;
 //   }
 
-//   if (box.style.display === "block") {
-//     box.style.display = "none";
-//     return;
-//   }
-
-//   box.style.display = "block";
-
-//   await loadNotifications();
-
-//   const token = localStorage.getItem("token");
-
-//   // ✅ FIXED READ-ALL URL
-//   let url = `${BASE_URL}/notifications/read-all?`;
-
-//   if (role === "admin") {
-//     url += "role=admin";
-//   } else {
-//     url += `user_id=${userId}`;
-//   }
-
-//   await fetch(url, {
-//     method: "PUT",
-//     headers: { Authorization: `Bearer ${token}` }
-//   });
-
-//   await loadNotifications();
-// }
-
-async function toggleNotif() {
-  const box = document.getElementById("notifBox");
-  const dot = document.getElementById("notifDot");
-
-  if (!box) return;
-
-  if (box.style.display === "block") {
-    box.style.display = "none";
-    return;
-  }
-
-  // 👉 OPENING
-  box.style.display = "block";
-
-  await loadNotifications();
-
-  // ✅ mark as read immediately
-  await markAllAsRead();
-
-  // ✅ remove red dot instantly
-  if (dot) dot.style.display = "none";
-
-  // ✅ reload UI so blue background disappears
-  await loadNotifications();
-}
-
-
-async function markAllAsRead() {
-  const token = localStorage.getItem("token");
-  const userId = localStorage.getItem("user_id");
-  const role = localStorage.getItem("role");
-
-  let url = `${BASE_URL}/notifications/read-all?`;
-
-  if (role === "admin") {
-    url += "role=admin";
-  } else {
-    url += `user_id=${userId}`;
-  }
-
-  const res = await fetch(url, {
-    method: "PUT",
-    headers: { Authorization: `Bearer ${token}` }
-  });
-
-  console.log("Marked read response:", await res.json());
-}
-
-function openAllNotifications() {
-  document.getElementById("notifBox").style.display = "none";
-  document.getElementById("allNotifModal").style.display = "block";
-  loadAllNotifications();
-}
-
-
-
-function closeAllNotifications() {
-  document.getElementById("allNotifModal").style.display = "none";
-}
-
-window.onclick = function (event) {
-  const modal = document.getElementById("allNotifModal");
-
-  if (event.target === modal) {
-    modal.style.display = "none";
-  }
-};
-
-
-async function loadAllNotifications() {
-  const token = localStorage.getItem("token");
-
-  let url = `${BASE_URL}/notifications/?`;
-
-  if (role === "admin") {
-    url += `role=admin`;
-  } else {
-    url += `user_id=${userId}`;
-  }
-
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-
-  const data = await res.json();
-  if (!Array.isArray(data)) return;
-
-  document.getElementById("allNotifList").innerHTML =
-    data.map(n => `
-      <div style="
-        padding:10px;
-        border-bottom:1px solid #eee;
-        background:${n.is_read ? "#fff" : "#eef6ff"};
-      ">
-        <b>${n.title}</b><br>
-        ${n.message}<br>
-        <small>${new Date(n.created_at).toLocaleString()}</small>
-      </div>
-    `).join("");
-}
-
-setInterval(() => {
-  const box = document.getElementById("notifBox");
-
-  if (box && box.style.display !== "block") {
-    loadNotifications();
-  }
-}, 1000);
-
-// document.addEventListener("click", function (e) {
-//   const notifBox = document.getElementById("notifBox");
-//   const notifBtn = document.querySelector("[onclick='toggleNotif()']");
-
-//   const modal = document.getElementById("allNotifModal");
-//   const modalContent = document.getElementById("allNotifContent"); // 👈 inner div
-
-//   // ✅ CLOSE NOTIFICATION DROPDOWN
-//   if (
-//     notifBox &&
-//     notifBox.style.display === "block" &&
-//     !notifBox.contains(e.target) &&
-//     !notifBtn.contains(e.target)
-//   ) {
-//     notifBox.style.display = "none";
-//   }
-
-//   // ✅ CLOSE MODAL (click outside content)
-//   if (
-//     modal &&
-//     modal.style.display === "block" &&
-//     modalContent &&
-//     !modalContent.contains(e.target)
-//   ) {
-//     modal.style.display = "none";
-//   }
-// });
-      // ================= report =================
-
-//  let currentReportType = "";
-
-// async function loadReport(type, title) {
-//     currentReportType = type;
-
-//     document.getElementById("reportTitle").innerText = title;
-
-//     const res = await fetch(`http://127.0.0.1:8000/reports/${type}`);
-//     const data = await res.json();
-
-//     let html = `<table class="report-table">`;
-
-//     if (!data || data.length === 0) {
-//         html += "<tr><td>No Data Available</td></tr>";
-//     } else {
-//         const keys = ["warehouse", "product", "stock"];
-
-//         html += "<tr>";
-//         // keys.forEach(k => html += `<th>${k}</th>`);
-//         keys.forEach(k => html += `<th>${k.toUpperCase()}</th>`);
-//         html += "</tr>";
-
-//         data.forEach(row => {
-//             html += "<tr>";
-//             keys.forEach(k => {
-                
-//                 let value = row[k];
-
-//                 // ✅ FIX: show name instead of object
-//                 if (typeof value === "object" && value !== null) {
-//                     value = value.name || value._id || JSON.stringify(value);
-//                 }
-
-//                 html += `<td>${value}</td>`;
-//             });
-//             html += "</tr>";
-//         });
-//     }
-
-//     html += "</table>";
-
-//     document.getElementById("reportTableContainer").innerHTML = html;
-
-//     // ✅ OPEN MODAL
-//     document.getElementById("reportModal").style.display = "block";
-// }
-async function loadReport(type, title) {
-    currentReportType = type;
-
-    document.getElementById("reportTitle").innerText = title;
-
-    const res = await fetch(`http://127.0.0.1:8000/reports/${type}`);
-    const data = await res.json();
-
-    let html = `<table class="report-table">`;
-
-    if (!data || data.length === 0) {
-        html += "<tr><td>No Data Available</td></tr>";
-    } else {
-
-        let keys = [];
-
-        if (type === "top-selling") {
-            keys = ["warehouse", "product", "total_sold"];
-        } 
-        else if (type === "supplier") {
-            keys = ["supplier", "total_spent", "total_orders"];
-        }
-        else if (type === "dead-stock") {
-            keys = ["warehouse", "product", "stock"];
-        } 
-        // else if (type === "monthly") {
-        //     keys = ["year", "month", "type", "total"];
-        // }
-        else if (type === "monthly") {
-           keys = ["month", "warehouse", "product", "inward", "outward", "net"];
-        }
-        else {
-            keys = ["warehouse", "product", "stock"];
-        }
-
-        html += "<tr>";
-        keys.forEach(k => html += `<th>${k.toUpperCase()}</th>`);
-        html += "</tr>";
-
-        data.forEach(row => {
-            html += "<tr>";
-
-            keys.forEach(k => {
-                let value = row[k];
-
-                if (typeof value === "object" && value !== null) {
-                    value = value.name || value._id || JSON.stringify(value);
-                }
-
-                html += `<td>${value ?? "-"}</td>`;
-            });
-
-            html += "</tr>";
-        });
-    }
-
-    html += "</table>";
-
-    document.getElementById("reportTableContainer").innerHTML = html;
-
-    document.getElementById("reportModal").style.display = "block";
-}
-
-// =================Download pdf report =================
-
-//   async function downloadPDF(type) {
-//     const res = await fetch(`http://127.0.0.1:8000/reports/export/${type}`);
-//     const data = await res.json();
-
-//     const byteCharacters = atob(data.pdf);
-//     const byteNumbers = new Array(byteCharacters.length)
-//         .fill(0)
-//         .map((_, i) => byteCharacters.charCodeAt(i));
-
-//     const blob = new Blob([new Uint8Array(byteNumbers)], { type: "application/pdf" });
-
-//     const url = window.URL.createObjectURL(blob);
-//     const a = document.createElement("a");
-
-//     a.href = url;
-//     a.download = `${type}.pdf`;
-//     a.click();
-// }
-
-async function downloadPDF(type) {
-    const res = await fetch(`http://127.0.0.1:8000/reports/export/${type}`);
-
-    if (!res.ok) {
-        const text = await res.text();
-        console.error("Backend Error:", text);
-        alert("PDF failed. Check backend.");
-        return;
-    }
-
-    const data = await res.json();
-
-    if (!data.pdf) {
-        alert("No PDF received");
-        return;
-    }
-
-    const byteCharacters = atob(data.pdf);
-    const byteNumbers = Array.from(byteCharacters, c => c.charCodeAt(0));
-
-    const blob = new Blob([new Uint8Array(byteNumbers)], {
-        type: "application/pdf"
-    });
-
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-
-    a.href = url;
-    a.download = `${type}.pdf`;
-    a.click();
-}
-
-function closeReportModal() {
-    document.getElementById("reportModal").style.display = "none";
-}
- 
+    //   const payload = {
+    //     customer_name: "Walk-in Customer",
+    //     items: cart.map(i => ({
+    //       product_id: i.product_id,
+    //       product_name: i.product_name,
+    //       quantity: Number(i.quantity),
+    //       price: Number(i.price)
+    //     }))
+    //   };
+    //    console.log("SENDING PAYLOAD:", payload);
+
+    //   const res = await fetch(`${BASE_URL}/orders/`, {
+    //     method: "POST",
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //       Authorization: `Bearer ${token}`
+    //     },
+    //     body: JSON.stringify(payload)
+    //   });
+
+    //   const data = await res.json();
+
+    //   if (!res.ok) {
+        
+    //     alert(JSON.stringify(data.detail, null, 2) || "Order failed");
+    //     return;
+    //   }
+
+    //   alert("✅ Order placed successfully!");
+
+    // // reset cart
+    //   cart = [];
+    //   updateCartUI();
+    //   closeCart();
+
+    //  // 🔥 IMPORTANT: refresh stock UI
+    //   loadProductsWithStock();
+    //  }
 
       // ================= WAREHOUSE MODEL =================
 
