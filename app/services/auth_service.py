@@ -78,5 +78,11 @@ class AuthService:
         return {
             "success": True,
             "access_token": token,
-            "token_type": "bearer"
+            "token_type": "bearer",
+            "user": {
+               "id": str(db_user["_id"]),
+               "email": db_user["email"],
+               "role": db_user["role"],
+               "name": db_user.get("name")
+           }
         }
