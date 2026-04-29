@@ -15,6 +15,8 @@ from app.repositories.product_repository import ProductRepository
 from app.schemas.inventory_movement import InventoryMovementCreate
 from app.models.inventory_movement import MovementType
 from app.core.database import get_database
+from app.services.warehouse_service import WarehouseService
+from app.repositories.user_repository import UserRepository
 
 def get_inventory_service() -> InventoryMovementService:
     db = get_database()
@@ -22,6 +24,15 @@ def get_inventory_service() -> InventoryMovementService:
         movement_repo=InventoryMovementRepository(db),
         warehouse_repo=WarehouseRepository(db),
         product_repo=ProductRepository(db),
+    )
+
+def get_warehouse_svc() -> WarehouseService:
+    db = get_database()
+    return WarehouseService(
+        warehouse_repo=WarehouseRepository(db),
+        product_repo=ProductRepository(db),
+        user_repo=UserRepository(db),
+        movement_repo=InventoryMovementRepository(db),
     )
 
 async def create_purchase_order(data: PurchaseOrderCreate, created_by: str) -> dict:
@@ -136,6 +147,11 @@ async def receive_items(po_id: str, payload: PurchaseOrderReceive, received_by: 
             all_completed = False
             
         updated_items.append(item)
+
+    # Check and reset low stock alerts for received products
+    ws = get_warehouse_svc()
+    for product_id in set(r.product_id for r in payload.items):
+        await ws.check_and_trigger_low_stock_alert(product_id)
 
     new_status = PurchaseOrderStatus.COMPLETED.value if all_completed else PurchaseOrderStatus.PARTIALLY_RECEIVED.value
 

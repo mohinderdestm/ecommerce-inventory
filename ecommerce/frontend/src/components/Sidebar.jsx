@@ -36,6 +36,13 @@ const NAV = [
     ],
   },
   {
+    label: 'Reports & Analytics',
+    roles: ['admin', 'inventory_manager'],
+    links: [
+      { to: '/reports', icon: '📊', label: 'Reports' },
+    ],
+  },
+  {
     label: 'Admin',
     roles: ['admin'],
     links: [

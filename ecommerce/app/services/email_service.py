@@ -111,3 +111,19 @@ class EmailService:
         """
         html_content = self._get_html_wrapper(f"Order Update: {order_number}", content)
         self.send_email(customer_email, f"Order Update - {order_number} ({status_display})", html_content)
+
+    def send_low_stock_alert(self, admin_emails: list[str], product_name: str, sku: str, current_stock: int, reorder_level: int):
+        content = f"""
+        <p>Hello,</p>
+        <p>This is an automated alert from your Smart Inventory Platform.</p>
+        <p style="padding: 15px; background-color: #fff3cd; border-left: 4px solid #ffc107; margin: 20px 0;">
+            <strong>Low Stock Warning</strong><br/>
+            Product: <strong>{product_name}</strong> (SKU: {sku})<br/>
+            Current Global Stock: <strong>{current_stock}</strong><br/>
+            Reorder Level: <strong>{reorder_level}</strong>
+        </p>
+        <p>Please review and initiate a Purchase Order to restock this item soon.</p>
+        """
+        html_content = self._get_html_wrapper(f"Low Stock Alert: {sku}", content)
+        for email in admin_emails:
+            self.send_email(email, f"Low Stock Alert - {product_name} ({sku})", html_content)

@@ -18,6 +18,7 @@ from app.repositories.inventory_movement_repository import InventoryMovementRepo
 from app.models.inventory_movement import build_inventory_movement_document, MovementType
 from app.services.email_service import EmailService
 from app.repositories.user_repository import UserRepository
+from app.services.warehouse_service import WarehouseService
 
 logger = logging.getLogger(__name__)
 
@@ -236,6 +237,12 @@ class SalesOrderService:
                     remarks=f"Order {order['order_number']} confirmed"
                 )
                 await self.movement_repo.create(doc)
+
+        ws = WarehouseService(
+            self.warehouse_repo, self.product_repo, self.user_repo, self.movement_repo, self.email_service
+        )
+        for item in order["items"]:
+            await ws.check_and_trigger_low_stock_alert(item["product_id"])
 
         updated = await self.order_repo.update(order_id, {
             "status": SalesOrderStatus.CONFIRMED.value,

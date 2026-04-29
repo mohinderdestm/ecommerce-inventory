@@ -19,6 +19,7 @@ import PurchaseOrders from './pages/PurchaseOrders'
 import CreatePurchaseOrder from './pages/CreatePurchaseOrder'
 import AdminUsers from './pages/AdminUsers'
 import CreateProduct from './pages/CreateProduct'
+import ReportsAnalytics from './pages/ReportsAnalytics'
 import { Categories, Variants, Profile } from './pages/OtherPages'
 import './App.css'
 
@@ -83,6 +84,7 @@ export default function App() {
               <Route path="/orders/create" element={<PrivateLayout><CreateOrder /></PrivateLayout>} />
               <Route path="/purchase-orders"        element={<PrivateLayout><PurchaseOrders /></PrivateLayout>} />
               <Route path="/purchase-orders/create" element={<PrivateLayout><CreatePurchaseOrder /></PrivateLayout>} />
+              <Route path="/reports"                element={<PrivateLayout><ReportsAnalytics /></PrivateLayout>} />
               
               {/* Admin */}
               <Route path="/admin/users"            element={<PrivateLayout><AdminUsers /></PrivateLayout>} />

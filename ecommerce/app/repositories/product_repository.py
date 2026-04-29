@@ -59,6 +59,15 @@ class ProductRepository:
         except Exception:
             return False
 
+    async def set_low_stock_alert_status(self, product_id: str, status: bool):
+        try:
+            await self.collection.update_one(
+                {"_id": ObjectId(product_id)},
+                {"$set": {"low_stock_alert_sent": status, "updated_at": datetime.now(timezone.utc)}}
+            )
+        except Exception as e:
+            logger.error(f"Failed to update low_stock_alert_sent for {product_id}: {e}")
+
     async def search(
         self,
         query_str: Optional[str] = None,

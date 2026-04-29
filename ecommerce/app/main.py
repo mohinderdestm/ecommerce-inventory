@@ -8,7 +8,7 @@ import os
 from app.core.config import settings
 from app.core.database import connect_to_mongo, close_mongo_connection
 from app.core.log_config import setup_logging
-from app.api.v1.routes import auth, users, products, categories, suppliers, variants, warehouses, sales_orders, inventory_movements, purchase_orders
+from app.api.v1.routes import auth, users, products, categories, suppliers, variants, warehouses, sales_orders, inventory_movements, purchase_orders, reports
 
 
 setup_logging()
@@ -53,6 +53,7 @@ app.include_router(warehouses.router, prefix="/api/v1")
 app.include_router(sales_orders.router, prefix="/api/v1")
 app.include_router(inventory_movements.router, prefix="/api/v1")
 app.include_router(purchase_orders.router, prefix="/api/v1")
+app.include_router(reports.router, prefix="/api/v1")
 
 # Static UI 
 static_dir = os.path.join(os.path.dirname(__file__), "..", "static")

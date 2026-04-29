@@ -16,6 +16,7 @@ from app.schemas.warehouse import (
 )
 from app.repositories.inventory_movement_repository import InventoryMovementRepository
 from app.models.inventory_movement import build_inventory_movement_document, MovementType
+from app.services.email_service import EmailService
 
 logger = logging.getLogger(__name__)
 
@@ -27,11 +28,13 @@ class WarehouseService:
         product_repo: ProductRepository,
         user_repo: UserRepository,
         movement_repo: InventoryMovementRepository = None,
+        email_service: EmailService = None,
     ):
         self.repo = warehouse_repo
         self.product_repo = product_repo
         self.user_repo = user_repo
         self.movement_repo = movement_repo
+        self.email_service = email_service
 
     # Create 
 
@@ -56,6 +59,34 @@ class WarehouseService:
         created = await self.repo.create(doc)
         logger.info(f"Warehouse '{created['name']}' created by {created_by}")
         return created
+
+    async def check_and_trigger_low_stock_alert(self, product_id: str):
+        product = await self.product_repo.find_by_id(product_id)
+        if not product or product.get("reorder_level", 0) <= 0:
+            return
+
+        reorder_level = product["reorder_level"]
+        entries = await self.repo.get_product_stock_across_warehouses(product_id)
+        total_stock = sum(entry["quantity"] for entry in entries)
+
+        alert_sent = product.get("low_stock_alert_sent", False)
+
+        if total_stock <= reorder_level and not alert_sent:
+            # Trigger alert
+            await self.product_repo.set_low_stock_alert_status(product_id, True)
+            if self.email_service and self.user_repo:
+                admins = await self.user_repo.get_admins_and_managers()
+                admin_emails = [admin.get("email") for admin in admins if admin.get("email")]
+                if admin_emails:
+                    self.email_service.send_low_stock_alert(
+                        admin_emails, product["name"], product["sku"], total_stock, reorder_level
+                    )
+            logger.info(f"Low stock alert triggered for product {product['sku']} (Stock: {total_stock})")
+            
+        elif total_stock > reorder_level and alert_sent:
+            # Reset alert
+            await self.product_repo.set_low_stock_alert_status(product_id, False)
+            logger.info(f"Low stock alert reset for product {product['sku']} (Stock: {total_stock})")
 
     # Read 
 

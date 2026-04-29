@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, Query, status, HTTPException
+from fastapi import APIRouter, Depends, Query, status, HTTPException, BackgroundTasks
 
 from app.schemas.warehouse import (
     WarehouseCreateRequest, WarehouseUpdateRequest,
@@ -23,13 +23,18 @@ router = APIRouter(prefix="/warehouses", tags=["Warehouses"])
 
 
 from app.repositories.inventory_movement_repository import InventoryMovementRepository
+from app.services.email_service import EmailService
 
-def get_warehouse_service(db: AsyncIOMotorDatabase = Depends(get_db)) -> WarehouseService:
+def get_warehouse_service(
+    background_tasks: BackgroundTasks,
+    db: AsyncIOMotorDatabase = Depends(get_db)
+) -> WarehouseService:
     return WarehouseService(
         warehouse_repo=WarehouseRepository(db),
         product_repo=ProductRepository(db),
         user_repo=UserRepository(db),
         movement_repo=InventoryMovementRepository(db),
+        email_service=EmailService(background_tasks),
     )
 
 

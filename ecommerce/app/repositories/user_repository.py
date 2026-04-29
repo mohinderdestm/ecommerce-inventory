@@ -4,6 +4,8 @@ from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import logging
 
+from app.models.user import UserRole
+
 logger = logging.getLogger(__name__)
 
 
@@ -38,7 +40,11 @@ class UserRepository:
         return self._serialize(doc) if doc else None
 
     async def get_admins(self) -> list[dict]:
-        cursor = self.collection.find({"role": "ADMIN"})
+        cursor = self.collection.find({"role": UserRole.ADMIN.value})
+        return [self._serialize(doc) async for doc in cursor]
+
+    async def get_admins_and_managers(self) -> list[dict]:
+        cursor = self.collection.find({"role": {"$in": [UserRole.ADMIN.value, UserRole.INVENTORY_MANAGER.value]}})
         return [self._serialize(doc) async for doc in cursor]
 
     async def email_exists(self, email: str) -> bool:

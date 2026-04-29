@@ -79,6 +79,7 @@ def build_product_document(
         "image_urls": image_urls or [],
         "image_metadata": image_metadata or [],
         "variants": [],
+        "low_stock_alert_sent": False,
         "created_by": created_by,
         "updated_by": created_by,
         "created_at": now,
