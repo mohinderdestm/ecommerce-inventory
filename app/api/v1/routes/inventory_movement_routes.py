@@ -7,8 +7,7 @@ from app.schemas.inventory_movement_schema import (
     InventoryMovementResponse,
 )
 from app.services.inventory_movement_service import InventoryMovementService
-from app.utils.dependencies import get_current_user
-
+from app.utils.dependencies import get_current_user, get_request_audit_context
 
 router = APIRouter(prefix="/inventory-movements", tags=["Inventory Movements"])
 
@@ -17,8 +16,11 @@ router = APIRouter(prefix="/inventory-movements", tags=["Inventory Movements"])
 async def create_inventory_movement(
     data: InventoryMovementCreate,
     user=Depends(get_current_user),
+    audit_context=Depends(get_request_audit_context),
 ):
-    return await InventoryMovementService.create_manual_movement(data, user)
+    return await InventoryMovementService.create_manual_movement(
+        data, user, audit_context=audit_context
+    )
 
 
 @router.get("/", response_model=List[InventoryMovementResponse])

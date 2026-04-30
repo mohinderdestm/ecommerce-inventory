@@ -6,6 +6,7 @@ from app.repositories.product_repository import ProductRepository
 from app.repositories.warehouse_stock_repository import WarehouseStockRepository
 from app.core.websocket_manager import manager
 from app.services.warehouse_stock_service import WarehouseStockService
+from app.services.audit_service import AuditService
 
 
 class ProductService:
@@ -107,6 +108,7 @@ class ProductService:
         performed_by: dict | None = None,
         reference_type: str = "product_stock_allocation",
         reference_id: str | None = None,
+        audit_context: dict | None = None,
     ):
         for allocation in base_allocations:
             await WarehouseStockService.assign_stock_entry(
@@ -118,6 +120,7 @@ class ProductService:
                 performed_by=performed_by,
                 reference_type=reference_type,
                 reference_id=reference_id,
+                audit_context=audit_context,
             )
 
         for variant in product.get("variants", []):
@@ -131,6 +134,7 @@ class ProductService:
                     performed_by=performed_by,
                     reference_type=reference_type,
                     reference_id=reference_id,
+                    audit_context=audit_context,
                 )
 
     @classmethod
@@ -143,7 +147,9 @@ class ProductService:
         return enriched_products[0]
 
     @classmethod
-    async def create_product(cls, data: dict, user: dict):
+    async def create_product(
+        cls, data: dict, user: dict, audit_context: dict | None = None
+    ):
         data = dict(data)
         base_allocations = cls._normalize_allocations(
             data.pop("warehouse_allocations", [])
@@ -192,8 +198,21 @@ class ProductService:
             performed_by=user,
             reference_type="product_stock_allocation",
             reference_id=product["id"],
+            audit_context=audit_context,
         )
-        return await cls.get_product_with_stock(product["id"])
+        created_product = await cls.get_product_with_stock(product["id"])
+
+        await AuditService.safe_log_action(
+            user=user,
+            action="product.create",
+            entity_type="product",
+            entity_id=product["id"],
+            old_value=None,
+            new_value=created_product,
+            audit_context=audit_context,
+        )
+
+        return created_product
 
     @classmethod
     async def get_products(cls, user: dict):
@@ -209,7 +228,9 @@ class ProductService:
         return await cls._attach_warehouse_stock(products)
 
     @classmethod
-    async def update_product(cls, product_id: str, data: dict, user: dict):
+    async def update_product(
+        cls, product_id: str, data: dict, user: dict, audit_context: dict | None = None
+    ):
         data = dict(data)
         base_allocations = cls._normalize_allocations(
             data.pop("warehouse_allocations", [])
@@ -270,8 +291,19 @@ class ProductService:
             performed_by=user,
             reference_type="product_stock_update",
             reference_id=product_id,
+            audit_context=audit_context,
         )
         updated_product = await cls.get_product_with_stock(product_id)
+
+        await AuditService.safe_log_action(
+            user=user,
+            action="product.update",
+            entity_type="product",
+            entity_id=product_id,
+            old_value=existing,
+            new_value=updated_product,
+            audit_context=audit_context,
+        )
 
         asyncio.create_task(
             manager.broadcast({"event": "PRODUCT_UPDATED", "data": updated_product})
@@ -280,11 +312,27 @@ class ProductService:
         return {"message": "Product updated"}
 
     @classmethod
-    async def delete_product(cls, product_id: str):
+    async def delete_product(
+        cls, product_id: str, user: dict, audit_context: dict | None = None
+    ):
+        existing = await ProductRepository.get_product_by_id(product_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail="Product not found")
+
         result = await ProductRepository.delete_product(product_id)
 
         if not result or result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Product not found")
+
+        await AuditService.safe_log_action(
+            user=user,
+            action="product.delete",
+            entity_type="product",
+            entity_id=product_id,
+            old_value=existing,
+            new_value=None,
+            audit_context=audit_context,
+        )
 
         asyncio.create_task(
             manager.broadcast({"event": "PRODUCT_DELETED", "data": {"id": product_id}})

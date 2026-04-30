@@ -1,21 +1,32 @@
 from fastapi import APIRouter, Depends
 from app.schemas.warehouse_staff_schema import AssignStaffSchema, BulkAssignStaff
 from app.services.warehouse_staff_service import WarehouseStaffService
-from app.utils.dependencies import get_current_user
+from app.utils.dependencies import get_current_user, get_request_audit_context
 
 router = APIRouter(prefix="/warehouse-staff", tags=["Warehouse Staff"])
 
 
 @router.post("/bulk-assign")
-async def bulk_assign_staff(data: BulkAssignStaff, user=Depends(get_current_user)):
-    return await WarehouseStaffService.bulk_assign_staff(data, user)
+async def bulk_assign_staff(
+    data: BulkAssignStaff,
+    user=Depends(get_current_user),
+    audit_context=Depends(get_request_audit_context),
+):
+    return await WarehouseStaffService.bulk_assign_staff(
+        data, user, audit_context=audit_context
+    )
 
 
 @router.post("/{warehouse_id}")
 async def assign_staff(
-    warehouse_id: str, data: AssignStaffSchema, user=Depends(get_current_user)
+    warehouse_id: str,
+    data: AssignStaffSchema,
+    user=Depends(get_current_user),
+    audit_context=Depends(get_request_audit_context),
 ):
-    return await WarehouseStaffService.assign_staff(warehouse_id, data.staff_id, user)
+    return await WarehouseStaffService.assign_staff(
+        warehouse_id, data.staff_id, user, audit_context=audit_context
+    )
 
 
 @router.get("/{warehouse_id}")
@@ -25,9 +36,14 @@ async def get_staff(warehouse_id: str, user=Depends(get_current_user)):
 
 @router.delete("/{warehouse_id}/{staff_id}")
 async def remove_staff(
-    warehouse_id: str, staff_id: str, user=Depends(get_current_user)
+    warehouse_id: str,
+    staff_id: str,
+    user=Depends(get_current_user),
+    audit_context=Depends(get_request_audit_context),
 ):
-    return await WarehouseStaffService.remove_staff(warehouse_id, staff_id, user)
+    return await WarehouseStaffService.remove_staff(
+        warehouse_id, staff_id, user, audit_context=audit_context
+    )
 
 
 @router.get("/")

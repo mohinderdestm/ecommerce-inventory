@@ -1,5 +1,6 @@
 from app.repositories.order_repository import OrderRepository
 from app.repositories.product_repository import ProductRepository
+from app.services.audit_service import AuditService
 from app.services.warehouse_stock_service import WarehouseStockService
 from app.utils.email_service import send_order_confirmation_email
 from fastapi import HTTPException, status
@@ -9,7 +10,9 @@ import re
 
 class OrderService:
     @classmethod
-    async def place_order(cls, order_in, current_user: dict):
+    async def place_order(
+        cls, order_in, current_user: dict, audit_context: dict | None = None
+    ):
         user_role = current_user.get("role")
         if user_role != "viewer":
             raise HTTPException(
@@ -82,6 +85,7 @@ class OrderService:
                         reference_type="sales_order",
                         reference_id=order_reference,
                         remarks=f"Reserved for order {order_reference}",
+                        audit_context=audit_context,
                     )
                 )
             else:
@@ -93,6 +97,7 @@ class OrderService:
                     reference_type="sales_order",
                     reference_id=order_reference,
                     remarks=f"Reserved for order {order_reference}",
+                    audit_context=audit_context,
                 )
 
             if not item.variant_sku:
@@ -145,10 +150,22 @@ class OrderService:
         saved_order["invoice_file_name"] = invoice_file_name
         saved_order["confirmation_email_error"] = email_error
 
+        await AuditService.safe_log_action(
+            user=current_user,
+            action="order.create",
+            entity_type="order",
+            entity_id=saved_order["id"],
+            old_value=None,
+            new_value=saved_order,
+            audit_context=audit_context,
+        )
+
         return saved_order
 
     @classmethod
-    async def confirm_order(cls, order_id: str, current_user: dict):
+    async def confirm_order(
+        cls, order_id: str, current_user: dict, audit_context: dict | None = None
+    ):
 
         if current_user.get("role") != "admin":
             raise HTTPException(
@@ -167,10 +184,24 @@ class OrderService:
             )
 
         await OrderRepository.update_order_status(order_id, "confirmed")
+        await AuditService.safe_log_action(
+            user=current_user,
+            action="order.confirm",
+            entity_type="order",
+            entity_id=order_id,
+            old_value=order,
+            new_value={**order, "status": "confirmed"},
+            audit_context=audit_context,
+        )
         return {"message": "Order successfully confirmed."}
 
     @classmethod
-    async def cancel_order(cls, order_id: str, current_user: dict | None = None):
+    async def cancel_order(
+        cls,
+        order_id: str,
+        current_user: dict | None = None,
+        audit_context: dict | None = None,
+    ):
         order = await OrderRepository.get_order_by_id(order_id)
         if not order:
             raise HTTPException(status_code=404, detail="Order not found")
@@ -201,6 +232,7 @@ class OrderService:
                     reference_type="sales_order_cancellation",
                     reference_id=order.get("order_reference") or order_id,
                     remarks=f"Stock restored after cancellation of order {order_id}",
+                    audit_context=audit_context,
                 )
                 continue
 
@@ -229,9 +261,25 @@ class OrderService:
                 reference_type="sales_order_cancellation",
                 reference_id=order.get("order_reference") or order_id,
                 remarks=f"Stock restored after cancellation of order {order_id}",
+                audit_context=audit_context,
             )
 
         await OrderRepository.update_order_status(order_id, "cancelled")
+        await AuditService.safe_log_action(
+            user=current_user
+            or {
+                "id": None,
+                "name": "Order System",
+                "email": None,
+                "role": "system",
+            },
+            action="order.cancel",
+            entity_type="order",
+            entity_id=order_id,
+            old_value=order,
+            new_value={**order, "status": "cancelled"},
+            audit_context=audit_context,
+        )
         return {"message": "Order cancelled and stock restored successfully."}
 
     @classmethod

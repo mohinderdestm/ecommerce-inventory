@@ -17,6 +17,16 @@ class WarehouseStaffRepository:
         )
 
     @staticmethod
+    async def get_one(warehouse_id: str, staff_id: str):
+        return await collection.find_one(
+            {"warehouse_id": warehouse_id, "staff_id": staff_id}
+        )
+
+    @staticmethod
+    async def get_by_id(assignment_id: str):
+        return await collection.find_one({"_id": ObjectId(assignment_id)})
+
+    @staticmethod
     async def exists(warehouse_id: str, staff_id: str):
         return await collection.find_one(
             {"warehouse_id": warehouse_id, "staff_id": staff_id}

@@ -9,6 +9,7 @@ from app.repositories.inventory_movement_repository import InventoryMovementRepo
 from app.repositories.product_repository import ProductRepository
 from app.repositories.warehouse_repository import WarehouseRepository
 from app.repositories.warehouse_stock_repository import WarehouseStockRepository
+from app.services.audit_service import AuditService
 
 
 class InventoryMovementService:
@@ -53,6 +54,80 @@ class InventoryMovementService:
 
         raise HTTPException(
             status_code=404, detail=f"Variant SKU {variant_sku} not found"
+        )
+
+    @staticmethod
+    def _stock_snapshot(
+        *,
+        warehouse_id: str,
+        warehouse_name: str,
+        product: dict,
+        variant_sku: str,
+        variant_name: str,
+        quantity: int,
+        reference_type: Optional[str] = None,
+        reference_id: Optional[str] = None,
+        remarks: Optional[str] = None,
+    ):
+        return {
+            "warehouse_id": warehouse_id,
+            "warehouse_name": warehouse_name,
+            "product_id": product.get("id"),
+            "product_name": product.get("name"),
+            "product_sku": product.get("sku"),
+            "variant_sku": variant_sku,
+            "variant_name": variant_name,
+            "quantity": int(quantity),
+            "reference_type": reference_type,
+            "reference_id": reference_id,
+            "remarks": remarks,
+        }
+
+    @staticmethod
+    async def _audit_stock_change(
+        *,
+        user: dict,
+        action: str,
+        warehouse_id: str,
+        warehouse_name: str,
+        product: dict,
+        variant_sku: str,
+        variant_name: str,
+        old_qty: int,
+        new_qty: int,
+        reference_type: Optional[str] = None,
+        reference_id: Optional[str] = None,
+        remarks: Optional[str] = None,
+        audit_context: Optional[dict] = None,
+    ):
+        await AuditService.safe_log_action(
+            user=user,
+            action=action,
+            entity_type="warehouse_stock",
+            entity_id=f"{warehouse_id}:{variant_sku}",
+            old_value=InventoryMovementService._stock_snapshot(
+                warehouse_id=warehouse_id,
+                warehouse_name=warehouse_name,
+                product=product,
+                variant_sku=variant_sku,
+                variant_name=variant_name,
+                quantity=old_qty,
+                reference_type=reference_type,
+                reference_id=reference_id,
+                remarks=remarks,
+            ),
+            new_value=InventoryMovementService._stock_snapshot(
+                warehouse_id=warehouse_id,
+                warehouse_name=warehouse_name,
+                product=product,
+                variant_sku=variant_sku,
+                variant_name=variant_name,
+                quantity=new_qty,
+                reference_type=reference_type,
+                reference_id=reference_id,
+                remarks=remarks,
+            ),
+            audit_context=audit_context,
         )
 
     @staticmethod
@@ -135,7 +210,9 @@ class InventoryMovementService:
         )
 
     @staticmethod
-    async def create_manual_movement(data, user: dict):
+    async def create_manual_movement(
+        data, user: dict, audit_context: Optional[dict] = None
+    ):
         InventoryMovementService._check_manage_access(user)
 
         product = await ProductRepository.get_product_by_id(data.product_id)
@@ -153,6 +230,10 @@ class InventoryMovementService:
         quantity = int(data.quantity)
 
         if movement_type in {"inward", "return"}:
+            before_row = await WarehouseStockRepository.find_one(
+                data.warehouse_id, final_sku
+            )
+            old_qty = int((before_row or {}).get("quantity") or 0)
             await InventoryMovementService._increase_stock(
                 product,
                 data.warehouse_id,
@@ -176,9 +257,28 @@ class InventoryMovementService:
                 performed_by=user,
                 remarks=data.remarks,
             )
+            await InventoryMovementService._audit_stock_change(
+                user=user,
+                action="inventory_movement.create",
+                warehouse_id=data.warehouse_id,
+                warehouse_name=source_warehouse.get("name"),
+                product=product,
+                variant_sku=final_sku,
+                variant_name=variant_name,
+                old_qty=old_qty,
+                new_qty=old_qty + quantity,
+                reference_type=data.reference_type,
+                reference_id=data.reference_id,
+                remarks=data.remarks,
+                audit_context=audit_context,
+            )
             return {"message": "Movement recorded", "entries": [entry]}
 
         if movement_type in {"outward", "damaged", "expired"}:
+            before_row = await WarehouseStockRepository.find_one(
+                data.warehouse_id, final_sku
+            )
+            old_qty = int((before_row or {}).get("quantity") or 0)
             await InventoryMovementService._decrease_stock(
                 data.warehouse_id, final_sku, quantity
             )
@@ -196,6 +296,21 @@ class InventoryMovementService:
                 reference_id=data.reference_id,
                 performed_by=user,
                 remarks=data.remarks,
+            )
+            await InventoryMovementService._audit_stock_change(
+                user=user,
+                action="inventory_movement.create",
+                warehouse_id=data.warehouse_id,
+                warehouse_name=source_warehouse.get("name"),
+                product=product,
+                variant_sku=final_sku,
+                variant_name=variant_name,
+                old_qty=old_qty,
+                new_qty=old_qty - quantity,
+                reference_type=data.reference_type,
+                reference_id=data.reference_id,
+                remarks=data.remarks,
+                audit_context=audit_context,
             )
             return {"message": "Movement recorded", "entries": [entry]}
 
@@ -218,6 +333,14 @@ class InventoryMovementService:
                     status_code=404, detail="Destination warehouse not found"
                 )
 
+            source_before = await WarehouseStockRepository.find_one(
+                data.warehouse_id, final_sku
+            )
+            destination_before = await WarehouseStockRepository.find_one(
+                destination_id, final_sku
+            )
+            source_old_qty = int((source_before or {}).get("quantity") or 0)
+            destination_old_qty = int((destination_before or {}).get("quantity") or 0)
             await InventoryMovementService._decrease_stock(
                 data.warehouse_id, final_sku, quantity
             )
@@ -263,6 +386,36 @@ class InventoryMovementService:
                 reference_id=transfer_ref,
                 performed_by=user,
                 remarks=data.remarks,
+            )
+            await InventoryMovementService._audit_stock_change(
+                user=user,
+                action="inventory_movement.transfer_out",
+                warehouse_id=data.warehouse_id,
+                warehouse_name=source_warehouse.get("name"),
+                product=product,
+                variant_sku=final_sku,
+                variant_name=variant_name,
+                old_qty=source_old_qty,
+                new_qty=source_old_qty - quantity,
+                reference_type=data.reference_type or "warehouse_transfer",
+                reference_id=transfer_ref,
+                remarks=data.remarks,
+                audit_context=audit_context,
+            )
+            await InventoryMovementService._audit_stock_change(
+                user=user,
+                action="inventory_movement.transfer_in",
+                warehouse_id=destination_id,
+                warehouse_name=destination_warehouse.get("name"),
+                product=product,
+                variant_sku=final_sku,
+                variant_name=variant_name,
+                old_qty=destination_old_qty,
+                new_qty=destination_old_qty + quantity,
+                reference_type=data.reference_type or "warehouse_transfer",
+                reference_id=transfer_ref,
+                remarks=data.remarks,
+                audit_context=audit_context,
             )
             return {
                 "message": "Transfer movement recorded",

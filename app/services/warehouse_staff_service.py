@@ -3,9 +3,21 @@ from app.repositories.warehouse_staff_repository import WarehouseStaffRepository
 from app.repositories.warehouse_repository import WarehouseRepository
 from app.repositories.staff_repository import StaffRepository
 from app.models.warehouse_staff_model import WarehouseStaffModel
+from app.services.audit_service import AuditService
 
 
 class WarehouseStaffService:
+    @staticmethod
+    async def _enrich_assignment(assignment: dict):
+        enriched = dict(assignment)
+        staff = await StaffRepository.get_by_id(assignment.get("staff_id"))
+        if staff:
+            enriched["staff_name"] = staff.get("name")
+            enriched["staff_email"] = staff.get("email")
+            enriched["staff_phone"] = staff.get("phone")
+            enriched["staff_role"] = staff.get("role")
+            enriched["staff_is_active"] = staff.get("is_active", True)
+        return enriched
 
     @staticmethod
     def check_manager(user):
@@ -18,7 +30,9 @@ class WarehouseStaffService:
             raise HTTPException(status_code=403, detail="Access denied")
 
     @staticmethod
-    async def assign_staff(warehouse_id: str, staff_id: str, user):
+    async def assign_staff(
+        warehouse_id: str, staff_id: str, user, audit_context: dict | None = None
+    ):
         WarehouseStaffService.check_manager(user)
 
         warehouse = await WarehouseRepository.get_by_id(warehouse_id)
@@ -34,14 +48,25 @@ class WarehouseStaffService:
             raise HTTPException(status_code=400, detail="Staff already assigned")
 
         data = WarehouseStaffModel.create_dict(warehouse, staff)
-        await WarehouseStaffRepository.assign(data)
+        result = await WarehouseStaffRepository.assign(data)
 
         await WarehouseRepository.add_staff(warehouse_id, staff_id, staff.get("name"))
+
+        created = await WarehouseStaffRepository.get_by_id(str(result.inserted_id))
+        await AuditService.safe_log_action(
+            user=user,
+            action="warehouse_staff.assign",
+            entity_type="warehouse_staff",
+            entity_id=str(result.inserted_id),
+            old_value=None,
+            new_value=created,
+            audit_context=audit_context,
+        )
 
         return {"message": "Staff assigned successfully"}
 
     @staticmethod
-    async def bulk_assign_staff(data, user):
+    async def bulk_assign_staff(data, user, audit_context: dict | None = None):
         WarehouseStaffService.check_manager(user)
 
         warehouse = await WarehouseRepository.get_by_id(data.warehouse_id)
@@ -73,6 +98,20 @@ class WarehouseStaffService:
 
             assigned.append(staff_id)
 
+        await AuditService.safe_log_action(
+            user=user,
+            action="warehouse_staff.bulk_assign",
+            entity_type="warehouse_staff",
+            entity_id=data.warehouse_id,
+            old_value=None,
+            new_value={
+                "warehouse_id": data.warehouse_id,
+                "assigned_staff_ids": assigned,
+                "skipped": skipped,
+            },
+            audit_context=audit_context,
+        )
+
         return {
             "message": "Bulk assignment completed",
             "assigned_count": len(assigned),
@@ -84,12 +123,20 @@ class WarehouseStaffService:
         WarehouseStaffService.check_admin_or_manager(user)
 
         assignments = await WarehouseStaffRepository.get_by_warehouse(warehouse_id)
-
-        return [WarehouseStaffModel.response(item) for item in assignments]
+        enriched_assignments = []
+        for item in assignments:
+            enriched_assignments.append(
+                await WarehouseStaffService._enrich_assignment(item)
+            )
+        return [WarehouseStaffModel.response(item) for item in enriched_assignments]
 
     @staticmethod
-    async def remove_staff(warehouse_id: str, staff_id: str, user):
+    async def remove_staff(
+        warehouse_id: str, staff_id: str, user, audit_context: dict | None = None
+    ):
         WarehouseStaffService.check_manager(user)
+
+        existing = await WarehouseStaffRepository.get_one(warehouse_id, staff_id)
 
         result = await WarehouseStaffRepository.remove(warehouse_id, staff_id)
 
@@ -98,6 +145,16 @@ class WarehouseStaffService:
 
         await WarehouseRepository.remove_staff(warehouse_id, staff_id, None)
 
+        await AuditService.safe_log_action(
+            user=user,
+            action="warehouse_staff.remove",
+            entity_type="warehouse_staff",
+            entity_id=f"{warehouse_id}:{staff_id}",
+            old_value=existing,
+            new_value=None,
+            audit_context=audit_context,
+        )
+
         return {"message": "Staff removed successfully"}
 
     @staticmethod
@@ -105,5 +162,9 @@ class WarehouseStaffService:
         WarehouseStaffService.check_admin_or_manager(user)
 
         assignments = await WarehouseStaffRepository.get_all()
-
-        return [WarehouseStaffModel.response(item) for item in assignments]
+        enriched_assignments = []
+        for item in assignments:
+            enriched_assignments.append(
+                await WarehouseStaffService._enrich_assignment(item)
+            )
+        return [WarehouseStaffModel.response(item) for item in enriched_assignments]

@@ -4,6 +4,7 @@ from app.repositories.warehouse_repository import WarehouseRepository
 from app.repositories.warehouse_staff_repository import WarehouseStaffRepository
 from app.repositories.staff_repository import StaffRepository
 from app.models.warehouse_model import WarehouseModel
+from app.services.audit_service import AuditService
 
 
 class WarehouseService:
@@ -19,7 +20,7 @@ class WarehouseService:
             raise HTTPException(status_code=403, detail="Access denied")
 
     @staticmethod
-    async def create_warehouse(data, user):
+    async def create_warehouse(data, user, audit_context: dict | None = None):
         WarehouseService.check_manager(user)
 
         existing = await WarehouseRepository.exists_by_code(data.code)
@@ -29,6 +30,16 @@ class WarehouseService:
         warehouse_dict = WarehouseModel.warehouse_dict(data.dict(), user)
 
         warehouse_id = await WarehouseRepository.create(warehouse_dict)
+
+        await AuditService.safe_log_action(
+            user=user,
+            action="warehouse.create",
+            entity_type="warehouse",
+            entity_id=warehouse_id,
+            old_value=None,
+            new_value=await WarehouseRepository.get_by_id(warehouse_id),
+            audit_context=audit_context,
+        )
 
         return {"message": "Warehouse created", "id": warehouse_id}
 
@@ -88,7 +99,9 @@ class WarehouseService:
         return response
 
     @staticmethod
-    async def update_warehouse(warehouse_id, data, user):
+    async def update_warehouse(
+        warehouse_id, data, user, audit_context: dict | None = None
+    ):
         WarehouseService.check_manager(user)
 
         warehouse = await WarehouseRepository.get_by_id(warehouse_id)
@@ -134,10 +147,20 @@ class WarehouseService:
 
         await WarehouseRepository.update(warehouse_id, update_data)
 
+        await AuditService.safe_log_action(
+            user=user,
+            action="warehouse.update",
+            entity_type="warehouse",
+            entity_id=warehouse_id,
+            old_value=warehouse,
+            new_value=await WarehouseRepository.get_by_id(warehouse_id),
+            audit_context=audit_context,
+        )
+
         return {"message": "Warehouse updated successfully"}
 
     @staticmethod
-    async def delete_warehouse(warehouse_id, user):
+    async def delete_warehouse(warehouse_id, user, audit_context: dict | None = None):
         WarehouseService.check_manager(user)
 
         warehouse = await WarehouseRepository.get_by_id(warehouse_id)
@@ -146,10 +169,20 @@ class WarehouseService:
 
         await WarehouseRepository.delete(warehouse_id)
 
+        await AuditService.safe_log_action(
+            user=user,
+            action="warehouse.delete",
+            entity_type="warehouse",
+            entity_id=warehouse_id,
+            old_value=warehouse,
+            new_value=None,
+            audit_context=audit_context,
+        )
+
         return {"message": "Warehouse deleted"}
 
     @staticmethod
-    async def bulk_create_warehouses(data, user):
+    async def bulk_create_warehouses(data, user, audit_context: dict | None = None):
         WarehouseService.check_manager(user)
 
         created = []
@@ -166,6 +199,21 @@ class WarehouseService:
 
             result = await WarehouseRepository.create(warehouse_dict)
             created.append(str(result))
+
+        await AuditService.safe_log_action(
+            user=user,
+            action="warehouse.bulk_create",
+            entity_type="warehouse",
+            entity_id=None,
+            old_value=None,
+            new_value={
+                "created_ids": created,
+                "skipped_codes": skipped,
+                "created_count": len(created),
+                "skipped_count": len(skipped),
+            },
+            audit_context=audit_context,
+        )
 
         return {
             "message": "Bulk warehouse creation completed",

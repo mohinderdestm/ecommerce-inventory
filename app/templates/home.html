@@ -4,11 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Smart Inventory Dashboard</title>
-    <link rel="stylesheet" href="/static/css/home.css?v=20260427d" />
+    <link rel="stylesheet" href="/static/css/home.css?v=20260430a" />
     <link rel="stylesheet" href="/static/css/reports.css?v=20260427a" />
     <link rel="stylesheet" href="/static/css/staff.css?v=20260427a" />
     <link rel="stylesheet" href="/static/css/warehouses.css?v=20260427a" />
     <link rel="stylesheet" href="/static/css/operations.css?v=20260427a" />
+    <link rel="stylesheet" href="/static/css/audit.css?v=20260430a" />
   </head>
 
   <body class="dashboard-shell">
@@ -65,6 +66,9 @@
             </button>
             <button id="reportsBtn" class="btn reports-btn nav-menu-btn hidden">
               Reports
+            </button>
+            <button id="auditBtn" class="btn audit-btn nav-menu-btn hidden">
+              Audit Logs
             </button>
             <button id="staffBtn" class="btn staff-btn nav-menu-btn hidden">
               Staff
@@ -610,6 +614,34 @@
       </div>
     </div>
 
+    <div id="auditOverlay" class="overlay hidden">
+      <div class="overlay-content audit-shell">
+        <div class="overlay-header audit-header">
+          <div class="header-main">
+            <h2>Audit Logs</h2>
+            <span id="auditCountBadge" class="item-count-pill">0 entries</span>
+          </div>
+          <div class="audit-header-actions">
+            <button id="refreshAuditBtn" class="btn report-refresh-btn" type="button">
+              Refresh
+            </button>
+            <button id="closeAuditOverlay" class="close-btn" type="button">
+              &times;
+            </button>
+          </div>
+        </div>
+        <div class="audit-toolbar">
+          <p>
+            Review who changed products, purchase orders, warehouse staffing, stock
+            levels, and orders across the workspace.
+          </p>
+        </div>
+        <div id="auditLogContainer" class="audit-log-container">
+          <div class="loading-state">Loading audit timeline...</div>
+        </div>
+      </div>
+    </div>
+
     <div id="staffOverlay" class="overlay hidden">
       <div class="overlay-content staff-shell">
         <div class="overlay-header staff-header">
@@ -1021,10 +1053,11 @@
         </div>
       </div>
     </div>
-    <script src="/static/js/home.js?v=20260427d"></script>
+    <script src="/static/js/home.js?v=20260430a"></script>
     <script src="/static/js/reports.js?v=20260427a"></script>
     <script src="/static/js/staff.js?v=20260427a"></script>
     <script src="/static/js/warehouses.js"></script>
     <script src="/static/js/operations.js"></script>
+    <script src="/static/js/audit.js?v=20260430a"></script>
   </body>
 </html>

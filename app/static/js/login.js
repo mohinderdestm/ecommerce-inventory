@@ -3,13 +3,44 @@ document.addEventListener("DOMContentLoaded", () => {
   const errorMsg = document.getElementById("errorMsg");
   const successMsg = document.getElementById("successMsg");
 
+  function clearSession() {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user_name");
+    localStorage.removeItem("user_role");
+    localStorage.removeItem("user_email");
+    localStorage.removeItem("company_name");
+    localStorage.removeItem("contact_name");
+    localStorage.removeItem("phone_number");
+    localStorage.removeItem("gst_number");
+    localStorage.removeItem("address");
+    localStorage.removeItem("payment_term");
+    localStorage.removeItem("business_email");
+  }
+
+  async function validateExistingSession(token) {
+    try {
+      const response = await fetch("/api/v1/users/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        clearSession();
+        return;
+      }
+
+      window.location.href = "/home";
+    } catch (error) {
+      clearSession();
+    }
+  }
+
   const existingToken = localStorage.getItem("access_token");
   if (
     existingToken &&
     existingToken !== "undefined" &&
-    existingToken !== null
+    existingToken !== "null"
   ) {
-    window.location.href = "/home";
+    validateExistingSession(existingToken);
   }
 
   function showError(message) {

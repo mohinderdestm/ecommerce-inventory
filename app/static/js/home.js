@@ -1,8 +1,21 @@
 document.addEventListener("DOMContentLoaded", () => {
   const token = localStorage.getItem("access_token");
-  if (!token || token === "undefined" || token === "null") {
-    localStorage.clear();
+  const resetSessionAndRedirect = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user_name");
+    localStorage.removeItem("user_role");
+    localStorage.removeItem("user_email");
+    localStorage.removeItem("company_name");
+    localStorage.removeItem("contact_name");
+    localStorage.removeItem("phone_number");
+    localStorage.removeItem("gst_number");
+    localStorage.removeItem("address");
+    localStorage.removeItem("payment_term");
+    localStorage.removeItem("business_email");
     window.location.href = "/";
+  };
+  if (!token || token === "undefined" || token === "null") {
+    resetSessionAndRedirect();
     return;
   }
 
@@ -43,6 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const addBtn = getEl("openAddProduct");
   const warehouseBtn = getEl("warehouseBtn");
   const reportsBtn = getEl("reportsBtn");
+  const auditBtn = getEl("auditBtn");
   const staffBtn = getEl("staffBtn");
   const toast = getEl("toast");
   const container = getEl("productsContainer");
@@ -103,6 +117,7 @@ document.addEventListener("DOMContentLoaded", () => {
     adminOrdersBtn,
     warehouseBtn,
     reportsBtn,
+    auditBtn,
     staffBtn,
     addBtn,
   ].filter(Boolean);
@@ -167,7 +182,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     navActionCount.innerText = visibleActions.length;
     if (navActionLabel) {
-      const dRole = (localStorage.getItem("user_role") || userRole).toLowerCase();
+      const dRole = (
+        localStorage.getItem("user_role") || userRole
+      ).toLowerCase();
       navActionLabel.innerText = visibleActions.length
         ? `${formatText(dRole)} actions`
         : "No actions";
@@ -660,6 +677,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch("/api/v1/users/me", {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) {
+        if (res.status === 401) {
+          resetSessionAndRedirect();
+          return;
+        }
+        throw new Error("Unable to load user profile");
+      }
       const data = await res.json();
       const user = data.user;
 
@@ -840,18 +864,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   if (getEl("confirmLogout"))
     getEl("confirmLogout").addEventListener("click", () => {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("user_name");
-      localStorage.removeItem("user_role");
-      localStorage.removeItem("user_email");
-      localStorage.removeItem("company_name");
-      localStorage.removeItem("contact_name");
-      localStorage.removeItem("phone_number");
-      localStorage.removeItem("gst_number");
-      localStorage.removeItem("address");
-      localStorage.removeItem("payment_term");
-      localStorage.removeItem("business_email");
-      window.location.href = "/";
+      resetSessionAndRedirect();
     });
 
   const confirmDeleteBtn = getEl("confirmDelete");
@@ -1315,6 +1328,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch("/api/v1/products", {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (res.status === 401) {
+        resetSessionAndRedirect();
+        return;
+      }
       const data = await res.json();
       let fetchedProducts = Array.isArray(data) ? data : data.products || [];
       const currentRole = (

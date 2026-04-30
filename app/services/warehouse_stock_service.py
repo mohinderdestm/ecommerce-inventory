@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from app.core.database import db
 from app.models.warehouse_stock_model import WarehouseStock
 from app.repositories.warehouse_stock_repository import WarehouseStockRepository
+from app.services.audit_service import AuditService
 from app.services.inventory_movement_service import InventoryMovementService
 
 
@@ -13,7 +14,9 @@ class WarehouseStockService:
     @staticmethod
     def _check_manage_access(user):
         if user["role"] not in ["supplier", "manager", "admin"]:
-            raise HTTPException(status_code=403, detail="Only supplier, manager, and admin allowed")
+            raise HTTPException(
+                status_code=403, detail="Only supplier, manager, and admin allowed"
+            )
 
     @staticmethod
     async def _get_warehouse(warehouse_id: str):
@@ -43,6 +46,80 @@ class WarehouseStockService:
         return final_sku, variant_name
 
     @staticmethod
+    def _stock_snapshot(
+        *,
+        warehouse_id: str,
+        warehouse_name: str,
+        product: dict,
+        variant_sku: str,
+        variant_name: str,
+        quantity: int,
+        reference_type: str | None = None,
+        reference_id: str | None = None,
+        remarks: str | None = None,
+    ):
+        return {
+            "warehouse_id": warehouse_id,
+            "warehouse_name": warehouse_name,
+            "product_id": str(product.get("id")),
+            "product_name": product.get("name"),
+            "product_sku": product.get("sku"),
+            "variant_sku": variant_sku,
+            "variant_name": variant_name,
+            "quantity": int(quantity),
+            "reference_type": reference_type,
+            "reference_id": reference_id,
+            "remarks": remarks,
+        }
+
+    @staticmethod
+    async def _audit_stock_change(
+        *,
+        user: dict | None,
+        action: str,
+        warehouse_id: str,
+        warehouse_name: str,
+        product: dict,
+        variant_sku: str,
+        variant_name: str,
+        old_qty: int,
+        new_qty: int,
+        reference_type: str | None = None,
+        reference_id: str | None = None,
+        remarks: str | None = None,
+        audit_context: dict | None = None,
+    ):
+        await AuditService.safe_log_action(
+            user=user,
+            action=action,
+            entity_type="warehouse_stock",
+            entity_id=f"{warehouse_id}:{variant_sku}",
+            old_value=WarehouseStockService._stock_snapshot(
+                warehouse_id=warehouse_id,
+                warehouse_name=warehouse_name,
+                product=product,
+                variant_sku=variant_sku,
+                variant_name=variant_name,
+                quantity=old_qty,
+                reference_type=reference_type,
+                reference_id=reference_id,
+                remarks=remarks,
+            ),
+            new_value=WarehouseStockService._stock_snapshot(
+                warehouse_id=warehouse_id,
+                warehouse_name=warehouse_name,
+                product=product,
+                variant_sku=variant_sku,
+                variant_name=variant_name,
+                quantity=new_qty,
+                reference_type=reference_type,
+                reference_id=reference_id,
+                remarks=remarks,
+            ),
+            audit_context=audit_context,
+        )
+
+    @staticmethod
     async def assign_stock_entry(
         warehouse_id: str,
         product: dict,
@@ -54,6 +131,7 @@ class WarehouseStockService:
         reference_id: str | None = None,
         remarks: str | None = None,
         movement_type: str = "inward",
+        audit_context: dict | None = None,
     ):
         if quantity <= 0:
             return {"message": "Skipped empty stock allocation"}
@@ -62,8 +140,13 @@ class WarehouseStockService:
         existing = await WarehouseStockRepository.find_one(warehouse_id, variant_sku)
 
         if existing:
-            await WarehouseStockRepository.increase_stock(warehouse_id, variant_sku, quantity)
+            old_qty = int(existing.get("quantity") or 0)
+            await WarehouseStockRepository.increase_stock(
+                warehouse_id, variant_sku, quantity
+            )
+            new_qty = old_qty + quantity
         else:
+            old_qty = 0
             stock = WarehouseStock(
                 warehouse_id=ObjectId(warehouse_id),
                 warehouse_name=warehouse.get("name"),
@@ -75,6 +158,7 @@ class WarehouseStockService:
                 quantity=quantity,
             )
             await WarehouseStockRepository.create(stock.dict())
+            new_qty = quantity
 
         await InventoryMovementService.record_movement(
             product_id=product["id"],
@@ -91,6 +175,21 @@ class WarehouseStockService:
             performed_by=performed_by,
             remarks=remarks,
         )
+        await WarehouseStockService._audit_stock_change(
+            user=performed_by,
+            action="warehouse_stock.assign",
+            warehouse_id=warehouse_id,
+            warehouse_name=warehouse.get("name"),
+            product=product,
+            variant_sku=variant_sku,
+            variant_name=variant_name,
+            old_qty=old_qty,
+            new_qty=new_qty,
+            reference_type=reference_type,
+            reference_id=reference_id,
+            remarks=remarks,
+            audit_context=audit_context,
+        )
         return {"message": "Stock assigned"}
 
     @staticmethod
@@ -102,9 +201,14 @@ class WarehouseStockService:
         reference_type: str = "sales_order",
         reference_id: str | None = None,
         remarks: str | None = None,
+        audit_context: dict | None = None,
     ):
-        final_sku, variant_name = WarehouseStockService._resolve_variant_details(product, variant_sku)
-        available_rows = await WarehouseStockRepository.find_available_stock(product["id"], final_sku)
+        final_sku, variant_name = WarehouseStockService._resolve_variant_details(
+            product, variant_sku
+        )
+        available_rows = await WarehouseStockRepository.find_available_stock(
+            product["id"], final_sku
+        )
 
         total_available = sum(int(row.get("quantity", 0)) for row in available_rows)
         if total_available < quantity:
@@ -131,7 +235,11 @@ class WarehouseStockService:
                 continue
 
             warehouse_id = str(row["warehouse_id"])
-            await WarehouseStockRepository.decrease_stock(warehouse_id, final_sku, take_qty)
+            old_qty = available_qty
+            await WarehouseStockRepository.decrease_stock(
+                warehouse_id, final_sku, take_qty
+            )
+            new_qty = old_qty - take_qty
 
             await InventoryMovementService.record_movement(
                 product_id=product["id"],
@@ -147,6 +255,21 @@ class WarehouseStockService:
                 reference_id=reference_id,
                 performed_by=performed_by,
                 remarks=remarks,
+            )
+            await WarehouseStockService._audit_stock_change(
+                user=performed_by,
+                action="warehouse_stock.reserve",
+                warehouse_id=warehouse_id,
+                warehouse_name=row.get("warehouse_name"),
+                product=product,
+                variant_sku=final_sku,
+                variant_name=variant_name,
+                old_qty=old_qty,
+                new_qty=new_qty,
+                reference_type=reference_type,
+                reference_id=reference_id,
+                remarks=remarks,
+                audit_context=audit_context,
             )
 
             allocations.append(
@@ -175,9 +298,14 @@ class WarehouseStockService:
         reference_type: str = "sales_order",
         reference_id: str | None = None,
         remarks: str | None = None,
+        audit_context: dict | None = None,
     ):
-        final_sku, variant_name = WarehouseStockService._resolve_variant_details(product, variant_sku)
-        selected_stock = await WarehouseStockRepository.find_one(warehouse_id, final_sku)
+        final_sku, variant_name = WarehouseStockService._resolve_variant_details(
+            product, variant_sku
+        )
+        selected_stock = await WarehouseStockRepository.find_one(
+            warehouse_id, final_sku
+        )
 
         if not selected_stock:
             raise HTTPException(
@@ -213,6 +341,21 @@ class WarehouseStockService:
             performed_by=performed_by,
             remarks=remarks,
         )
+        await WarehouseStockService._audit_stock_change(
+            user=performed_by,
+            action="warehouse_stock.reserve",
+            warehouse_id=warehouse_id,
+            warehouse_name=selected_stock.get("warehouse_name"),
+            product=product,
+            variant_sku=final_sku,
+            variant_name=variant_name,
+            old_qty=selected_quantity,
+            new_qty=selected_quantity - quantity,
+            reference_type=reference_type,
+            reference_id=reference_id,
+            remarks=remarks,
+            audit_context=audit_context,
+        )
 
         return {
             "variant_sku": final_sku,
@@ -228,9 +371,15 @@ class WarehouseStockService:
         }
 
     @staticmethod
-    async def get_warehouse_candidates_for_restore(product: dict, variant_sku: str | None):
-        final_sku, _ = WarehouseStockService._resolve_variant_details(product, variant_sku)
-        return await WarehouseStockRepository.find_available_stock(product["id"], final_sku)
+    async def get_warehouse_candidates_for_restore(
+        product: dict, variant_sku: str | None
+    ):
+        final_sku, _ = WarehouseStockService._resolve_variant_details(
+            product, variant_sku
+        )
+        return await WarehouseStockRepository.find_available_stock(
+            product["id"], final_sku
+        )
 
     @staticmethod
     async def restore_stock_allocations(
@@ -241,11 +390,14 @@ class WarehouseStockService:
         reference_type: str = "sales_order_cancellation",
         reference_id: str | None = None,
         remarks: str | None = None,
+        audit_context: dict | None = None,
     ):
         if not allocations:
             return
 
-        final_sku, variant_name = WarehouseStockService._resolve_variant_details(product, variant_sku)
+        final_sku, variant_name = WarehouseStockService._resolve_variant_details(
+            product, variant_sku
+        )
 
         for allocation in allocations:
             warehouse_id = allocation.get("warehouse_id")
@@ -255,11 +407,18 @@ class WarehouseStockService:
 
             existing = await WarehouseStockRepository.find_one(warehouse_id, final_sku)
             if existing:
-                await WarehouseStockRepository.increase_stock(warehouse_id, final_sku, quantity)
+                old_qty = int(existing.get("quantity") or 0)
+                await WarehouseStockRepository.increase_stock(
+                    warehouse_id, final_sku, quantity
+                )
                 warehouse_name = existing.get("warehouse_name")
+                new_qty = old_qty + quantity
             else:
                 warehouse = await WarehouseStockService._get_warehouse(warehouse_id)
-                warehouse_name = allocation.get("warehouse_name") or warehouse.get("name")
+                warehouse_name = allocation.get("warehouse_name") or warehouse.get(
+                    "name"
+                )
+                old_qty = 0
                 stock = WarehouseStock(
                     warehouse_id=ObjectId(warehouse_id),
                     warehouse_name=warehouse_name,
@@ -271,6 +430,7 @@ class WarehouseStockService:
                     quantity=quantity,
                 )
                 await WarehouseStockRepository.create(stock.dict())
+                new_qty = quantity
 
             await InventoryMovementService.record_movement(
                 product_id=product["id"],
@@ -287,9 +447,24 @@ class WarehouseStockService:
                 performed_by=performed_by,
                 remarks=remarks,
             )
+            await WarehouseStockService._audit_stock_change(
+                user=performed_by,
+                action="warehouse_stock.restore",
+                warehouse_id=warehouse_id,
+                warehouse_name=warehouse_name,
+                product=product,
+                variant_sku=final_sku,
+                variant_name=variant_name,
+                old_qty=old_qty,
+                new_qty=new_qty,
+                reference_type=reference_type,
+                reference_id=reference_id,
+                remarks=remarks,
+                audit_context=audit_context,
+            )
 
     @staticmethod
-    async def assign_stock(data, user):
+    async def assign_stock(data, user, audit_context: dict | None = None):
         WarehouseStockService._check_manage_access(user)
         await WarehouseStockService._get_warehouse(data.warehouse_id)
 
@@ -311,6 +486,7 @@ class WarehouseStockService:
             reference_id=data.reference_id,
             remarks=data.remarks,
             movement_type="inward",
+            audit_context=audit_context,
         )
 
     @staticmethod
@@ -336,7 +512,16 @@ class WarehouseStockService:
         return result
 
     @staticmethod
-    async def update_stock(warehouse_id, sku, qty, user, reference_type="manual_adjustment", reference_id=None, remarks=None):
+    async def update_stock(
+        warehouse_id,
+        sku,
+        qty,
+        user,
+        reference_type="manual_adjustment",
+        reference_id=None,
+        remarks=None,
+        audit_context: dict | None = None,
+    ):
         WarehouseStockService._check_manage_access(user)
 
         existing = await WarehouseStockRepository.find_one(warehouse_id, sku)
@@ -365,26 +550,60 @@ class WarehouseStockService:
                 performed_by=user,
                 remarks=remarks or "Stock updated manually",
             )
+            await WarehouseStockService._audit_stock_change(
+                user=user,
+                action="warehouse_stock.update",
+                warehouse_id=warehouse_id,
+                warehouse_name=existing.get("warehouse_name"),
+                product={
+                    "id": str(existing.get("product_id")),
+                    "name": existing.get("product_name"),
+                    "sku": existing.get("product_sku"),
+                },
+                variant_sku=existing.get("variant_sku"),
+                variant_name=existing.get("variant_name"),
+                old_qty=old_qty,
+                new_qty=new_qty,
+                reference_type=reference_type,
+                reference_id=reference_id,
+                remarks=remarks or "Stock updated manually",
+                audit_context=audit_context,
+            )
 
         return {"message": "Stock updated"}
 
     @staticmethod
-    async def transfer_stock(data, user):
+    async def transfer_stock(data, user, audit_context: dict | None = None):
         WarehouseStockService._check_manage_access(user)
 
-        source = await WarehouseStockRepository.find_one(data.from_warehouse, data.variant_sku)
+        source = await WarehouseStockRepository.find_one(
+            data.from_warehouse, data.variant_sku
+        )
         if not source or int(source.get("quantity") or 0) < data.quantity:
             raise HTTPException(status_code=400, detail="Not enough stock")
 
-        await WarehouseStockRepository.decrease_stock(data.from_warehouse, data.variant_sku, data.quantity)
+        source_old_qty = int(source.get("quantity") or 0)
+        await WarehouseStockRepository.decrease_stock(
+            data.from_warehouse, data.variant_sku, data.quantity
+        )
+        source_new_qty = source_old_qty - int(data.quantity)
 
-        destination = await WarehouseStockRepository.find_one(data.to_warehouse, data.variant_sku)
+        destination = await WarehouseStockRepository.find_one(
+            data.to_warehouse, data.variant_sku
+        )
         if destination:
-            await WarehouseStockRepository.increase_stock(data.to_warehouse, data.variant_sku, data.quantity)
+            destination_old_qty = int(destination.get("quantity") or 0)
+            await WarehouseStockRepository.increase_stock(
+                data.to_warehouse, data.variant_sku, data.quantity
+            )
             destination_name = destination.get("warehouse_name")
+            destination_new_qty = destination_old_qty + int(data.quantity)
         else:
-            destination_warehouse = await WarehouseStockService._get_warehouse(data.to_warehouse)
+            destination_warehouse = await WarehouseStockService._get_warehouse(
+                data.to_warehouse
+            )
             destination_name = destination_warehouse.get("name")
+            destination_old_qty = 0
             new_stock = {
                 "warehouse_id": ObjectId(data.to_warehouse),
                 "warehouse_name": destination_name,
@@ -398,8 +617,11 @@ class WarehouseStockService:
                 "updated_at": datetime.utcnow(),
             }
             await WarehouseStockRepository.create(new_stock)
+            destination_new_qty = int(data.quantity)
 
-        transfer_ref = data.reference_id or f"TRF-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        transfer_ref = (
+            data.reference_id or f"TRF-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        )
         reference_type = data.reference_type or "warehouse_transfer"
 
         await InventoryMovementService.record_movement(
@@ -431,6 +653,42 @@ class WarehouseStockService:
             reference_id=transfer_ref,
             performed_by=user,
             remarks=data.remarks,
+        )
+
+        product_ref = {
+            "id": str(source.get("product_id")),
+            "name": source.get("product_name"),
+            "sku": source.get("product_sku"),
+        }
+        await WarehouseStockService._audit_stock_change(
+            user=user,
+            action="warehouse_stock.transfer_out",
+            warehouse_id=data.from_warehouse,
+            warehouse_name=source.get("warehouse_name"),
+            product=product_ref,
+            variant_sku=source.get("variant_sku"),
+            variant_name=source.get("variant_name"),
+            old_qty=source_old_qty,
+            new_qty=source_new_qty,
+            reference_type=reference_type,
+            reference_id=transfer_ref,
+            remarks=data.remarks,
+            audit_context=audit_context,
+        )
+        await WarehouseStockService._audit_stock_change(
+            user=user,
+            action="warehouse_stock.transfer_in",
+            warehouse_id=data.to_warehouse,
+            warehouse_name=destination_name,
+            product=product_ref,
+            variant_sku=source.get("variant_sku"),
+            variant_name=source.get("variant_name"),
+            old_qty=destination_old_qty,
+            new_qty=destination_new_qty,
+            reference_type=reference_type,
+            reference_id=transfer_ref,
+            remarks=data.remarks,
+            audit_context=audit_context,
         )
 
         return {"message": "Stock transferred"}

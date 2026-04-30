@@ -1,15 +1,28 @@
 from datetime import datetime
 from app.repositories.supplier_repository import SupplierRepository
 from app.models.supplier_model import supplier_model
+from app.services.audit_service import AuditService
 
 repo = SupplierRepository()
 
 
 class SupplierService:
 
-    async def create_supplier(self, supplier_data):
+    async def create_supplier(
+        self, supplier_data, user: dict, audit_context: dict | None = None
+    ):
         data = supplier_model(supplier_data.dict())
-        return await repo.create(data)
+        supplier_id = await repo.create(data)
+        await AuditService.safe_log_action(
+            user=user,
+            action="supplier.create",
+            entity_type="supplier",
+            entity_id=supplier_id,
+            old_value=None,
+            new_value=await repo.get_by_id(supplier_id),
+            audit_context=audit_context,
+        )
+        return supplier_id
 
     async def get_suppliers(self):
         return await repo.get_all()
@@ -20,7 +33,13 @@ class SupplierService:
             raise Exception("Supplier not found")
         return supplier
 
-    async def update_supplier(self, supplier_id, supplier_update):
+    async def update_supplier(
+        self,
+        supplier_id,
+        supplier_update,
+        user: dict,
+        audit_context: dict | None = None,
+    ):
         existing = await repo.get_by_id(supplier_id)
 
         if not existing:
@@ -41,7 +60,30 @@ class SupplierService:
 
         print("FINAL UPDATE DATA:", update_data)
 
-        return await repo.update(supplier_id, update_data)
+        updated = await repo.update(supplier_id, update_data)
+        await AuditService.safe_log_action(
+            user=user,
+            action="supplier.update",
+            entity_type="supplier",
+            entity_id=supplier_id,
+            old_value=existing,
+            new_value=updated,
+            audit_context=audit_context,
+        )
+        return updated
 
-    async def delete_supplier(self, supplier_id):
-        return await repo.delete(supplier_id)
+    async def delete_supplier(
+        self, supplier_id, user: dict, audit_context: dict | None = None
+    ):
+        existing = await repo.get_by_id(supplier_id)
+        result = await repo.delete(supplier_id)
+        await AuditService.safe_log_action(
+            user=user,
+            action="supplier.delete",
+            entity_type="supplier",
+            entity_id=supplier_id,
+            old_value=existing,
+            new_value=None,
+            audit_context=audit_context,
+        )
+        return result

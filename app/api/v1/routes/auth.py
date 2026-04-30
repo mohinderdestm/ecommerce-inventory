@@ -1,26 +1,26 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from app.schemas.user import UserCreate, UserLogin
 from app.services.user_service import UserService
 from app.schemas.token import TokenResponse
-
+from app.utils.dependencies import get_request_audit_context
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
 @router.post("/register")
-async def register(user: UserCreate):
+async def register(user: UserCreate, audit_context=Depends(get_request_audit_context)):
     try:
-
-        return await UserService.register(user.dict())
+        return await UserService.register(user.dict(), audit_context=audit_context)
     except Exception as e:
-
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(user: UserLogin):
+async def login(user: UserLogin, audit_context=Depends(get_request_audit_context)):
 
-    result = await UserService.login(user.email, user.password)
+    result = await UserService.login(
+        user.email, user.password, audit_context=audit_context
+    )
 
     if not result:
 

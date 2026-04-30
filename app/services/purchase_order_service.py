@@ -6,6 +6,7 @@ from app.core.database import db
 from app.models.purchase_order_model import purchase_order_model
 from app.repositories.product_repository import ProductRepository
 from app.repositories.purchase_order_repository import PurchaseOrderRepository
+from app.services.audit_service import AuditService
 from app.services.notification_service import NotificationService
 from app.services.warehouse_stock_service import WarehouseStockService
 
@@ -86,7 +87,7 @@ class PurchaseOrderService:
         }
 
     @staticmethod
-    async def create_draft(data, user: dict):
+    async def create_draft(data, user: dict, audit_context: dict | None = None):
         PurchaseOrderService._check_manage_access(user)
 
         supplier = await PurchaseOrderService._resolve_supplier(data.supplier_email)
@@ -124,6 +125,15 @@ class PurchaseOrderService:
 
         po_id = await PurchaseOrderRepository.create_purchase_order(po_doc)
         created = await PurchaseOrderRepository.get_purchase_order_by_id(po_id)
+        await AuditService.safe_log_action(
+            user=user,
+            action="purchase_order.create",
+            entity_type="purchase_order",
+            entity_id=po_id,
+            old_value=None,
+            new_value=created,
+            audit_context=audit_context,
+        )
         return purchase_order_model(created)
 
     @staticmethod
@@ -164,7 +174,9 @@ class PurchaseOrderService:
         return purchase_order_model(po)
 
     @staticmethod
-    async def add_items(po_id: str, data, user: dict):
+    async def add_items(
+        po_id: str, data, user: dict, audit_context: dict | None = None
+    ):
         PurchaseOrderService._check_manage_access(user)
         po = await PurchaseOrderService._get_accessible_po(po_id, user)
 
@@ -180,10 +192,24 @@ class PurchaseOrderService:
 
         await PurchaseOrderRepository.replace_items(po_id, items)
         updated = await PurchaseOrderRepository.get_purchase_order_by_id(po_id)
+        await AuditService.safe_log_action(
+            user=user,
+            action="purchase_order.add_items",
+            entity_type="purchase_order",
+            entity_id=po_id,
+            old_value=po,
+            new_value=updated,
+            audit_context=audit_context,
+        )
         return purchase_order_model(updated)
 
     @staticmethod
-    async def submit(po_id: str, user: dict, remarks: str | None = None):
+    async def submit(
+        po_id: str,
+        user: dict,
+        remarks: str | None = None,
+        audit_context: dict | None = None,
+    ):
         PurchaseOrderService._check_manage_access(user)
         po = await PurchaseOrderService._get_accessible_po(po_id, user)
 
@@ -206,6 +232,15 @@ class PurchaseOrderService:
         )
 
         updated = await PurchaseOrderRepository.get_purchase_order_by_id(po_id)
+        await AuditService.safe_log_action(
+            user=user,
+            action="purchase_order.submit",
+            entity_type="purchase_order",
+            entity_id=po_id,
+            old_value=po,
+            new_value=updated,
+            audit_context=audit_context,
+        )
         await NotificationService.create_system_notification(
             type="purchase_order_submitted",
             title=f"Purchase Order Submitted: {updated.get('po_number')}",
@@ -220,7 +255,12 @@ class PurchaseOrderService:
         return purchase_order_model(updated)
 
     @staticmethod
-    async def approve(po_id: str, user: dict, remarks: str | None = None):
+    async def approve(
+        po_id: str,
+        user: dict,
+        remarks: str | None = None,
+        audit_context: dict | None = None,
+    ):
         PurchaseOrderService._check_manage_access(user)
         po = await PurchaseOrderService._get_accessible_po(po_id, user)
 
@@ -239,6 +279,15 @@ class PurchaseOrderService:
             },
         )
         updated = await PurchaseOrderRepository.get_purchase_order_by_id(po_id)
+        await AuditService.safe_log_action(
+            user=user,
+            action="purchase_order.approve",
+            entity_type="purchase_order",
+            entity_id=po_id,
+            old_value=po,
+            new_value=updated,
+            audit_context=audit_context,
+        )
         await NotificationService.create_system_notification(
             type="purchase_order_approved",
             title=f"Purchase Order Approved: {updated.get('po_number')}",
@@ -256,7 +305,12 @@ class PurchaseOrderService:
         return purchase_order_model(updated)
 
     @staticmethod
-    async def reject(po_id: str, user: dict, remarks: str | None = None):
+    async def reject(
+        po_id: str,
+        user: dict,
+        remarks: str | None = None,
+        audit_context: dict | None = None,
+    ):
         PurchaseOrderService._check_manage_access(user)
         po = await PurchaseOrderService._get_accessible_po(po_id, user)
 
@@ -275,6 +329,15 @@ class PurchaseOrderService:
             },
         )
         updated = await PurchaseOrderRepository.get_purchase_order_by_id(po_id)
+        await AuditService.safe_log_action(
+            user=user,
+            action="purchase_order.reject",
+            entity_type="purchase_order",
+            entity_id=po_id,
+            old_value=po,
+            new_value=updated,
+            audit_context=audit_context,
+        )
         await NotificationService.create_system_notification(
             type="purchase_order_rejected",
             title=f"Purchase Order Rejected: {updated.get('po_number')}",
@@ -292,7 +355,12 @@ class PurchaseOrderService:
         return purchase_order_model(updated)
 
     @staticmethod
-    async def cancel(po_id: str, user: dict, remarks: str | None = None):
+    async def cancel(
+        po_id: str,
+        user: dict,
+        remarks: str | None = None,
+        audit_context: dict | None = None,
+    ):
         PurchaseOrderService._check_manage_access(user)
         po = await PurchaseOrderService._get_accessible_po(po_id, user)
 
@@ -309,10 +377,21 @@ class PurchaseOrderService:
             },
         )
         updated = await PurchaseOrderRepository.get_purchase_order_by_id(po_id)
+        await AuditService.safe_log_action(
+            user=user,
+            action="purchase_order.cancel",
+            entity_type="purchase_order",
+            entity_id=po_id,
+            old_value=po,
+            new_value=updated,
+            audit_context=audit_context,
+        )
         return purchase_order_model(updated)
 
     @staticmethod
-    async def update_invoice_metadata(po_id: str, data, user: dict):
+    async def update_invoice_metadata(
+        po_id: str, data, user: dict, audit_context: dict | None = None
+    ):
         PurchaseOrderService._check_manage_access(user)
         po = await PurchaseOrderService._get_accessible_po(po_id, user)
 
@@ -324,6 +403,15 @@ class PurchaseOrderService:
 
         await PurchaseOrderRepository.update_fields(po_id, {"invoice_metadata": merged})
         updated = await PurchaseOrderRepository.get_purchase_order_by_id(po_id)
+        await AuditService.safe_log_action(
+            user=user,
+            action="purchase_order.update_invoice",
+            entity_type="purchase_order",
+            entity_id=po_id,
+            old_value=po,
+            new_value=updated,
+            audit_context=audit_context,
+        )
         return purchase_order_model(updated)
 
     @staticmethod
@@ -346,7 +434,7 @@ class PurchaseOrderService:
         await ProductRepository.update_product(product["id"], {"variants": variants})
 
     @staticmethod
-    async def receive(po_id: str, data, user: dict):
+    async def receive(po_id: str, data, user: dict, audit_context: dict | None = None):
         PurchaseOrderService._check_manage_access(user)
         po = await PurchaseOrderService._get_accessible_po(po_id, user)
 
@@ -420,6 +508,7 @@ class PurchaseOrderService:
                 reference_id=po.get("po_number"),
                 remarks=line.remarks or f"PO Receipt {po.get('po_number')}",
                 movement_type="inward",
+                audit_context=audit_context,
             )
 
             if line.expiry_date:
@@ -478,6 +567,15 @@ class PurchaseOrderService:
 
         await PurchaseOrderRepository.update_fields(po_id, update_fields)
         updated = await PurchaseOrderRepository.get_purchase_order_by_id(po_id)
+        await AuditService.safe_log_action(
+            user=user,
+            action="purchase_order.receive",
+            entity_type="purchase_order",
+            entity_id=po_id,
+            old_value=po,
+            new_value=updated,
+            audit_context=audit_context,
+        )
 
         await NotificationService.create_system_notification(
             type="purchase_order_received",

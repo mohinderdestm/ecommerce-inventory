@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.core.security import decode_access_token
@@ -54,3 +54,13 @@ def require_role(required_roles: list):
         return user
 
     return role_checker
+
+
+async def get_request_audit_context(request: Request):
+    client_host = request.client.host if request.client else None
+    return {
+        "ip_address": client_host,
+        "method": request.method,
+        "path": str(request.url.path),
+        "user_agent": request.headers.get("user-agent"),
+    }

@@ -3,7 +3,7 @@ from app.repositories.supplier_repository import SupplierRepository
 from app.models.supplier_model import supplier_model
 from app.core.security import hash_password, verify_password, create_access_token
 from datetime import datetime
-
+from app.services.audit_service import AuditService
 
 supplier_repo = SupplierRepository()
 
@@ -11,7 +11,7 @@ supplier_repo = SupplierRepository()
 class UserService:
 
     @staticmethod
-    async def register(user_data: dict):
+    async def register(user_data: dict, audit_context: dict | None = None):
 
         existing = await UserRepository.get_user_by_email(user_data["email"])
         if existing:
@@ -48,12 +48,45 @@ class UserService:
             }
 
             formatted_supplier = supplier_model(business_data)
-            await supplier_repo.create(formatted_supplier)
+            supplier_id = await supplier_repo.create(formatted_supplier)
+            await AuditService.safe_log_action(
+                user={
+                    "id": user_id_str,
+                    "email": user_data["email"],
+                    "role": user_data.get("role", "viewer"),
+                    "name": display_name,
+                },
+                action="supplier.create",
+                entity_type="supplier",
+                entity_id=supplier_id,
+                old_value=None,
+                new_value=formatted_supplier,
+                audit_context=audit_context,
+            )
+
+        await AuditService.safe_log_action(
+            user={
+                "id": user_id_str,
+                "email": user_data["email"],
+                "role": user_data.get("role", "viewer"),
+                "name": display_name,
+            },
+            action="auth.register",
+            entity_type="user",
+            entity_id=user_id_str,
+            old_value=None,
+            new_value={
+                "name": display_name,
+                "email": user_data["email"],
+                "role": user_data.get("role", "viewer"),
+            },
+            audit_context=audit_context,
+        )
 
         return {"message": "User registered successfully"}
 
     @staticmethod
-    async def login(email: str, password: str):
+    async def login(email: str, password: str, audit_context: dict | None = None):
 
         user = await UserRepository.get_user_by_email(email)
 
@@ -68,6 +101,21 @@ class UserService:
 
         access_token = create_access_token(
             data={"sub": user["email"], "role": user_role, "name": user_name}
+        )
+
+        await AuditService.safe_log_action(
+            user={
+                "id": str(user["_id"]),
+                "email": user["email"],
+                "role": user_role,
+                "name": user_name,
+            },
+            action="auth.login",
+            entity_type="user",
+            entity_id=str(user["_id"]),
+            old_value=None,
+            new_value={"email": user["email"], "role": user_role},
+            audit_context=audit_context,
         )
 
         return {

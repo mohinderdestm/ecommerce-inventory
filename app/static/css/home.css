@@ -206,12 +206,24 @@ body {
 .img-box {
   height: 170px;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(56, 189, 248, 0.08),
+      transparent 55%
+    ),
+    rgba(2, 6, 23, 0.86);
 }
 
 .img-box img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center center;
+  padding: 12px;
   transition: 0.4s;
 }
 
@@ -463,9 +475,12 @@ body {
 .detail-img {
   width: 100%;
   height: 180px;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center center;
+  padding: 10px;
   border-radius: 12px;
   margin-bottom: 10px;
+  background: rgba(2, 6, 23, 0.86);
 }
 
 #editForm {
@@ -893,7 +908,9 @@ body {
 .detail-img-box img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center center;
+  padding: 18px;
 }
 
 .detail-info {

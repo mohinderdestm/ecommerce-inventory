@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from app.schemas.product import ProductCreate
 from app.services.product_service import ProductService
-from app.utils.dependencies import get_current_user
+from app.utils.dependencies import get_current_user, get_request_audit_context
 from typing import List
 import os
 import uuid
@@ -31,9 +31,15 @@ async def save_upload_file(file: UploadFile, directory: str) -> str:
 
 
 @router.post("/json")
-async def create_product_json(product: ProductCreate, user=Depends(get_current_user)):
+async def create_product_json(
+    product: ProductCreate,
+    user=Depends(get_current_user),
+    audit_context=Depends(get_request_audit_context),
+):
     verify_supplier_role(user)
-    return await ProductService.create_product(product.dict(), user)
+    return await ProductService.create_product(
+        product.dict(), user, audit_context=audit_context
+    )
 
 
 @router.post("/")
@@ -54,6 +60,7 @@ async def create_product(
     image: UploadFile = File(None),
     variant_images: List[UploadFile] = File(None),
     user=Depends(get_current_user),
+    audit_context=Depends(get_request_audit_context),
 ):
     verify_supplier_role(user)
 
@@ -96,7 +103,7 @@ async def create_product(
                     path = await save_upload_file(v_file, VARIANT_UPLOAD_DIR)
                     data["variants"][idx]["image"] = path
 
-    return await ProductService.create_product(data, user)
+    return await ProductService.create_product(data, user, audit_context=audit_context)
 
 
 @router.put("/{product_id}")
@@ -118,6 +125,7 @@ async def update_product(
     image: UploadFile = File(None),
     variant_images: List[UploadFile] = File(None),
     user=Depends(get_current_user),
+    audit_context=Depends(get_request_audit_context),
 ):
     verify_supplier_role(user)
 
@@ -161,7 +169,9 @@ async def update_product(
                     path = await save_upload_file(v_file, VARIANT_UPLOAD_DIR)
                     data["variants"][idx]["image"] = path
 
-    return await ProductService.update_product(product_id, data, user)
+    return await ProductService.update_product(
+        product_id, data, user, audit_context=audit_context
+    )
 
 
 @router.get("/")
@@ -171,6 +181,12 @@ async def get_products(user=Depends(get_current_user)):
 
 
 @router.delete("/{product_id}")
-async def delete_product(product_id: str, user=Depends(get_current_user)):
+async def delete_product(
+    product_id: str,
+    user=Depends(get_current_user),
+    audit_context=Depends(get_request_audit_context),
+):
     verify_supplier_role(user)
-    return await ProductService.delete_product(product_id)
+    return await ProductService.delete_product(
+        product_id, user, audit_context=audit_context
+    )
