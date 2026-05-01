@@ -48,6 +48,8 @@ class AuditService:
             "method": audit_context.get("method"),
             "path": audit_context.get("path"),
             "user_agent": audit_context.get("user_agent"),
+            "client_host": audit_context.get("client_host"),
+            "forwarded_for": audit_context.get("forwarded_for"),
         }
 
     @staticmethod
@@ -68,12 +70,19 @@ class AuditService:
             "action": action,
             "entity_type": entity_type,
             "entity_id": str(entity_id) if entity_id is not None else None,
-            "old_value": AuditService._serialize(old_value),
-            "new_value": AuditService._serialize(new_value),
             "timestamp": datetime.utcnow(),
             "ip_address": (audit_context or {}).get("ip_address"),
             "request_metadata": AuditService._request_metadata(audit_context),
         }
+
+        serialized_old_value = AuditService._serialize(old_value)
+        if serialized_old_value is not None:
+            document["old_value"] = serialized_old_value
+
+        serialized_new_value = AuditService._serialize(new_value)
+        if serialized_new_value is not None:
+            document["new_value"] = serialized_new_value
+
         await AuditRepository.create(document)
 
     @staticmethod

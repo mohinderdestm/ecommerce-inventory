@@ -53,6 +53,14 @@ document.addEventListener("DOMContentLoaded", () => {
       .replaceAll(">", "&gt;");
   }
 
+  function hasAuditValue(value) {
+    if (value === null || value === undefined) return false;
+    if (typeof value === "string") return value.trim().length > 0;
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === "object") return Object.keys(value).length > 0;
+    return true;
+  }
+
   function renderLogs(logs) {
     auditCountBadge.textContent = `${logs.length} entries`;
 
@@ -67,6 +75,26 @@ document.addEventListener("DOMContentLoaded", () => {
         const actorName =
           log.user?.name || log.user?.email || log.user_id || "System";
         const actorRole = log.user?.role || "system";
+        const valueSections = [];
+
+        if (hasAuditValue(log.old_value)) {
+          valueSections.push(`
+            <section class="audit-log-block">
+              <h4>Old Value</h4>
+              <pre>${escapeHtml(formatJson(log.old_value))}</pre>
+            </section>
+          `);
+        }
+
+        if (hasAuditValue(log.new_value)) {
+          valueSections.push(`
+            <section class="audit-log-block">
+              <h4>New Value</h4>
+              <pre>${escapeHtml(formatJson(log.new_value))}</pre>
+            </section>
+          `);
+        }
+
         return `
           <article class="audit-log-card">
             <div class="audit-log-top">
@@ -82,16 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <span class="audit-meta-pill">${escapeHtml(log.ip_address || "No IP")}</span>
               </div>
             </div>
-            <div class="audit-log-grid">
-              <section class="audit-log-block">
-                <h4>Old Value</h4>
-                <pre>${escapeHtml(formatJson(log.old_value))}</pre>
-              </section>
-              <section class="audit-log-block">
-                <h4>New Value</h4>
-                <pre>${escapeHtml(formatJson(log.new_value))}</pre>
-              </section>
-            </div>
+            ${valueSections.length ? `<div class="audit-log-grid">${valueSections.join("")}</div>` : ""}
             <section class="audit-log-block">
               <h4>Request Metadata</h4>
               <pre>${escapeHtml(formatJson(log.request_metadata || {}))}</pre>
