@@ -47,6 +47,7 @@ const NAV = [
     roles: ['admin'],
     links: [
       { to: '/admin/users', icon: '👥', label: 'Users' },
+      { to: '/admin/audit-logs', icon: '📋', label: 'Audit Logs' },
     ],
   },
   {

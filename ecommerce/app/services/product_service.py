@@ -7,14 +7,16 @@ from app.repositories.category_repository import CategoryRepository
 from app.models.product import build_product_document
 from app.schemas.product import ProductCreateRequest, ProductUpdateRequest
 from app.utils.sku_generator import generate_sku
+from app.services.audit_log_service import AuditLogService
 
 logger = logging.getLogger(__name__)
 
 
 class ProductService:
-    def __init__(self, product_repo: ProductRepository, category_repo: CategoryRepository):
+    def __init__(self, product_repo: ProductRepository, category_repo: CategoryRepository, audit_service: AuditLogService):
         self.product_repo = product_repo
         self.category_repo = category_repo
+        self.audit_service = audit_service
 
     # Create 
 
@@ -67,6 +69,15 @@ class ProductService:
             image_metadata=image_metadata,
         )
         created = await self.product_repo.create(doc)
+        
+        await self.audit_service.log_action(
+            user_id=created_by,
+            action="create",
+            entity_type="product",
+            entity_id=str(created["_id"]),
+            new_value=created
+        )
+        
         logger.info(f"Product created: {created['name']} | SKU: {created['sku']} by {created_by}")
         return created
 
@@ -160,14 +171,34 @@ class ProductService:
             raise HTTPException(status_code=400, detail="No valid fields provided for update.")
 
         updated = await self.product_repo.update(product_id, update_data)
+        new_product = await self.product_repo.find_by_id(product_id)
+        
+        await self.audit_service.log_action(
+            user_id=updated_by,
+            action="update",
+            entity_type="product",
+            entity_id=product_id,
+            old_value=product,
+            new_value=new_product
+        )
+        
         logger.info(f"Product {product_id} updated by {updated_by}")
         return updated
 
     # Delete 
 
-    async def delete_product(self, product_id: str) -> None:
+    async def delete_product(self, product_id: str, deleted_by: str) -> None:
         product = await self.product_repo.find_by_id(product_id)
         if not product:
             raise HTTPException(status_code=404, detail="Product not found.")
         await self.product_repo.delete(product_id)
+        
+        await self.audit_service.log_action(
+            user_id=deleted_by,
+            action="delete",
+            entity_type="product",
+            entity_id=product_id,
+            old_value=product
+        )
+        
         logger.info(f"Product {product_id} deleted.")

@@ -21,6 +21,8 @@ router = APIRouter(prefix="/sales-orders", tags=["Sales Orders"])
 
 
 from app.repositories.inventory_movement_repository import InventoryMovementRepository
+from app.services.audit_log_service import AuditLogService
+from app.repositories.audit_log_repository import AuditLogRepository
 
 def get_order_service(
     background_tasks: BackgroundTasks,
@@ -34,6 +36,7 @@ def get_order_service(
         movement_repo=InventoryMovementRepository(db),
         email_service=EmailService(background_tasks),
         user_repo=UserRepository(db),
+        audit_service=AuditLogService(AuditLogRepository(db)),
     )
 
 

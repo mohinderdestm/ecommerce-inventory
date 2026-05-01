@@ -86,6 +86,12 @@ async def create_indexes():
     await db["sales_orders"].create_index("created_at")
     await db["sales_orders"].create_index([("customer_id", 1), ("status", 1)])
 
+    # Audit Logs
+    await db["audit_logs"].create_index("entity_type")
+    await db["audit_logs"].create_index("entity_id")
+    await db["audit_logs"].create_index("user_id")
+    await db["audit_logs"].create_index("timestamp")
+
     logger.info("Database indexes ensured.")
 
 

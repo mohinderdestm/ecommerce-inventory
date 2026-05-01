@@ -17,6 +17,8 @@ from app.models.inventory_movement import MovementType
 from app.core.database import get_database
 from app.services.warehouse_service import WarehouseService
 from app.repositories.user_repository import UserRepository
+from app.services.audit_log_service import AuditLogService
+from app.repositories.audit_log_repository import AuditLogRepository
 
 def get_inventory_service() -> InventoryMovementService:
     db = get_database()
@@ -34,6 +36,10 @@ def get_warehouse_svc() -> WarehouseService:
         user_repo=UserRepository(db),
         movement_repo=InventoryMovementRepository(db),
     )
+
+def get_audit_log_svc() -> AuditLogService:
+    db = get_database()
+    return AuditLogService(AuditLogRepository(db))
 
 async def create_purchase_order(data: PurchaseOrderCreate, created_by: str) -> dict:
     items = []
@@ -59,7 +65,17 @@ async def create_purchase_order(data: PurchaseOrderCreate, created_by: str) -> d
         notes=data.notes,
     )
     po_id = await repo.create_purchase_order(doc)
-    return await repo.get_purchase_order(po_id)
+    created_po = await repo.get_purchase_order(po_id)
+    
+    await get_audit_log_svc().log_action(
+        user_id=created_by,
+        action="create",
+        entity_type="purchase_order",
+        entity_id=po_id,
+        new_value=created_po
+    )
+    
+    return created_po
 
 async def get_purchase_order(po_id: str) -> dict:
     po = await repo.get_purchase_order(po_id)
@@ -104,7 +120,18 @@ async def update_status(po_id: str, payload: PurchaseOrderStatusUpdate, updated_
     updates["status_history"] = new_history
 
     await repo.update_purchase_order(po_id, updates)
-    return await get_purchase_order(po_id)
+    new_po = await get_purchase_order(po_id)
+    
+    await get_audit_log_svc().log_action(
+        user_id=updated_by,
+        action="update_status",
+        entity_type="purchase_order",
+        entity_id=po_id,
+        old_value=po,
+        new_value=new_po
+    )
+    
+    return new_po
 
 async def receive_items(po_id: str, payload: PurchaseOrderReceive, received_by: str) -> dict:
     po = await get_purchase_order(po_id)
@@ -177,4 +204,15 @@ async def receive_items(po_id: str, payload: PurchaseOrderReceive, received_by: 
         updates["invoice_metadata"] = payload.invoice_metadata.dict(exclude_none=True)
 
     await repo.update_purchase_order(po_id, updates)
-    return await get_purchase_order(po_id)
+    new_po = await get_purchase_order(po_id)
+    
+    await get_audit_log_svc().log_action(
+        user_id=received_by,
+        action="receive_items",
+        entity_type="purchase_order",
+        entity_id=po_id,
+        old_value=po,
+        new_value=new_po
+    )
+    
+    return new_po

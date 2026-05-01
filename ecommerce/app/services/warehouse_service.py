@@ -17,8 +17,15 @@ from app.schemas.warehouse import (
 from app.repositories.inventory_movement_repository import InventoryMovementRepository
 from app.models.inventory_movement import build_inventory_movement_document, MovementType
 from app.services.email_service import EmailService
+from app.core.database import get_database
+from app.services.audit_log_service import AuditLogService
+from app.repositories.audit_log_repository import AuditLogRepository
 
 logger = logging.getLogger(__name__)
+
+def get_audit_log_svc() -> AuditLogService:
+    db = get_database()
+    return AuditLogService(AuditLogRepository(db))
 
 
 class WarehouseService:
@@ -215,11 +222,12 @@ class WarehouseService:
             raise HTTPException(status_code=404, detail="Product not found.")
 
         # Prevent negative stock
+        existing = await self.repo.get_stock_entry(
+            warehouse_id, payload.product_id, payload.variant_id
+        )
+        current_qty = existing["quantity"] if existing else 0
+        
         if payload.quantity < 0:
-            existing = await self.repo.get_stock_entry(
-                warehouse_id, payload.product_id, payload.variant_id
-            )
-            current_qty = existing["quantity"] if existing else 0
             if current_qty + payload.quantity < 0:
                 raise HTTPException(
                     status_code=400,
@@ -246,6 +254,18 @@ class WarehouseService:
                 remarks=f"Manual update via warehouse stock API"
             )
             await self.movement_repo.create(doc)
+
+        try:
+            await get_audit_log_svc().log_action(
+                user_id=updated_by,
+                action="update_stock",
+                entity_type="warehouse_stock",
+                entity_id=f"{warehouse_id}_{payload.product_id}",
+                old_value={"quantity": current_qty},
+                new_value=result
+            )
+        except Exception as e:
+            logger.error(f"Failed to log audit action: {e}")
 
         logger.info(
             f"Stock updated in warehouse {warehouse_id}: "
@@ -375,6 +395,18 @@ class WarehouseService:
             "completed_by": created_by,
             "completed_at": datetime.now(timezone.utc),
         })
+
+        try:
+            await get_audit_log_svc().log_action(
+                user_id=created_by,
+                action="warehouse_transfer",
+                entity_type="stock_transfer",
+                entity_id=str(transfer["_id"]),
+                old_value=transfer,
+                new_value=completed
+            )
+        except Exception as e:
+            logger.error(f"Failed to log audit action: {e}")
 
         logger.info(
             f"Stock transfer {transfer['_id']}: {payload.quantity} units of "

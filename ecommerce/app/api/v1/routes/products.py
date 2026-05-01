@@ -11,6 +11,8 @@ from app.schemas.product import (
 from app.services.product_service import ProductService
 from app.repositories.product_repository import ProductRepository
 from app.repositories.category_repository import CategoryRepository
+from app.services.audit_log_service import AuditLogService
+from app.repositories.audit_log_repository import AuditLogRepository
 from app.utils.dependencies import get_current_user, require_admin, require_roles, get_db
 from app.models.user import UserRole
 from app.models.product import ProductStatus
@@ -23,6 +25,7 @@ def get_product_service(db: AsyncIOMotorDatabase = Depends(get_db)) -> ProductSe
     return ProductService(
         product_repo=ProductRepository(db),
         category_repo=CategoryRepository(db),
+        audit_service=AuditLogService(AuditLogRepository(db))
     )
 
 
@@ -121,7 +124,7 @@ async def update_product(
 async def delete_product(
     product_id: str,
     service: ProductService = Depends(get_product_service),
-    _: dict = Depends(require_admin),
+    current_user: dict = Depends(require_admin),
 ):
-    await service.delete_product(product_id)
+    await service.delete_product(product_id, deleted_by=current_user["_id"])
     return {"success": True, "message": "Product deleted successfully."}

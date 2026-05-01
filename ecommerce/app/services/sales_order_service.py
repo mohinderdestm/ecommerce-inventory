@@ -19,6 +19,7 @@ from app.models.inventory_movement import build_inventory_movement_document, Mov
 from app.services.email_service import EmailService
 from app.repositories.user_repository import UserRepository
 from app.services.warehouse_service import WarehouseService
+from app.services.audit_log_service import AuditLogService
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,7 @@ class SalesOrderService:
         movement_repo: InventoryMovementRepository = None,
         email_service: EmailService = None,
         user_repo: UserRepository = None,
+        audit_service: AuditLogService = None,
     ):
         self.order_repo = order_repo
         self.product_repo = product_repo
@@ -41,6 +43,7 @@ class SalesOrderService:
         self.movement_repo = movement_repo
         self.email_service = email_service
         self.user_repo = user_repo
+        self.audit_service = audit_service
 
     # ── Create Order (Draft) ──────────────────────────────────────────────────
 
@@ -109,6 +112,16 @@ class SalesOrderService:
             discount=payload.discount_percentage,
         )
         created = await self.order_repo.create(doc)
+        
+        if self.audit_service:
+            await self.audit_service.log_action(
+                user_id=customer["_id"],
+                action="create",
+                entity_type="sales_order",
+                entity_id=str(created["_id"]),
+                new_value=created
+            )
+            
         logger.info(f"Sales order {created['order_number']} created by {customer['_id']}")
 
         # Trigger emails
@@ -260,7 +273,11 @@ class SalesOrderService:
             if customer_data and customer_data.get("email"):
                 self.email_service.send_order_status_update(customer_data["email"], order['order_number'], SalesOrderStatus.CONFIRMED.value)
 
-        return await self.order_repo.find_by_id(order_id)
+        new_order = await self.order_repo.find_by_id(order_id)
+        if self.audit_service:
+            await self.audit_service.log_action(updated_by, "update_status", "sales_order", order_id, old_value=order, new_value=new_order)
+            
+        return new_order
 
     # ── Pack ──────────────────────────────────────────────────────────────────
 
@@ -283,7 +300,11 @@ class SalesOrderService:
             if customer_data and customer_data.get("email"):
                 self.email_service.send_order_status_update(customer_data["email"], order['order_number'], SalesOrderStatus.PACKED.value)
 
-        return await self.order_repo.find_by_id(order_id)
+        new_order = await self.order_repo.find_by_id(order_id)
+        if self.audit_service:
+            await self.audit_service.log_action(updated_by, "update_status", "sales_order", order_id, old_value=order, new_value=new_order)
+            
+        return new_order
 
     # Shipping
 
@@ -306,7 +327,11 @@ class SalesOrderService:
             if customer_data and customer_data.get("email"):
                 self.email_service.send_order_status_update(customer_data["email"], order['order_number'], SalesOrderStatus.SHIPPED.value)
 
-        return await self.order_repo.find_by_id(order_id)
+        new_order = await self.order_repo.find_by_id(order_id)
+        if self.audit_service:
+            await self.audit_service.log_action(updated_by, "update_status", "sales_order", order_id, old_value=order, new_value=new_order)
+            
+        return new_order
 
     # Deliver 
 
@@ -330,7 +355,11 @@ class SalesOrderService:
             if customer_data and customer_data.get("email"):
                 self.email_service.send_order_status_update(customer_data["email"], order['order_number'], SalesOrderStatus.DELIVERED.value)
 
-        return await self.order_repo.find_by_id(order_id)
+        new_order = await self.order_repo.find_by_id(order_id)
+        if self.audit_service:
+            await self.audit_service.log_action(updated_by, "update_status", "sales_order", order_id, old_value=order, new_value=new_order)
+            
+        return new_order
 
     # Cancel 
 
@@ -379,7 +408,11 @@ class SalesOrderService:
             if customer_data and customer_data.get("email"):
                 self.email_service.send_order_status_update(customer_data["email"], order['order_number'], SalesOrderStatus.CANCELLED.value)
 
-        return await self.order_repo.find_by_id(order_id)
+        new_order = await self.order_repo.find_by_id(order_id)
+        if self.audit_service:
+            await self.audit_service.log_action(updated_by, "update_status", "sales_order", order_id, old_value=order, new_value=new_order)
+            
+        return new_order
 
     # Return 
 
@@ -435,7 +468,11 @@ class SalesOrderService:
             if customer_data and customer_data.get("email"):
                 self.email_service.send_order_status_update(customer_data["email"], order['order_number'], SalesOrderStatus.RETURNED.value)
 
-        return await self.order_repo.find_by_id(order_id)
+        new_order = await self.order_repo.find_by_id(order_id)
+        if self.audit_service:
+            await self.audit_service.log_action(updated_by, "update_status", "sales_order", order_id, old_value=order, new_value=new_order)
+            
+        return new_order
 
     # Order Summary 
 

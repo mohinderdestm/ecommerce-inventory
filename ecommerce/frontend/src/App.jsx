@@ -20,6 +20,7 @@ import CreatePurchaseOrder from './pages/CreatePurchaseOrder'
 import AdminUsers from './pages/AdminUsers'
 import CreateProduct from './pages/CreateProduct'
 import ReportsAnalytics from './pages/ReportsAnalytics'
+import AuditLogs from './pages/AuditLogs'
 import { Categories, Variants, Profile } from './pages/OtherPages'
 import './App.css'
 
@@ -88,6 +89,7 @@ export default function App() {
               
               {/* Admin */}
               <Route path="/admin/users"            element={<PrivateLayout><AdminUsers /></PrivateLayout>} />
+              <Route path="/admin/audit-logs"       element={<PrivateLayout><AuditLogs /></PrivateLayout>} />
               <Route path="/profile"   element={<PrivateLayout><Profile /></PrivateLayout>} />
 
               {/* Redirects */}

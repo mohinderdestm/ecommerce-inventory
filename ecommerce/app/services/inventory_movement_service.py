@@ -7,8 +7,15 @@ from app.repositories.warehouse_repository import WarehouseRepository
 from app.repositories.product_repository import ProductRepository
 from app.models.inventory_movement import build_inventory_movement_document, MovementType
 from app.schemas.inventory_movement import InventoryMovementCreate
+from app.core.database import get_database
+from app.services.audit_log_service import AuditLogService
+from app.repositories.audit_log_repository import AuditLogRepository
 
 logger = logging.getLogger(__name__)
+
+def get_audit_log_svc() -> AuditLogService:
+    db = get_database()
+    return AuditLogService(AuditLogRepository(db))
 
 
 class InventoryMovementService:
@@ -82,6 +89,18 @@ class InventoryMovementService:
         )
         created = await self.repo.create(doc)
         logger.info(f"Manual inventory movement recorded: {payload.movement_type} {payload.quantity} for product {payload.product_id} by {performed_by}")
+        
+        try:
+            await get_audit_log_svc().log_action(
+                user_id=performed_by,
+                action="inventory_movement",
+                entity_type="inventory_movement",
+                entity_id=str(created["_id"]),
+                new_value=created
+            )
+        except Exception as e:
+            logger.error(f"Failed to log audit action: {e}")
+
         return created
 
     async def list_movements(
