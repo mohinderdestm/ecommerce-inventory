@@ -9,6 +9,10 @@ import Warehouses from "./pages/Warehouses";
 import Cart from "./pages/Cart";
 import AdminCart from "./pages/AdminCart";
 import Purchase from "./pages/Purchase";
+import Notifications from "./pages/Notifications";
+import Emails from "./pages/emails";
+import AdminEmailLogs from "./pages/adminEmailLogs";
+import AuditLogs from "./pages/AuditLogs";
 
 
 function App() {
@@ -25,6 +29,13 @@ function App() {
         <Route path="/cart" element={<Cart />} />
         <Route path="/admin-carts" element={<AdminCart />} />
         <Route path="/purchase" element={<Purchase />} />
+        <Route path="/notifications" element={<Notifications />} />
+        <Route path="/emails" element={<Emails />} />
+        <Route path="/admin/email-logs" element={<AdminEmailLogs />} />
+        <Route
+          path="/audit-logs"
+          element={<AuditLogs />}
+        />
       </Routes>
     </BrowserRouter>
   );

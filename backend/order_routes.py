@@ -1,14 +1,25 @@
 from fastapi import APIRouter, Depends, HTTPException
 from bson import ObjectId
+
 from database import (
     products_collection,
     orders_collection,
-    warehouse_collection
+    warehouse_collection,
+     audit_logs_collection
 )
+
 from deps import get_current_user
+
+from services.notification_services import (
+    create_notification
+)
+
 import datetime
 
-router = APIRouter(prefix="/orders", tags=["Orders"])
+router = APIRouter(
+    prefix="/orders",
+    tags=["Orders"]
+)
 
 VALID_STATUS = [
     "Draft",
@@ -22,6 +33,7 @@ VALID_STATUS = [
 
 
 def serialize_order(d):
+
     return {
         "id": str(d["_id"]),
         "user_email": d.get("user_email"),
@@ -35,7 +47,10 @@ def serialize_order(d):
 
 
 @router.post("")
-async def create_order(user=Depends(get_current_user)):
+async def create_order(
+    user=Depends(get_current_user)
+):
+
     order = {
         "user_email": user["email"],
         "status": "Draft",
@@ -46,7 +61,9 @@ async def create_order(user=Depends(get_current_user)):
         "created_at": datetime.datetime.utcnow().isoformat()
     }
 
-    res = await orders_collection.insert_one(order)
+    res = await orders_collection.insert_one(
+        order
+    )
 
     return {
         "data": {
@@ -63,17 +80,27 @@ async def create_order(user=Depends(get_current_user)):
 
 
 @router.put("/{order_id}/warehouse")
-async def assign_warehouse(order_id: str, data: dict, user=Depends(get_current_user)):
+async def assign_warehouse(
+    order_id: str,
+    data: dict,
+    user=Depends(get_current_user)
+):
 
     if user["role"] != "admin":
-        raise HTTPException(status_code=403, detail="Only admin can assign warehouse")
+        raise HTTPException(
+            status_code=403,
+            detail="Only admin can assign warehouse"
+        )
 
     warehouse = await warehouse_collection.find_one({
         "_id": ObjectId(data["warehouse_id"])
     })
 
     if not warehouse:
-        raise HTTPException(status_code=404, detail="Warehouse not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Warehouse not found"
+        )
 
     await orders_collection.update_one(
         {"_id": ObjectId(order_id)},
@@ -85,29 +112,46 @@ async def assign_warehouse(order_id: str, data: dict, user=Depends(get_current_u
         }
     )
 
-    return {"message": "Warehouse assigned"}
+    return {
+        "message": "Warehouse assigned"
+    }
 
 
 @router.post("/{order_id}/add")
-async def add_item(order_id: str, data: dict, user=Depends(get_current_user)):
+async def add_item(
+    order_id: str,
+    data: dict,
+    user=Depends(get_current_user)
+):
 
-    order = await orders_collection.find_one({"_id": ObjectId(order_id)})
+    order = await orders_collection.find_one({
+        "_id": ObjectId(order_id)
+    })
 
     if not order:
         raise HTTPException(status_code=404)
 
     if order["status"] != "Draft":
-        raise HTTPException(status_code=400, detail="Not editable")
+        raise HTTPException(
+            status_code=400,
+            detail="Not editable"
+        )
 
     if not data.get("variant_id"):
-        raise HTTPException(status_code=400, detail="Variant required")
+        raise HTTPException(
+            status_code=400,
+            detail="Variant required"
+        )
 
     product = await products_collection.find_one({
         "_id": ObjectId(data["product_id"])
     })
 
     variant = next(
-        (v for v in product["variants"] if v["id"] == data["variant_id"]),
+        (
+            v for v in product["variants"]
+            if v["id"] == data["variant_id"]
+        ),
         None
     )
 
@@ -115,7 +159,10 @@ async def add_item(order_id: str, data: dict, user=Depends(get_current_user)):
         raise HTTPException(status_code=404)
 
     if variant["stock"] < data["quantity"]:
-        raise HTTPException(status_code=400, detail="Insufficient stock")
+        raise HTTPException(
+            status_code=400,
+            detail="Insufficient stock"
+        )
 
     item = {
         "product_id": data["product_id"],
@@ -124,6 +171,7 @@ async def add_item(order_id: str, data: dict, user=Depends(get_current_user)):
         "supplier_email": product["supplier_email"],
         "color": variant["color"],
         "size": variant["size"],
+        "sku": variant["sku"],
         "price": variant["price"],
         "quantity": data["quantity"],
         "image": variant.get("image")
@@ -141,13 +189,20 @@ async def add_item(order_id: str, data: dict, user=Depends(get_current_user)):
         }
     )
 
-    return {"message": "Item added"}
+    return {
+        "message": "Item added"
+    }
 
 
 @router.post("/{order_id}/confirm")
-async def confirm_order(order_id: str, user=Depends(get_current_user)):
+async def confirm_order(
+    order_id: str,
+    user=Depends(get_current_user)
+):
 
-    order = await orders_collection.find_one({"_id": ObjectId(order_id)})
+    order = await orders_collection.find_one({
+        "_id": ObjectId(order_id)
+    })
 
     if not order:
         raise HTTPException(status_code=404)
@@ -162,11 +217,13 @@ async def confirm_order(order_id: str, user=Depends(get_current_user)):
         )
 
     for item in order["items"]:
+
         product = await products_collection.find_one({
             "_id": ObjectId(item["product_id"])
         })
 
         for v in product["variants"]:
+
             if v["id"] == item["variant_id"]:
 
                 if v["stock"] < item["quantity"]:
@@ -178,20 +235,41 @@ async def confirm_order(order_id: str, user=Depends(get_current_user)):
                 v["stock"] -= item["quantity"]
 
         await products_collection.update_one(
-            {"_id": ObjectId(item["product_id"])} ,
-            {"$set": {"variants": product["variants"]}}
+            {"_id": ObjectId(item["product_id"])},
+            {
+                "$set": {
+                    "variants": product["variants"]
+                }
+            }
         )
 
     await orders_collection.update_one(
         {"_id": ObjectId(order_id)},
-        {"$set": {"status": "Confirmed"}}
+        {
+            "$set": {
+                "status": "Confirmed"
+            }
+        }
     )
 
-    return {"message": "Confirmed"}
+    await create_notification(
+        order["user_email"],
+        "Order Confirmed",
+        f"Your order #{str(order['_id'])[-6:]} has been confirmed",
+        "order"
+    )
+
+    return {
+        "message": "Confirmed"
+    }
 
 
 @router.put("/{order_id}/status")
-async def update_status(order_id: str, data: dict, user=Depends(get_current_user)):
+async def update_status(
+    order_id: str,
+    data: dict,
+    user=Depends(get_current_user)
+):
 
     if data["status"] not in VALID_STATUS:
         raise HTTPException(status_code=400)
@@ -200,7 +278,11 @@ async def update_status(order_id: str, data: dict, user=Depends(get_current_user
         pass
 
     elif user["role"] == "supplier":
-        if data["status"] not in ["Packed", "Shipped"]:
+
+        if data["status"] not in [
+            "Packed",
+            "Shipped"
+        ]:
             raise HTTPException(status_code=403)
 
     else:
@@ -208,16 +290,43 @@ async def update_status(order_id: str, data: dict, user=Depends(get_current_user
 
     await orders_collection.update_one(
         {"_id": ObjectId(order_id)},
-        {"$set": {"status": data["status"]}}
+        {
+            "$set": {
+                "status": data["status"]
+            }
+        }
     )
 
-    return {"message": "Updated"}
+    order = await orders_collection.find_one({
+        "_id": ObjectId(order_id)
+    })
+
+    await create_notification(
+        order["user_email"],
+        "Order Status Updated",
+        f"Your order #{str(order['_id'])[-6:]} is now {data['status']}",
+        "order"
+    )
+
+    return {
+        "message": "Updated"
+    }
 
 
 @router.post("/{order_id}/cancel")
-async def cancel_order(order_id: str, user=Depends(get_current_user)):
+async def cancel_order(
 
-    order = await orders_collection.find_one({"_id": ObjectId(order_id)})
+    order_id: str,
+
+    user=Depends(get_current_user)
+
+):
+
+    order = await orders_collection.find_one({
+
+        "_id": ObjectId(order_id)
+
+    })
 
     if not order:
         raise HTTPException(status_code=404)
@@ -227,44 +336,181 @@ async def cancel_order(order_id: str, user=Depends(get_current_user)):
         if order["user_email"] != user["email"]:
             raise HTTPException(status_code=403)
 
-        if order["status"] != "Draft":
+        if order["status"] in [
+
+            "Shipped",
+
+            "Delivered",
+
+            "Cancelled"
+
+        ]:
+
             raise HTTPException(
+
                 status_code=400,
-                detail="Cannot cancel after confirmation"
+
+                detail=(
+                    "Order cannot "
+                    "be cancelled"
+                )
+
             )
 
     elif user["role"] == "supplier":
+
         raise HTTPException(status_code=403)
 
     for item in order["items"]:
 
         product = await products_collection.find_one({
-            "_id": ObjectId(item["product_id"])
+
+            "_id": ObjectId(
+                item["product_id"]
+            )
+
         })
 
         for v in product["variants"]:
-            if v["id"] == item["variant_id"]:
-                v["stock"] += item["quantity"]
+
+            if (
+                v["id"]
+                == item["variant_id"]
+            ):
+
+                v["stock"] += (
+                    item["quantity"]
+                )
 
         await products_collection.update_one(
-            {"_id": ObjectId(item["product_id"])} ,
-            {"$set": {"variants": product["variants"]}}
+
+            {
+                "_id": ObjectId(
+                    item["product_id"]
+                )
+            },
+
+            {
+                "$set": {
+                    "variants":
+                    product["variants"]
+                }
+            }
+
         )
 
-    await orders_collection.update_one(
-        {"_id": ObjectId(order_id)},
-        {"$set": {"status": "Cancelled"}}
+    cancelled_by = (
+
+        user.get("name")
+
+        or user.get("email")
+
+        or "Unknown User"
+
     )
 
-    return {"message": "Cancelled"}
+    await orders_collection.update_one(
 
+        {"_id": ObjectId(order_id)},
+
+        {
+            "$set": {
+
+                "status": "Cancelled",
+
+                "cancelled_by":
+                cancelled_by,
+
+                "cancelled_at":
+                datetime.datetime.utcnow(),
+
+                "cancelled_by_role":
+                user.get("role", "-")
+
+            }
+        }
+
+    )
+
+    await create_notification(
+
+        order["user_email"],
+
+        "Order Cancelled",
+
+        (
+            f"Your order "
+            f"#{str(order['_id'])[-6:]} "
+            f"has been cancelled"
+        ),
+
+        "order"
+
+    )
+
+
+    try:
+
+        log_data = {
+
+            "action": "ORDER_CANCELLED",
+
+            "message": (
+
+                f"{cancelled_by} "
+
+                f"cancelled order "
+
+                f"#{str(order['_id'])[-6:]}"
+
+            ),
+
+            "user_name": cancelled_by,
+
+            "user_email": user.get(
+                "email"
+            ),
+
+            "role": user.get(
+                "role",
+                "-"
+            ),
+
+            "entity": "order",
+
+            "entity_id": order_id,
+
+            "timestamp":
+            datetime.datetime.utcnow()
+
+        }
+
+        await audit_logs_collection.insert_one(
+            log_data
+        )
+
+    except Exception as e:
+
+        print(
+            "ORDER CANCEL LOG ERROR:",
+            str(e)
+        )
+
+    return {
+
+        "message": "Cancelled"
+
+    }
 
 @router.get("")
-async def get_orders(user=Depends(get_current_user)):
+async def get_orders(
+    user=Depends(get_current_user)
+):
 
     data = []
 
     if user["role"] == "admin":
+
         data = await orders_collection.find().to_list(1000)
 
     elif user["role"] == "supplier":
@@ -272,6 +518,7 @@ async def get_orders(user=Depends(get_current_user)):
         all_orders = await orders_collection.find().to_list(1000)
 
         for o in all_orders:
+
             items = [
                 i for i in o["items"]
                 if i["supplier_email"] == user["email"]
@@ -282,10 +529,15 @@ async def get_orders(user=Depends(get_current_user)):
                 data.append(o)
 
     else:
+
         data = await orders_collection.find({
             "user_email": user["email"]
         }).to_list(1000)
 
     return {
-        "data": [serialize_order(d) for d in data]
+        "data": [
+            serialize_order(d)
+            for d in data
+        ]
     }
+

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api";
-import "../index.css";
+import "../styles/signup.css";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -48,7 +48,6 @@ export default function Signup() {
           <option value="supplier">Supplier</option>
           <option value="inventory_manager">Inventory Manager</option>
           <option value="warehouse_staff">Warehouse Staff</option>
-          {/* <option value="inventory_manager"></option> */}
         </select>
 
         <button className="primary" onClick={handleSignup}>

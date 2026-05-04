@@ -13,7 +13,7 @@ export default function AdminCart() {
       setUser(me.data);
 
       const res = await API.get("/cart/all");
-      setCarts(res.data);
+      setCarts(res.data.data || []);
 
     } catch (err) {
       console.log(err);
@@ -33,7 +33,7 @@ export default function AdminCart() {
         {carts.map(cart => (
           <div className="card" key={cart._id}>
 
-            <h3>User: {cart.user_id}</h3>
+            <h3>User: {cart.user_email}</h3>
 
             {cart.items?.length > 0 ? (
               cart.items.map((item, i) => (

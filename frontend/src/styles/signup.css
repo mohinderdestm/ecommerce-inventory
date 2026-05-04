@@ -1,0 +1,216 @@
+/* =========================
+   PROFESSIONAL SIGNUP PAGE
+   Add this in index.css
+========================= */
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #0f172a 0%,
+      #111827 35%,
+      #1e293b 100%
+    );
+
+  font-family: "Inter", sans-serif;
+}
+
+.auth-box {
+  width: 100%;
+  max-width: 430px;
+
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px);
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  border-radius: 24px;
+
+  padding: 40px 32px;
+
+  box-shadow:
+    0 10px 40px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+
+  animation: fadeUp 0.4s ease;
+}
+
+.auth-box h2 {
+  text-align: center;
+  color: white;
+  margin-bottom: 32px;
+
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+/* ================= Inputs ================= */
+
+.auth-box input,
+.auth-box select {
+  width: 100%;
+  height: 54px;
+
+  margin-bottom: 18px;
+  padding: 0 18px;
+
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.12);
+
+  background: rgba(255,255,255,0.06);
+  color: white;
+
+  font-size: 15px;
+
+  outline: none;
+
+  transition: all 0.25s ease;
+  box-sizing: border-box;
+}
+
+.auth-box input::placeholder {
+  color: rgba(255,255,255,0.55);
+}
+
+.auth-box select {
+  cursor: pointer;
+}
+
+.auth-box select option {
+  color: black;
+}
+
+.auth-box input:focus,
+.auth-box select:focus {
+  border-color: #6366f1;
+
+  background: rgba(255,255,255,0.1);
+
+  box-shadow:
+    0 0 0 4px rgba(99,102,241,0.18);
+}
+
+/* ================= Password ================= */
+
+.password-box {
+  position: relative;
+  margin-bottom: 18px;
+}
+
+.password-box input {
+  margin-bottom: 0;
+  padding-right: 55px;
+}
+
+.password-box span {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  cursor: pointer;
+  font-size: 18px;
+
+  color: rgba(255,255,255,0.7);
+
+  transition: 0.2s ease;
+}
+
+.password-box span:hover {
+  color: white;
+  transform: translateY(-50%) scale(1.1);
+}
+
+/* ================= Button ================= */
+
+.primary {
+  width: 100%;
+  height: 54px;
+
+  border: none;
+  border-radius: 14px;
+
+  background: linear-gradient(
+    135deg,
+    #6366f1,
+    #8b5cf6
+  );
+
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  margin-top: 10px;
+
+  transition: all 0.25s ease;
+
+  box-shadow:
+    0 10px 25px rgba(99,102,241,0.35);
+}
+
+.primary:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 14px 30px rgba(99,102,241,0.45);
+}
+
+.primary:active {
+  transform: scale(0.98);
+}
+
+/* ================= Link ================= */
+
+.link {
+  margin-top: 22px;
+  text-align: center;
+
+  color: rgba(255,255,255,0.7);
+
+  cursor: pointer;
+
+  font-size: 14px;
+
+  transition: 0.2s ease;
+}
+
+.link:hover {
+  color: white;
+  text-decoration: underline;
+}
+
+/* ================= Animation ================= */
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(25px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ================= Responsive ================= */
+
+@media (max-width: 500px) {
+  .auth-box {
+    padding: 30px 22px;
+    border-radius: 20px;
+  }
+
+  .auth-box h2 {
+    font-size: 1.6rem;
+  }
+}

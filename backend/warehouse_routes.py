@@ -181,7 +181,6 @@ async def transfer_inventory(data: dict, current_user: dict = Depends(get_curren
     if qty <= 0:
         raise HTTPException(status_code=400, detail="Invalid quantity")
 
-    # ================= FETCH =================
     from_wh = await warehouse_collection.find_one({"_id": ObjectId(from_id)})
     to_wh = await warehouse_collection.find_one({"_id": ObjectId(to_id)})
 
@@ -205,7 +204,6 @@ async def transfer_inventory(data: dict, current_user: dict = Depends(get_curren
 
     source_item["quantity"] -= qty
 
-    # remove item if becomes 0
     if source_item["quantity"] == 0:
         source_inventory = [i for i in source_inventory if i["sku"] != sku]
 

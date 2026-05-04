@@ -1,187 +1,303 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import API from "../api";
 import "../styles/layout.css";
 
 export default function Layout({ children, user }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [unread, setUnread] = useState(0);
+
   const logout = async () => {
+
     try {
+
       await API.post("/logout");
       navigate("/");
+
     } catch (err) {
+
       console.error(err);
       navigate("/");
+
     }
+
+  };
+
+ useEffect(() => {
+
+  loadUnread();
+
+  const interval = setInterval(() => {
+
+    loadUnread();
+
+  }, 5000);
+
+  return () => clearInterval(interval);
+
+}, []);
+
+  const loadUnread = async () => {
+
+    try {
+
+      const res = await API.get(
+        "/notifications/unread/count"
+      );
+
+      setUnread(res.data.count);
+
+    } catch (err) {
+
+      console.error(err);
+
+    }
+
   };
 
   const isActive = (path) => {
-    return location.pathname === path ? "nav-item active" : "nav-item";
+    return location.pathname === path
+      ? "nav-link active"
+      : "nav-link";
   };
 
   return (
+
     <div className="layout-container">
 
-      {/* ================= SIDEBAR ================= */}
+      <header className="navbar">
 
-      <aside className={`sidebar ${sidebarOpen ? "expanded" : "collapsed"}`}>
 
-        {/* LOGO */}
+        <div className="navbar-left">
 
-        <div className="sidebar-top">
-          <div className="logo-box">
-            {/* <div className="logo-icon">IMS</div> */}
+          <div
+            className="brand"
+            onClick={() =>
+              navigate("/dashboard")
+            }
+          >
 
-            {sidebarOpen && (
-              <div>
-                <h2>Inventory ERP</h2>
-                <p>Management System</p>
-              </div>
-            )}
+            <div className="brand-icon">
+              <div className="brand-glow"></div>
+              IMS
+            </div>
+
+            <div className="brand-text">
+
+              <h2>
+                Inventory ERP
+              </h2>
+
+              <p>
+                Enterprise Management Suite
+              </p>
+
+            </div>
+
           </div>
 
-          <button
-            className="toggle-btn"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            ☰
-          </button>
         </div>
 
-        {/* USER */}
 
-        {sidebarOpen && (
-          <div className="user-card">
-            <div className="avatar">
-              {user?.name?.charAt(0)?.toUpperCase() || "U"}
-            </div>
-
-            <div>
-              <h4>{user?.name || "User"}</h4>
-              <p>{user?.role?.replace("_", " ")}</p>
-            </div>
-          </div>
-        )}
-
-        {/* NAVIGATION */}
-
-        <nav className="nav-links">
+        <div className="navbar-center">
 
           <button
             className={isActive("/products")}
-            onClick={() => navigate("/products")}
+            onClick={() =>
+              navigate("/products")
+            }
           >
-            <span>📦</span>
-            {sidebarOpen && "Products"}
+            Products
           </button>
 
           {(user?.role === "admin" ||
-            user?.role === "inventory_manager") && (
+            user?.role ===
+              "inventory_manager") && (
+
             <button
               className={isActive("/dashboard")}
-              onClick={() => navigate("/dashboard")}
+              onClick={() =>
+                navigate("/dashboard")
+              }
             >
-              <span>📊</span>
-              {sidebarOpen && "Dashboard"}
+              Dashboard
             </button>
+
           )}
 
           {user?.role === "admin" && (
             <>
               <button
                 className={isActive("/orders")}
-                onClick={() => navigate("/orders")}
+                onClick={() =>
+                  navigate("/orders")
+                }
               >
-                <span>🧾</span>
-                {sidebarOpen && "Orders"}
+                Orders
               </button>
 
               <button
-                className={isActive("/warehouses")}
-                onClick={() => navigate("/warehouses")}
+                className={isActive(
+                  "/warehouses"
+                )}
+                onClick={() =>
+                  navigate("/warehouses")
+                }
               >
-                <span>🏭</span>
-                {sidebarOpen && "Warehouses"}
+                Warehouses
               </button>
 
               <button
                 className={isActive("/purchase")}
-                onClick={() => navigate("/purchase")}
+                onClick={() =>
+                  navigate("/purchase")
+                }
               >
-                <span>📄</span>
-                {sidebarOpen && "Purchase Orders"}
+                Purchase Orders
               </button>
+           <button
+            className={
+              isActive("/admin/email-logs")
+            }
+            onClick={() =>
+              navigate("/admin/email-logs")
+            }
+          >
+            Email Logs
+          </button>
+              <button
+        className={isActive("/audit-logs")}
+        onClick={() =>
+          navigate("/audit-logs")
+        }
+      >
+        Audit Logs
+      </button>
             </>
           )}
 
-          {user?.role === "inventory_manager" && (
-            <button
-              className={isActive("/warehouses")}
-              onClick={() => navigate("/warehouses")}
-            >
-              <span>🏭</span>
-              {sidebarOpen && "My Warehouse"}
-            </button>
-          )}
+          {(user?.role ===
+            "inventory_manager" ||
+            user?.role ===
+              "warehouse_staff") && (
 
-          {user?.role === "warehouse_staff" && (
             <button
-              className={isActive("/warehouses")}
-              onClick={() => navigate("/warehouses")}
+              className={isActive(
+                "/warehouses"
+              )}
+              onClick={() =>
+                navigate("/warehouses")
+              }
             >
-              <span>🏭</span>
-              {sidebarOpen && "Warehouse"}
+              Warehouse
             </button>
+
           )}
 
           {user?.role === "viewer" && (
             <>
               <button
                 className={isActive("/cart")}
-                onClick={() => navigate("/cart")}
+                onClick={() =>
+                  navigate("/cart")
+                }
               >
                 <span>🛒</span>
-                {sidebarOpen && "My Cart"}
+                Cart
               </button>
 
               <button
                 className={isActive("/orders")}
-                onClick={() => navigate("/orders")}
+                onClick={() =>
+                  navigate("/orders")
+                }
               >
                 <span>📦</span>
-                {sidebarOpen && "My Orders"}
+                My Orders
               </button>
+               <button
+            className={isActive("/emails")}
+            onClick={() => navigate("/emails")}
+          >
+            <span>📧</span>
+            Emails
+          </button>
             </>
           )}
 
-        </nav>
-
-        {/* LOGOUT */}
-
-        <div className="sidebar-bottom">
-          <button className="logout-btn" onClick={logout}>
-            <span>🚪</span>
-            {sidebarOpen && "Logout"}
-          </button>
         </div>
 
-      </aside>
+        <div className="navbar-right">
 
-      {/* ================= MAIN ================= */}
+          <button
+            className="notification-btn"
+            onClick={() =>
+              navigate("/notifications")
+            }
+          >
 
+            🔔
+
+            {unread > 0 && (
+              <span className="notif-count">
+                {unread}
+              </span>
+            )}
+
+          </button>
+
+          <div className="profile-box">
+
+            <div className="profile-details">
+
+              <h4>
+                {user?.name || "User"}
+              </h4>
+
+              <p>
+                {user?.role}
+              </p>
+
+            </div>
+
+            <div className="profile-avatar">
+
+              {user?.name
+                ?.charAt(0)
+                ?.toUpperCase() || "U"}
+
+            </div>
+
+          </div>
+
+          <button
+            className="logout-btn"
+            onClick={logout}
+          >
+            Logout
+          </button>
+
+        </div>
+
+      </header>
       <main className="main-content">
 
-  
-        <div className="content-wrapper">
+        <div className="page-shell">
+
           {children}
+
         </div>
 
       </main>
 
     </div>
+
   );
+
 }
+
+
+

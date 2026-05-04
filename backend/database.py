@@ -19,6 +19,8 @@ movement_collection = db["stock_movements"]
 warehouse_staff_collection = db["warehouse_staff"]
 cart_collection = db["carts"]
 purchase_collection = db["purchase_orders"]
-
+notifications_collection = db["notifications"]
+email_logs_collection = db["email_logs"]
+audit_logs_collection = db["audit_logs"]
 
 

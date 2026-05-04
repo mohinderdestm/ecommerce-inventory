@@ -17,8 +17,8 @@ export default function Cart() {
 
       const res = await API.get("/cart");
 
-      setCart(res.data.items);
-      setTotal(res.data.total);
+      setCart(res.data.items || []);
+      setTotal(res.data.total || 0);
 
     } catch (err) {
 
@@ -29,6 +29,31 @@ export default function Cart() {
   useEffect(() => {
     load();
   }, []);
+
+  const updateQuantity = async (
+    variantId,
+    quantity
+  ) => {
+
+    try {
+
+      await API.put(
+        "/cart/update",
+        {
+          variant_id: variantId,
+          quantity
+        }
+      );
+
+      load();
+
+    } catch (err) {
+
+      alert(
+        err.response?.data?.detail || "Error"
+      );
+    }
+  };
 
   const checkout = async () => {
 
@@ -49,6 +74,7 @@ export default function Cart() {
   };
 
   return (
+
     <Layout user={user}>
 
       <div className="page">
@@ -81,15 +107,54 @@ export default function Cart() {
               </p>
 
               <p>
-                Qty: {item.quantity}
-              </p>
-
-              <p>
                 ₹{item.price}
               </p>
 
-              <p>
-                Subtotal: ₹{item.subtotal}
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  alignItems: "center",
+                  marginTop: "10px"
+                }}
+              >
+
+                <button
+                  onClick={() =>
+                    updateQuantity(
+                      item.variant_id,
+                      item.quantity - 1
+                    )
+                  }
+                >
+                  -
+                </button>
+
+                <b>
+                  {item.quantity}
+                </b>
+
+                <button
+                  onClick={() =>
+                    updateQuantity(
+                      item.variant_id,
+                      item.quantity + 1
+                    )
+                  }
+                >
+                  +
+                </button>
+
+              </div>
+
+              <p
+                style={{
+                  marginTop: "10px"
+                }}
+              >
+                Subtotal:
+                {" "}
+                ₹{item.subtotal}
               </p>
 
             </div>
@@ -97,15 +162,16 @@ export default function Cart() {
 
         </div>
 
-        <h3>
+        <h2>
           Total: ₹{total}
-        </h3>
+        </h2>
 
         {cart.length > 0 && (
 
           <button onClick={checkout}>
             Place Order
           </button>
+
         )}
 
       </div>
@@ -113,3 +179,4 @@ export default function Cart() {
     </Layout>
   );
 }
+

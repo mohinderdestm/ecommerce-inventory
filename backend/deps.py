@@ -1,6 +1,6 @@
 from fastapi import Request, HTTPException
 from auth import decode_token
-from database import users_collection   # ⭐ ADD THIS
+from database import users_collection 
 from bson import ObjectId
 
 async def get_current_user(request: Request):
@@ -27,7 +27,7 @@ async def get_current_user(request: Request):
             "_id": str(user["_id"]),
             "email": user["email"],
             "role": user["role"],
-            "warehouse_id": user.get("warehouse_id")   # 🔥 CRITICAL
+            "warehouse_id": user.get("warehouse_id")  
         }
 
     except Exception as e:

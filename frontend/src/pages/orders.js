@@ -54,13 +54,50 @@ export default function Orders() {
   };
 
   const cancelOrder = async (id) => {
-    await API.post(`/orders/${id}/cancel`);
+
+  try {
+
+    await API.post(
+      `/orders/${id}/cancel`
+    );
+
+    alert("Order cancelled");
+
     load();
-  };
+
+  } catch (err) {
+
+    alert(
+      err.response?.data?.detail ||
+      "Failed to cancel order"
+    );
+
+  }
+
+};
 
   const updateStatus = async (id, status) => {
-    await API.put(`/orders/${id}/status`, { status });
-    load();
+
+    try {
+
+      await API.put(
+        `/orders/${id}/status`,
+        { status }
+      );
+
+      alert("Status updated");
+
+      load();
+
+    } catch (err) {
+
+      console.log(err);
+
+      alert(
+        err.response?.data?.detail ||
+        "Failed to update status"
+      );
+    }
   };
 
   const assignWarehouse = async (orderId, warehouseId) => {
@@ -207,24 +244,54 @@ export default function Orders() {
                 )}
               </div>
 
+              {
+                (
+                  user?.role === "admin"
+                  || user?.role === "Admin"
+                ) && (
 
-              {user?.role === "admin" && (
-                <select
-                  className="status-select"
-                  value={o.status}
-                  onChange={(e) =>
-                    updateStatus(o.id, e.target.value)
-                  }
-                >
-                  <option>Draft</option>
-                  <option>Confirmed</option>
-                  <option>Packed</option>
-                  <option>Shipped</option>
-                  <option>Delivered</option>
-                  <option>Cancelled</option>
-                  <option>Returned</option>
-                </select>
-              )}
+                  <select
+                    className="status-select"
+                    value={o.status}
+                    onChange={(e) =>
+                      updateStatus(
+                        o.id,
+                        e.target.value
+                      )
+                    }
+                  >
+
+                    <option value="Draft">
+                      Draft
+                    </option>
+
+                    <option value="Confirmed">
+                      Confirmed
+                    </option>
+
+                    <option value="Packed">
+                      Packed
+                    </option>
+
+                    <option value="Shipped">
+                      Shipped
+                    </option>
+
+                    <option value="Delivered">
+                      Delivered
+                    </option>
+
+                    <option value="Cancelled">
+                      Cancelled
+                    </option>
+
+                    <option value="Returned">
+                      Returned
+                    </option>
+
+                  </select>
+                )
+              }
 
             </div>
           ))}

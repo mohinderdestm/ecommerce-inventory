@@ -12,6 +12,9 @@ from warehouse_routes import router as warehouse_router
 from dashboard_routes import router as dashboard_router
 from cart_routes import router as cart_router
 from purchase_routes import router as purchase_router
+from notification_routes import router as notification_router
+from email_routes import router as email_router
+from audit_routes import router as audit_router
 
 app = FastAPI()
 
@@ -22,6 +25,9 @@ app.include_router(warehouse_router)
 app.include_router(dashboard_router)
 app.include_router(cart_router)
 app.include_router(purchase_router)
+app.include_router(notification_router)
+app.include_router(email_router)
+app.include_router(audit_router)
 
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
