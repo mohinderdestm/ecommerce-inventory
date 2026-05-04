@@ -4,6 +4,7 @@ from app.utils.sku_generator import generate_sku
 from app.repositories.supplier_repository import SupplierRepository
 from app.services.supplier_service import SupplierService
 from app.core.database import db
+from app.services.audit_service import AuditService
 
 class ProductService:
 
@@ -70,8 +71,19 @@ class ProductService:
                 raise HTTPException(404, "Supplier not found")
 
             data["supplier_id"] = str(supplier["_id"])
-
+            
         product_id = await self.repo.create(data)
+        
+        await AuditService.log(
+           user_id=data["created_by"],
+           action="CREATE_PRODUCT",
+           entity_type="product",
+           entity_id=str(product_id),
+           value={
+                "product_name": data.get("name"),
+                "price": data.get("selling_price"),
+             }
+            )
         return {"_id": product_id}
       
 
@@ -82,6 +94,7 @@ class ProductService:
     
     async def update_product(self, product_id, data):
         update_data = data.dict(exclude_unset=True)
+        old_product = await self.repo.get_by_id(product_id)
 
     # ✅ allow status update
         if "status" in update_data:
@@ -93,6 +106,16 @@ class ProductService:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Product not found"
+            )
+        await AuditService.log(
+            user_id=data["created_by"], 
+            action="UPDATE_PRODUCT",
+            entity_type="product",
+            entity_id=product_id,
+            value={
+               "product_name": old_product.get("name"),
+               "updated_fields": update_data
+             }
             )
 
         return {"message": "Product updated"}

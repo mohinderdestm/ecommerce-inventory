@@ -5,6 +5,7 @@ from app.core.security import hash_password, verify_password, create_access_toke
 from app.repositories.supplier_repository import SupplierRepository
 from app.services.supplier_service import SupplierService
 from app.core.database import db
+from app.services.audit_service import AuditService
 
 
 class AuthService:
@@ -45,6 +46,14 @@ class AuthService:
         "user_id": str(user_id),
         "role": user.role
     })
+        
+        await AuditService.log(
+            user_id=str(user_id),
+            action="REGISTER",
+            entity_type="user",
+            entity_id=str(user_id),
+            value=user_dict
+        )
 
        
         return {
@@ -69,11 +78,22 @@ class AuthService:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid credentials"
             )
+            
+        await AuditService.log(
+            user_id=str(db_user["_id"]),
+            action="LOGIN",
+            entity_type="user",
+            entity_id=str(db_user["_id"]),
+            value={"email": db_user["email"]},
+            # ip=ip
+         )
 
         token = create_access_token({
             "user_id": str(db_user["_id"]),
             "role": db_user["role"]
         })
+        
+        
 
         return {
             "success": True,

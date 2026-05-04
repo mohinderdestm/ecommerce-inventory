@@ -6,6 +6,8 @@ from email import encoders
 import os
 from dotenv import load_dotenv
 
+load_dotenv()
+
 SMTP_EMAIL = os.getenv("SMTP_EMAIL")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 
@@ -34,7 +36,7 @@ async def send_email_with_pdf(to_email, subject, html_content, pdf_bytes=None):
         message.attach(part)
 
     try:
-        print("📨 Sending email to:", to_email)
+        print("Sending email to:", to_email)
 
         await aiosmtplib.send(
             message,
@@ -45,8 +47,8 @@ async def send_email_with_pdf(to_email, subject, html_content, pdf_bytes=None):
             password=SMTP_PASSWORD
         )
 
-        print(f"✅ Email sent: {subject}")
+        print(f"Email sent: {subject}")
 
     except Exception as e:
-        print("❌ Email failed:", e)
+        print("Email failed:", e)
 

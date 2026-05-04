@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from datetime import datetime
 from bson import ObjectId
 from app.core.database import db
+from app.services.audit_service import AuditService
 
 
 class PurchaseService:
@@ -9,7 +10,7 @@ class PurchaseService:
         self.repo = repo
 
     # ✅ CREATE PO
-    async def create_po(self, data):
+    async def create_po(self, data,user):
         payload = data.dict()
 
         for item in payload["items"]:
@@ -20,6 +21,14 @@ class PurchaseService:
         payload["updated_at"] = datetime.utcnow()
 
         result = await self.repo.create(payload)
+        
+        await AuditService.log(
+            user_id=str(user["_id"]),
+            action="PO_CREATED",
+            entity_type="purchase_order",
+            entity_id=str(result),
+            value=payload
+        )
 
         return {"id": result}
 
@@ -36,7 +45,7 @@ class PurchaseService:
         return result
 
     # ✅ UPDATE STATUS
-    async def update_status(self, po_id, new_status):
+    async def update_status(self, po_id, new_status,user):
         po = await self.repo.get_by_id(po_id)
 
         if not po:
@@ -57,78 +66,27 @@ class PurchaseService:
             "status": new_status,
             "updated_at": datetime.utcnow()
         })
+        
+        await AuditService.log(
+            user_id=str(user["_id"]),
+            action=f"PO_{new_status.upper()}",
+            entity_type="purchase_order",
+            entity_id=po_id,
+            old_value={
+               "status": current,
+               "items": po.get("items"),
+               "supplier_id": po.get("supplier_id")
+            },
+            new_value={
+              "status": new_status
+            }
+        )
 
         return {"message": f"PO {new_status} successfully"}
 
-    # ✅ RECEIVE ITEMS
-    # async def receive_items(self, po_id, payload):
-    #     po = await self.repo.get_by_id(po_id)
+    
 
-    #     if not po:
-    #         raise HTTPException(404, "PO not found")
-
-    #     if po["status"] not in ["approved", "partially_received"]:
-    #         raise HTTPException(400, "PO not approved")
-
-    #     inventory = db["inventory"]
-    #     logs = db["inventory_logs"]
-
-    #     items = po["items"]
-
-    #     for recv in payload.items:
-    #         for item in items:
-
-    #             if item["product_id"] == recv.product_id:
-
-    #                 remaining = item["quantity"] - item["received_quantity"]
-
-    #                 if recv.quantity > remaining:
-    #                     raise HTTPException(400, "Receiving more than ordered")
-
-    #                 # ✅ update received qty
-    #                 item["received_quantity"] += recv.quantity
-
-    #                 # ✅ update inventory
-    #                 await inventory.update_one(
-    #                     {
-    #                         "product_id": item["product_id"],
-    #                         "warehouse_id": po["warehouse_id"]
-    #                     },
-    #                     {
-    #                         "$inc": {"stock": recv.quantity}
-    #                     },
-    #                     upsert=True
-    #                 )
-
-    #                 # ✅ log
-    #                 await logs.insert_one({
-    #                     "product_id": item["product_id"],
-    #                     "product_name": item["product_name"],
-    #                     "warehouse_id": po["warehouse_id"],
-    #                     "warehouse_name": po["warehouse_name"],
-    #                     "movement_type": "purchase_in",
-    #                     "quantity": recv.quantity,
-    #                     "timestamp": datetime.utcnow(),
-    #                     "remarks": f"Received from PO {po_id}"
-    #                 })
-
-    #     # ✅ check full/partial
-    #     all_received = all(
-    #         i["received_quantity"] == i["quantity"]
-    #         for i in items
-    #     )
-
-    #     new_status = "completed" if all_received else "partially_received"
-
-    #     await self.repo.update(po_id, {
-    #         "items": items,
-    #         "status": new_status,
-    #         "updated_at": datetime.utcnow()
-    #     })
-
-    #     return {"message": "Items received successfully"}
-
-    async def receive_items(self, po_id, payload):
+    async def receive_items(self, po_id, payload,user):
 
         po = await self.repo.get_by_id(po_id)
 
@@ -169,6 +127,7 @@ class PurchaseService:
                             },
                             upsert=True
                       )
+                        
 
            # ✅ STATUS FIX
         all_received = all(
@@ -177,6 +136,17 @@ class PurchaseService:
       )
 
         status = "completed" if all_received else "partially_received"
+        
+        await AuditService.log(
+            user_id=str(user["_id"]),
+            action="PO_ITEMS_RECEIVED",
+            entity_type="purchase_order",
+            entity_id=po_id,
+            value={
+            "received_items": [i.dict() for i in payload.items],
+            "status": status
+             }
+                )
 
 
         # ✅ LOG
@@ -212,7 +182,7 @@ class PurchaseService:
         return {"message": f"PO {status}"}
 
 
-    async def attach_invoice(self, po_id, invoice_number, invoice_date):
+    async def attach_invoice(self, po_id, invoice_number, invoice_date,user):
 
     # ✅ AUTO GENERATE if empty
         if not invoice_number or invoice_number == "null":
@@ -222,5 +192,16 @@ class PurchaseService:
           "invoice_number": invoice_number,
            "invoice_date": invoice_date
        })
+        
+        await AuditService.log(
+            user_id=str(user["_id"]),
+            action="PO_INVOICE_ADDED",
+            entity_type="purchase_order",
+            entity_id=po_id,
+            value={
+                "invoice_number": invoice_number,
+                "invoice_date": str(invoice_date)
+            }
+         )
 
         return {"message": "Invoice generated", "invoice_number": invoice_number}

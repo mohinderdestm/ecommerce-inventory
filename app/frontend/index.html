@@ -409,6 +409,27 @@ button:disabled {
   background-color: #f1f1f1;
 }
 
+.audit-card {
+  border: 1px solid #ddd;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.audit-action {
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.audit-new {
+  color: green;
+}
+
+.audit-old {
+  color: red;
+}
+
     </style>
   </head>
 
@@ -503,15 +524,21 @@ button:disabled {
            <a onclick="loadReport('monthly', '📈 Monthly Movement')">Monthly</a>
         </div>
       </div>
+      <div class="dropdown">
+       <button class="dropbtn">📜 Audit</button>
+
+          <div class="dropdown-content">
+             <a onclick="loadAuditLogs()">📋 View Logs</a>
+          </div>
+    </div>
     
     </div>
-
      
 
   <div class="nav-group">
 
       <div style="position:relative; display:inline-block;">
-  <button onclick="toggleNotif()">🔔</button>
+         <button onclick="toggleNotif()">🔔</button>
 
   <span id="notifDot"
         style="
@@ -533,30 +560,51 @@ button:disabled {
      <button id="editProfileBtn" onclick="openProfileModal()">👤 Profile</button>
      <button onclick="logout()">Logout</button>
 
-      <div style="position:relative; display:inline-block;">
-  <button onclick="toggleNotif()">🔔</button>
-
-  <span id="notifDot"
-        style="
-          position:absolute;
-          top:2px;
-          right:2px;
-          width:10px;
-          height:10px;
-          background:red;
-          border-radius:50%;
-          display:none;
-        ">
-  </span>
-</div>
-      
-      <button id="cartBtn"  onclick="openCart()">
-          🛒 Cart (<span id="cartCount">0</span>)
-      </button> 
-     <button id="editProfileBtn" onclick="openProfileModal()">👤 Profile</button>
-     <button onclick="logout()">Logout</button>
   </div>
 
+</div>
+
+<!-- AUDIT MODAL -->
+<div id="auditModal" class="modal">
+  <div class="modal-content" style="width:90%; max-height:80vh; overflow:auto;">
+
+    <span class="close" style="cursor: pointer;" onclick="closeAuditModal()">&times;</span>
+
+    <h2>📜 Audit Logs</h2>
+
+    <!-- Filters -->
+    <div style="margin-bottom:10px;">
+      <input id="auditSearch" placeholder="Search action/entity..." oninput="debouncedSearch()"  />
+      
+      <select id="auditActionFilter">
+        <option value="">All</option>
+        <option value="ORDER">Orders</option>
+        <option value="PO">Purchase Orders</option>
+        <option value="STOCK">Inventory</option>
+        <option value="WAREHOUSE">Warehouse</option>
+        <option value="PRODUCT">Product</option>
+      </select>
+      
+
+      <button onclick="loadAuditLogs()">🔍 Filter</button>
+    </div>
+
+    <!-- Table -->
+    <table border="1" width="100%">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>User</th>
+          <th>Action</th>
+          <th>Entity</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+
+      <tbody id="auditTable"></tbody>
+    </table>
+
+  </div>
 </div>
 
 
@@ -620,9 +668,6 @@ button:disabled {
 
     <label>Phone</label>
     <input id="custPhone" placeholder="Enter phone" style="width:100%; margin-bottom:10px;">
-
-    <label>Email</label>
-    <input id="custEmail" placeholder="Enter email" style="width:100%; margin-bottom:10px;">
 
     <label>Email</label>
     <input id="custEmail" placeholder="Enter email" style="width:100%; margin-bottom:10px;">
@@ -957,6 +1002,7 @@ button:disabled {
 </div>
 
 
+<!-- Notification-->
 
 <div id="notifBox"
   style="display:none; position:fixed; right:20px; top:60px;
@@ -1024,79 +1070,6 @@ button:disabled {
     <button onclick="closeAllNotifications()">Close</button>
   </div>
 </div>
-
-
-
-
-
-
-<div id="notifBox"
-  style="display:none; position:fixed; right:20px; top:60px;
-         width:320px; background:#fff; border-radius:10px;
-         box-shadow:0 4px 10px rgba(0,0,0,0.2);
-         max-height:400px; overflow:auto; z-index:999;">
-
-
-  <div style="padding:10px; border-bottom:1px solid #eee;">
-
-
-    <b>🔔 Notifications</b>
-  </div>
-
-
-  <div id="notifList"></div>
-
-
-  <div style="padding:10px; text-align:center;">
-    <a href="#" onclick="openAllNotifications()">View All</a>
-  </div>
-</div>
-
-
-
-<!-- Full page history for notification -->
-
-
-<!-- <div id="allNotificationsPage" style="display:none; padding:20px;">
-  <h2>🔔 All Notifications</h2>
-
-
-  <div id="allNotifList"></div>
-
-
-  <button onclick="closeAllNotifications()">Close</button>
-</div> -->
-
-
-<div id="allNotifModal"
-     style="display:none; position:fixed; top:0; left:0;
-            width:100%; height:100%;
-            background:rgba(0,0,0,0.5);
-            z-index:1000;">
-
-
-  <div id="allNotifContent" class="modal-content" style="
-        width:500px;
-        max-height:80%;
-        overflow:auto;
-        background:#fff;
-        margin:50px auto;
-        padding:20px;
-        border-radius:10px;
-      ">
-
-
-    <h3>🔔 All Notifications</h3>
-
-
-    <div id="allNotifList"></div>
-
-
-    <br>
-    <button onclick="closeAllNotifications()">Close</button>
-  </div>
-</div>
-
 
 
 
@@ -1238,20 +1211,20 @@ button:disabled {
 
            if (currentUserRole === "supplier") {
 
-          // Hide ALL dropdown menus (Warehouse, Inventory, Orders, Purchase, Reports)
+          //Hide ALL dropdown menus (Warehouse, Inventory, Orders, Purchase, Reports)
              document.querySelectorAll(".dropdown").forEach(d => {
              d.style.display = "none";
            });
 
           // Hide notification bell
-             const notifBtn = document.querySelector('[onclick="toggleNotif()"]');
+            const notifBtn = document.querySelector('[onclick="toggleNotif()"]');
             if (notifBtn) notifBtn.style.display = "none";
 
             const notifDot = document.getElementById("notifDot");
             if (notifDot) notifDot.style.display = "none";
               }
-
            }
+           
 
       function isValidEmail(email) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -2087,6 +2060,7 @@ function openCheckout() {
 
   // ================= Load Notification =================
 
+
 const userId = localStorage.getItem("user_id");
 const role = localStorage.getItem("role");
 
@@ -2146,53 +2120,306 @@ async function loadNotifications() {
           </div>
         `).join("");
 }
+  // ================= toggle Notification =================
 
-// async function toggleNotif() {
-//   const box = document.getElementById("notifBox");
+async function toggleNotif() {
+  const box = document.getElementById("notifBox");
+  const dot = document.getElementById("notifDot");
 
-//   if (!box) {
-//     console.error("notifBox not found ❌");
-//     return;
-//   }
+  if (!box) return;
 
-    //   const payload = {
-    //     customer_name: "Walk-in Customer",
-    //     items: cart.map(i => ({
-    //       product_id: i.product_id,
-    //       product_name: i.product_name,
-    //       quantity: Number(i.quantity),
-    //       price: Number(i.price)
-    //     }))
-    //   };
-    //    console.log("SENDING PAYLOAD:", payload);
+  if (box.style.display === "block") {
+    box.style.display = "none";
+    return;
+  }
 
-    //   const res = await fetch(`${BASE_URL}/orders/`, {
-    //     method: "POST",
-    //     headers: {
-    //       "Content-Type": "application/json",
-    //       Authorization: `Bearer ${token}`
-    //     },
-    //     body: JSON.stringify(payload)
-    //   });
+  // 👉 OPENING
+  box.style.display = "block";
 
-    //   const data = await res.json();
+  await loadNotifications();
 
-    //   if (!res.ok) {
-        
-    //     alert(JSON.stringify(data.detail, null, 2) || "Order failed");
-    //     return;
-    //   }
+  // ✅ mark as read immediately
+  await markAllAsRead();
 
-    //   alert("✅ Order placed successfully!");
+  // ✅ remove red dot instantly
+  if (dot) dot.style.display = "none";
 
-    // // reset cart
-    //   cart = [];
-    //   updateCartUI();
-    //   closeCart();
+  // ✅ reload UI so blue background disappears
+  await loadNotifications();
+}
 
-    //  // 🔥 IMPORTANT: refresh stock UI
-    //   loadProductsWithStock();
-    //  }
+
+async function markAllAsRead() {
+  const token = localStorage.getItem("token");
+  const userId = localStorage.getItem("user_id");
+  const role = localStorage.getItem("role");
+
+  let url = `${BASE_URL}/notifications/read-all?`;
+
+  if (role === "admin") {
+    url += "role=admin";
+  } else {
+    url += `user_id=${userId}`;
+  }
+
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  console.log("Marked read response:", await res.json());
+}
+
+function openAllNotifications() {
+  document.getElementById("notifBox").style.display = "none";
+  document.getElementById("allNotifModal").style.display = "block";
+  loadAllNotifications();
+}
+
+
+
+function closeAllNotifications() {
+  document.getElementById("allNotifModal").style.display = "none";
+}
+
+window.onclick = function (event) {
+  const modal = document.getElementById("allNotifModal");
+
+  if (event.target === modal) {
+    modal.style.display = "none";
+  }
+};
+
+  // ================= Load All Notification =================
+
+async function loadAllNotifications() {
+  const token = localStorage.getItem("token");
+
+  let url = `${BASE_URL}/notifications/?`;
+
+  if (role === "admin") {
+    url += `role=admin`;
+  } else {
+    url += `user_id=${userId}`;
+  }
+
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  const data = await res.json();
+  if (!Array.isArray(data)) return;
+
+  document.getElementById("allNotifList").innerHTML =
+    data.map(n => `
+      <div style="
+        padding:10px;
+        border-bottom:1px solid #eee;
+        background:${n.is_read ? "#fff" : "#eef6ff"};
+      ">
+        <b>${n.title}</b><br>
+        ${n.message}<br>
+        <small>${new Date(n.created_at).toLocaleString()}</small>
+      </div>
+    `).join("");
+}
+
+setInterval(() => {
+  const box = document.getElementById("notifBox");
+
+  if (box && box.style.display !== "block") {
+    loadNotifications();
+  }
+}, 1000);
+
+
+
+// ================= AUDIT MODEL =================
+
+
+const API = "http://127.0.0.1:8000";
+
+function openAuditModal() {
+  document.getElementById("auditModal").style.display = "block";
+}
+
+function closeAuditModal() {
+  document.getElementById("auditModal").style.display = "none";
+}
+
+async function loadAuditLogs() {
+  openAuditModal();
+
+  const token = localStorage.getItem("token");
+
+  const search = document.getElementById("auditSearch").value.trim();
+  const action = document.getElementById("auditActionFilter").value;
+
+  let url = `${API}/audit?`;
+
+  if (search) url += `search=${search}&`;
+  if (action) url += `action=${action}&`;
+
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  const data = await res.json();
+
+  renderAuditTable(data.data || data);
+}
+
+function renderAuditTable(logs) {
+  const table = document.getElementById("auditTable");
+
+  if (!logs || logs.length === 0) {
+    table.innerHTML = `<tr><td colspan="6">No logs found</td></tr>`;
+    return;
+  }
+
+  table.innerHTML = logs.map(log => {
+    return `
+      <tr>
+        <td>${formatDate(log.timestamp)}</td>
+        <td><b>${log.user_name}</b><br><small>${log.user_id}</small></td>
+        <td>${log.action}</td>
+        <td>${log.entity_type}</td>
+        <td>
+           ${formatAuditDetails(log)}
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+(function() {
+    var searchTimeout;
+    window.debouncedSearch = function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(loadAuditLogs, 300);
+    };
+})();
+
+
+
+function formatAuditRow(log) {
+  // ✅ BOTH OLD + NEW → show comparison
+  if (log.old_value && log.new_value) {
+    return `
+      <div style="color:#b91c1c;">
+        <b>Old:</b> ${formatAuditDetails(log.old_value)}
+      </div>
+      <div style="color:#065f46; margin-top:5px;">
+        <b>New:</b> ${formatAuditDetails(log.new_value)}
+      </div>
+    `;
+  }
+
+  // ✅ ONLY NEW → show clean info (NO "New:" label)
+  if (log.new_value) {
+    return `
+      <div>
+        ${formatAuditDetails(log.new_value)}
+      </div>
+    `;
+  }
+
+  // ✅ NOTHING → fallback based on action
+  return `<div>${getSimpleMessage(log)}</div>`;
+}
+
+function getSimpleMessage(log) {
+  switch (log.action) {
+    case "LOGIN":
+      return "User logged in";
+
+    case "ORDER_CONFIRMED":
+      return "Order confirmed";
+
+    case "ORDER_CANCELLED":
+      return "Order cancelled";
+
+    default:
+      return "-";
+  }
+}
+
+
+function formatDate(date) {
+  if (!date) return "-";
+
+  return new Date(date).toLocaleString();
+}
+
+
+
+function formatAuditDetails(data) {
+  if (!data) return "-";
+
+  // If string → try parse JSON
+  if (typeof data === "string") {
+    try {
+      data = JSON.parse(data);
+    } catch {
+      return data;
+    }
+  }
+
+  let html = "";
+
+  // 🔹 Handle array (IMPORTANT FIX)
+  if (Array.isArray(data)) {
+    data.forEach((item, index) => {
+      html += `<div style="margin-left:10px;"><b>Item ${index + 1}</b></div>`;
+
+      for (let key in item) {
+        html += `
+          <div style="margin-left:20px;">
+            ${formatKey(key)}: ${item[key]}
+          </div>
+        `;
+      }
+    });
+
+    return html;
+  }
+
+  // 🔹 Handle object
+  if (typeof data === "object") {
+    for (let key in data) {
+      let value = data[key];
+
+      // If nested array
+      if (Array.isArray(value)) {
+        html += `<div><b>${formatKey(key)}:</b></div>`;
+        html += formatAuditDetails(value);
+      }
+
+      // If nested object
+      else if (typeof value === "object") {
+        html += `<div><b>${formatKey(key)}:</b></div>`;
+        html += formatAuditDetails(value);
+      }
+
+      // Normal value
+      else {
+        html += `<div><b>${formatKey(key)}:</b> ${value}</div>`;
+      }
+    }
+
+    return html;
+  }
+
+  return data;
+}
+
+function formatKey(key) {
+  return key
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
 
       // ================= WAREHOUSE MODEL =================
 

@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from bson import ObjectId
 from app.core.database import db
+from app.services.audit_service import AuditService
 
 class WarehouseService:
     def __init__(self, repo):
@@ -12,6 +13,18 @@ class WarehouseService:
         warehouse_data["manager_id"] = str(user["_id"])  
 
         warehouse_id = await self.repo.create(warehouse_data)
+        
+        await AuditService.log(
+        user_id=str(user["_id"]),
+        action="WAREHOUSE_CREATED",
+        entity_type="warehouse",
+        entity_id=str(warehouse_id),
+        value={
+            "name": warehouse_data.get("name"),
+            "location": warehouse_data.get("location")
+        }
+      )
+        
         return {"id": warehouse_id}
 
     
@@ -50,16 +63,40 @@ class WarehouseService:
 
        return result
 
-    async def update_warehouse(self, warehouse_id, payload):
+    async def update_warehouse(self, warehouse_id, payload,user):
+        update_data = payload.dict(exclude_unset=True)
+
         result = await self.repo.update(warehouse_id, payload.dict(exclude_unset=True))
 
         if result.matched_count == 0:
             raise HTTPException(404, "Warehouse not found")
+        
+        await AuditService.log(
+            user_id=str(user["_id"]),
+            action="WAREHOUSE_UPDATED",
+            entity_type="warehouse",
+            entity_id=warehouse_id,
+            value=update_data
+        )
 
         return {"message": "Updated"}
 
-    async def delete_warehouse(self, warehouse_id):
+    async def delete_warehouse(self, warehouse_id,user):
+        
+        warehouse = await self.repo.get_by_id(warehouse_id)
         await self.repo.delete(warehouse_id)
+        
+        await AuditService.log(
+        user_id=str(user["_id"]),
+        action="WAREHOUSE_DELETED",
+        entity_type="warehouse",
+        entity_id=warehouse_id,
+        value={
+            "name": warehouse.get("name"),
+            "location": warehouse.get("location")
+        }
+      )
+        
         return {"message": "Deleted"}
     
    

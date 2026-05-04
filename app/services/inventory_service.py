@@ -4,9 +4,10 @@ from app.core.database import db
 from bson import ObjectId
 from app.services.notification_service import NotificationService
 from app.services.email_service import send_email_with_pdf
+from app.services.audit_service import AuditService
 
 
-LOW_STOCK_LIMIT = 2
+LOW_STOCK_LIMIT = 4
 ADMIN_EMAIL = "gagank1019@gmail.com" 
 
 
@@ -36,10 +37,8 @@ class InventoryService:
             warehouse = await warehouses.find_one({"_id": ObjectId(warehouse_id)})
             warehouse_name = warehouse.get("name") if warehouse else None
 
-            # ✅ FIX: update stock
+            # update stock
             await self.repo.update_stock(product_id, warehouse_id, qty)
-
-            await InventoryService.check_low_stock(product_id, warehouse_id)
 
             await InventoryService.check_low_stock(product_id, warehouse_id)
 
@@ -50,10 +49,23 @@ class InventoryService:
                 "warehouse_name": warehouse_name,
                 "movement_type": "inward",
                 "quantity": qty,
-                "performed_by": str(user["_id"]),
+                "performed_by": str(user["_id"]),   
                 "timestamp": datetime.utcnow(),
                 "remarks": "Stock added"
             })
+            
+            await AuditService.log(
+               user_id=str(user["_id"]),
+               action="STOCK_INWARD",
+               entity_type="inventory",
+               entity_id=product_id,
+               value={
+                     "product_name": product_name,
+                     "qty": qty,
+                     "warehouse": warehouse_name
+          
+                }
+             )
 
         # ================= OUTWARD =================
         elif movement_type == "outward":
@@ -70,7 +82,6 @@ class InventoryService:
 
             await self.repo.update_stock(product_id, warehouse_id, -qty)
             await InventoryService.check_low_stock(product_id, warehouse_id)
-            await InventoryService.check_low_stock(product_id, warehouse_id)
 
             await movements.insert_one({
                 "product_id": product_id,
@@ -83,6 +94,19 @@ class InventoryService:
                 "timestamp": datetime.utcnow(),
                 "remarks": "Stock removed"
             })
+            
+            await AuditService.log(
+               user_id=str(user["_id"]),
+               action="STOCK_OUTWARD",
+               entity_type="inventory",
+               entity_id=product_id,
+               value={
+                  "product_name": product_name,
+                  "qty": qty,
+                  "warehouse": warehouse_name
+                
+                }
+             )
 
         # ================= TRANSFER =================
         elif movement_type == "transfer":
@@ -142,6 +166,19 @@ class InventoryService:
                 "timestamp": datetime.utcnow(),
                 "remarks": f"Received from {from_name}"
             })
+            
+            await AuditService.log(
+                user_id=str(user["_id"]),
+                action=f"STOCK_{movement_type.upper()}",
+                entity_type="inventory",
+                entity_id=product_id,
+                value={
+                    "product_name": product_name,
+                    "qty": qty,
+                    "from_warehouse": from_name,
+                    "to_warehouse": to_name
+                }
+               )
 
         else:
             raise HTTPException(400, "Invalid movement type")
@@ -199,22 +236,30 @@ class InventoryService:
                 "created_at": datetime.utcnow()
             })
             
+            stock_doc = await inventory.find_one({
+               "product_id": str(product_id),
+               "warehouse_id": str(warehouse_id)
+             })
+
+            remaining_qty = stock_doc["stock"]
+            
             
             html_content = f"""
             <div style="font-family:Arial; max-width:600px; margin:auto;">
                 <h2 style="color:red;">⚠️ Low Stock Alert</h2>
                 <p><b>Product:</b> {product_name}</p>
                 <p><b>Warehouse:</b> {warehouse_name}</p>
-                <p><b>Remaining:</b> {stock}</p>
+                <p><b>Remaining:</b> {remaining_qty}</p>
             </div>
              """
             print("📧 EMAIL FUNCTION CALLED")
-           
+            
 
             try:
                  await send_email_with_pdf(
                    ADMIN_EMAIL,
-                   f"⚠️ Low Stock: {stock['product_name']}",
+                #    f"⚠️ Low Stock: {stock['product_name']}",
+                   f"⚠️ Low Stock: {product_name}",  
                    html_content
                  )
             except Exception as e:
