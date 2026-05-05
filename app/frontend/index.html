@@ -300,7 +300,7 @@
 
   display: flex;
   justify-content: center;
-  align-items: center; /* center vertically */
+  align-items: center; 
 }
 
 .overlay-content {
@@ -2232,6 +2232,112 @@ setInterval(() => {
   }
 }, 1000);
 
+// =================  ==========Load Reports=======
+
+
+async function loadReport(type, title) {
+    currentReportType = type;
+
+    document.getElementById("reportTitle").innerText = title;
+
+    const res = await fetch(`http://127.0.0.1:8000/reports/${type}`);
+    const data = await res.json();
+
+    let html = `<table class="report-table">`;
+
+    if (!data || data.length === 0) {
+        html += "<tr><td>No Data Available</td></tr>";
+    } else {
+
+        let keys = [];
+
+        if (type === "top-selling") {
+            keys = ["warehouse", "product", "total_sold"];
+        } 
+        else if (type === "supplier") {
+            keys = ["supplier", "total_spent", "total_orders"];
+        }
+        else if (type === "dead-stock") {
+            keys = ["warehouse", "product", "stock"];
+        } 
+        // else if (type === "monthly") {
+        //     keys = ["year", "month", "type", "total"];
+        // }
+        else if (type === "monthly") {
+           keys = ["month", "warehouse", "product", "inward", "outward", "net"];
+        }
+        else {
+            keys = ["warehouse", "product", "stock"];
+        }
+
+        html += "<tr>";
+        keys.forEach(k => html += `<th>${k.toUpperCase()}</th>`);
+        html += "</tr>";
+
+        data.forEach(row => {
+            html += "<tr>";
+
+            keys.forEach(k => {
+                let value = row[k];
+
+                if (typeof value === "object" && value !== null) {
+                    value = value.name || value._id || JSON.stringify(value);
+                }
+
+                html += `<td>${value ?? "-"}</td>`;
+            });
+
+            html += "</tr>";
+        });
+    }
+
+    html += "</table>";
+
+    document.getElementById("reportTableContainer").innerHTML = html;
+
+    document.getElementById("reportModal").style.display = "block";
+}
+
+
+
+async function downloadPDF(type) {
+    const res = await fetch(`http://127.0.0.1:8000/reports/export/${type}`);
+
+    if (!res.ok) {
+        const text = await res.text();
+        console.error("Backend Error:", text);
+        alert("PDF failed. Check backend.");
+        return;
+    }
+
+    const data = await res.json();
+
+    if (!data.pdf) {
+        alert("No PDF received");
+        return;
+    }
+
+    const byteCharacters = atob(data.pdf);
+    const byteNumbers = Array.from(byteCharacters, c => c.charCodeAt(0));
+
+    const blob = new Blob([new Uint8Array(byteNumbers)], {
+        type: "application/pdf"
+    });
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = `${type}.pdf`;
+    a.click();
+}
+
+function closeReportModal() {
+    document.getElementById("reportModal").style.display = "none";
+}
+ 
+
+
 
 
 // ================= AUDIT MODEL =================
@@ -3014,7 +3120,7 @@ function formatKey(key) {
 
        console.log("SENDING CLEAN PAYLOAD:", payload);
 
-        const res = await fetch(`${BASE_URL}/orders/`, {   // ✅ keep slash
+        const res = await fetch(`${BASE_URL}/orders/`, {  
           method: "POST",
           headers: {
              "Content-Type": "application/json",
@@ -3488,8 +3594,6 @@ function formatKey(key) {
     `;
   }).join("");
 
-    //  const tax = subtotal * 0.18; // 18% GST demo
-    //  const grandTotal = subtotal + tax;
       const gstInput = document.getElementById("gstPercent");
 
       const gstPercent = gstInput && gstInput.value 
