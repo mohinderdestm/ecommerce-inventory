@@ -1,6 +1,7 @@
 from app.repositories.order_repository import OrderRepository
 from app.repositories.product_repository import ProductRepository
 from app.services.audit_service import AuditService
+from app.services.event_bus_service import EventBusService
 from app.services.warehouse_stock_service import WarehouseStockService
 from app.utils.email_service import send_order_confirmation_email
 from fastapi import HTTPException, status
@@ -159,6 +160,15 @@ class OrderService:
             new_value=saved_order,
             audit_context=audit_context,
         )
+        await EventBusService.publish(
+            topic_key="orders.events",
+            event_type="order.placed",
+            aggregate_type="order",
+            aggregate_id=saved_order["id"],
+            payload=saved_order,
+            metadata={"order_reference": order_reference},
+            user=current_user,
+        )
 
         return saved_order
 
@@ -184,14 +194,23 @@ class OrderService:
             )
 
         await OrderRepository.update_order_status(order_id, "confirmed")
+        updated_order = {**order, "id": order_id, "status": "confirmed"}
         await AuditService.safe_log_action(
             user=current_user,
             action="order.confirm",
             entity_type="order",
             entity_id=order_id,
             old_value=order,
-            new_value={**order, "status": "confirmed"},
+            new_value=updated_order,
             audit_context=audit_context,
+        )
+        await EventBusService.publish(
+            topic_key="orders.events",
+            event_type="order.confirmed",
+            aggregate_type="order",
+            aggregate_id=order_id,
+            payload=updated_order,
+            user=current_user,
         )
         return {"message": "Order successfully confirmed."}
 
@@ -265,20 +284,29 @@ class OrderService:
             )
 
         await OrderRepository.update_order_status(order_id, "cancelled")
+        actor = current_user or {
+            "id": None,
+            "name": "Order System",
+            "email": None,
+            "role": "system",
+        }
+        updated_order = {**order, "id": order_id, "status": "cancelled"}
         await AuditService.safe_log_action(
-            user=current_user
-            or {
-                "id": None,
-                "name": "Order System",
-                "email": None,
-                "role": "system",
-            },
+            user=actor,
             action="order.cancel",
             entity_type="order",
             entity_id=order_id,
             old_value=order,
-            new_value={**order, "status": "cancelled"},
+            new_value=updated_order,
             audit_context=audit_context,
+        )
+        await EventBusService.publish(
+            topic_key="orders.events",
+            event_type="order.cancelled",
+            aggregate_type="order",
+            aggregate_id=order_id,
+            payload=updated_order,
+            user=actor,
         )
         return {"message": "Order cancelled and stock restored successfully."}
 

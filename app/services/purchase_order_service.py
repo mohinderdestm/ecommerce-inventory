@@ -7,6 +7,7 @@ from app.models.purchase_order_model import purchase_order_model
 from app.repositories.product_repository import ProductRepository
 from app.repositories.purchase_order_repository import PurchaseOrderRepository
 from app.services.audit_service import AuditService
+from app.services.event_bus_service import EventBusService
 from app.services.notification_service import NotificationService
 from app.services.warehouse_stock_service import WarehouseStockService
 
@@ -134,7 +135,16 @@ class PurchaseOrderService:
             new_value=created,
             audit_context=audit_context,
         )
-        return purchase_order_model(created)
+        created_model = purchase_order_model(created)
+        await EventBusService.publish(
+            topic_key="purchase_orders.events",
+            event_type="purchase_order.created",
+            aggregate_type="purchase_order",
+            aggregate_id=po_id,
+            payload=created_model,
+            user=user,
+        )
+        return created_model
 
     @staticmethod
     async def _get_accessible_po(po_id: str, user: dict):
@@ -201,7 +211,16 @@ class PurchaseOrderService:
             new_value=updated,
             audit_context=audit_context,
         )
-        return purchase_order_model(updated)
+        updated_model = purchase_order_model(updated)
+        await EventBusService.publish(
+            topic_key="purchase_orders.events",
+            event_type="purchase_order.items_added",
+            aggregate_type="purchase_order",
+            aggregate_id=po_id,
+            payload=updated_model,
+            user=user,
+        )
+        return updated_model
 
     @staticmethod
     async def submit(
@@ -241,7 +260,7 @@ class PurchaseOrderService:
             new_value=updated,
             audit_context=audit_context,
         )
-        await NotificationService.create_system_notification(
+        await NotificationService.dispatch_system_notification(
             type="purchase_order_submitted",
             title=f"Purchase Order Submitted: {updated.get('po_number')}",
             message=f"Purchase order {updated.get('po_number')} is submitted and pending approval.",
@@ -252,7 +271,16 @@ class PurchaseOrderService:
             dedupe_key=f"po_submitted:{updated.get('_id')}",
             metadata={"status": "submitted"},
         )
-        return purchase_order_model(updated)
+        updated_model = purchase_order_model(updated)
+        await EventBusService.publish(
+            topic_key="purchase_orders.events",
+            event_type="purchase_order.submitted",
+            aggregate_type="purchase_order",
+            aggregate_id=po_id,
+            payload=updated_model,
+            user=user,
+        )
+        return updated_model
 
     @staticmethod
     async def approve(
@@ -288,7 +316,7 @@ class PurchaseOrderService:
             new_value=updated,
             audit_context=audit_context,
         )
-        await NotificationService.create_system_notification(
+        await NotificationService.dispatch_system_notification(
             type="purchase_order_approved",
             title=f"Purchase Order Approved: {updated.get('po_number')}",
             message=f"Purchase order {updated.get('po_number')} is approved and ready for receiving.",
@@ -302,7 +330,16 @@ class PurchaseOrderService:
             dedupe_key=f"po_approved:{updated.get('_id')}",
             metadata={"status": "approved"},
         )
-        return purchase_order_model(updated)
+        updated_model = purchase_order_model(updated)
+        await EventBusService.publish(
+            topic_key="purchase_orders.events",
+            event_type="purchase_order.approved",
+            aggregate_type="purchase_order",
+            aggregate_id=po_id,
+            payload=updated_model,
+            user=user,
+        )
+        return updated_model
 
     @staticmethod
     async def reject(
@@ -338,7 +375,7 @@ class PurchaseOrderService:
             new_value=updated,
             audit_context=audit_context,
         )
-        await NotificationService.create_system_notification(
+        await NotificationService.dispatch_system_notification(
             type="purchase_order_rejected",
             title=f"Purchase Order Rejected: {updated.get('po_number')}",
             message=f"Purchase order {updated.get('po_number')} has been rejected.",
@@ -352,7 +389,16 @@ class PurchaseOrderService:
             dedupe_key=f"po_rejected:{updated.get('_id')}",
             metadata={"status": "rejected"},
         )
-        return purchase_order_model(updated)
+        updated_model = purchase_order_model(updated)
+        await EventBusService.publish(
+            topic_key="purchase_orders.events",
+            event_type="purchase_order.rejected",
+            aggregate_type="purchase_order",
+            aggregate_id=po_id,
+            payload=updated_model,
+            user=user,
+        )
+        return updated_model
 
     @staticmethod
     async def cancel(
@@ -386,7 +432,16 @@ class PurchaseOrderService:
             new_value=updated,
             audit_context=audit_context,
         )
-        return purchase_order_model(updated)
+        updated_model = purchase_order_model(updated)
+        await EventBusService.publish(
+            topic_key="purchase_orders.events",
+            event_type="purchase_order.cancelled",
+            aggregate_type="purchase_order",
+            aggregate_id=po_id,
+            payload=updated_model,
+            user=user,
+        )
+        return updated_model
 
     @staticmethod
     async def update_invoice_metadata(
@@ -412,7 +467,16 @@ class PurchaseOrderService:
             new_value=updated,
             audit_context=audit_context,
         )
-        return purchase_order_model(updated)
+        updated_model = purchase_order_model(updated)
+        await EventBusService.publish(
+            topic_key="purchase_orders.events",
+            event_type="purchase_order.invoice_updated",
+            aggregate_type="purchase_order",
+            aggregate_id=po_id,
+            payload=updated_model,
+            user=user,
+        )
+        return updated_model
 
     @staticmethod
     async def _apply_expiry(product: dict, variant_sku: str | None, expiry_date: str):
@@ -577,7 +641,7 @@ class PurchaseOrderService:
             audit_context=audit_context,
         )
 
-        await NotificationService.create_system_notification(
+        await NotificationService.dispatch_system_notification(
             type="purchase_order_received",
             title=f"Purchase Order {updated.get('po_number')} {new_status.replace('_', ' ').title()}",
             message=(
@@ -595,4 +659,15 @@ class PurchaseOrderService:
             metadata={"status": new_status},
         )
 
-        return purchase_order_model(updated)
+        updated_model = purchase_order_model(updated)
+        await EventBusService.publish(
+            topic_key="purchase_orders.events",
+            event_type="purchase_order.received",
+            aggregate_type="purchase_order",
+            aggregate_id=po_id,
+            payload=updated_model,
+            metadata={"status": new_status},
+            user=user,
+        )
+
+        return updated_model

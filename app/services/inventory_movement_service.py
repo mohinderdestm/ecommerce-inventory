@@ -10,6 +10,7 @@ from app.repositories.product_repository import ProductRepository
 from app.repositories.warehouse_repository import WarehouseRepository
 from app.repositories.warehouse_stock_repository import WarehouseStockRepository
 from app.services.audit_service import AuditService
+from app.services.event_bus_service import EventBusService
 
 
 class InventoryMovementService:
@@ -165,7 +166,20 @@ class InventoryMovementService:
         }
         movement_id = await InventoryMovementRepository.create(movement_doc)
         created = await InventoryMovementRepository.get_by_id(movement_id)
-        return inventory_movement_model(created)
+        created_model = inventory_movement_model(created)
+        await EventBusService.publish(
+            topic_key="inventory.events",
+            event_type=f"inventory_movement.{movement_type}",
+            aggregate_type="inventory_movement",
+            aggregate_id=created_model["id"],
+            payload=created_model,
+            metadata={
+                "reference_type": reference_type,
+                "reference_id": reference_id,
+            },
+            user=performed_by,
+        )
+        return created_model
 
     @staticmethod
     async def _increase_stock(

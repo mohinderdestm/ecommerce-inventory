@@ -1,9 +1,12 @@
 from datetime import datetime, timedelta, date
 from typing import Optional
+from uuid import uuid4
 
 from app.core.database import db
+from app.core.kafka import kafka_manager
 from app.models.notification_model import notification_model
 from app.repositories.notification_repository import NotificationRepository
+from app.services.event_bus_service import EventBusService
 from app.repositories.product_repository import ProductRepository
 from app.services.product_service import ProductService
 
@@ -73,7 +76,62 @@ class NotificationService:
 
         notification_id = await NotificationRepository.create(payload)
         created = await NotificationRepository.get_by_id(notification_id)
-        return notification_model(created)
+        created_model = notification_model(created)
+        await EventBusService.publish(
+            topic_key="notifications.events",
+            event_type="notification.created",
+            aggregate_type="notification",
+            aggregate_id=created_model["id"],
+            payload=created_model,
+            metadata={"delivery_mode": "direct"},
+        )
+        return created_model
+
+    @staticmethod
+    async def dispatch_system_notification(
+        *,
+        type: str,
+        title: str,
+        message: str,
+        severity: str = "info",
+        target_roles: Optional[list[str]] = None,
+        target_users: Optional[list[str]] = None,
+        reference_type: Optional[str] = None,
+        reference_id: Optional[str] = None,
+        dedupe_key: Optional[str] = None,
+        metadata: Optional[dict] = None,
+        channels: Optional[list[str]] = None,
+    ):
+        payload = {
+            "type": type,
+            "title": title,
+            "message": message,
+            "severity": severity,
+            "target_roles": target_roles,
+            "target_users": target_users,
+            "reference_type": reference_type,
+            "reference_id": reference_id,
+            "dedupe_key": dedupe_key,
+            "metadata": metadata,
+            "channels": channels,
+        }
+        command = {
+            "command_id": uuid4().hex,
+            "command_type": "notification.create",
+            "issued_at": datetime.utcnow().isoformat(),
+            "payload": payload,
+        }
+
+        published = await kafka_manager.publish(
+            kafka_manager.topic("notifications.commands"),
+            command,
+            key=dedupe_key or reference_id or type,
+        )
+        if published:
+            return {"queued": True, "transport": "kafka"}
+
+        created = await NotificationService.create_system_notification(**payload)
+        return {"queued": False, "transport": "direct", "notification": created}
 
     @staticmethod
     async def _refresh_low_stock_alerts():

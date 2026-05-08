@@ -1,12 +1,12 @@
 import random
 import string
-import asyncio
+
 from fastapi import HTTPException
 from app.repositories.product_repository import ProductRepository
 from app.repositories.warehouse_stock_repository import WarehouseStockRepository
-from app.core.websocket_manager import manager
 from app.services.warehouse_stock_service import WarehouseStockService
 from app.services.audit_service import AuditService
+from app.services.event_bus_service import EventBusService
 
 
 class ProductService:
@@ -211,6 +211,14 @@ class ProductService:
             new_value=created_product,
             audit_context=audit_context,
         )
+        await EventBusService.publish(
+            topic_key="products.events",
+            event_type="product.created",
+            aggregate_type="product",
+            aggregate_id=product["id"],
+            payload=created_product,
+            user=user,
+        )
 
         return created_product
 
@@ -304,9 +312,13 @@ class ProductService:
             new_value=updated_product,
             audit_context=audit_context,
         )
-
-        asyncio.create_task(
-            manager.broadcast({"event": "PRODUCT_UPDATED", "data": updated_product})
+        await EventBusService.publish(
+            topic_key="products.events",
+            event_type="product.updated",
+            aggregate_type="product",
+            aggregate_id=product_id,
+            payload=updated_product,
+            user=user,
         )
 
         return {"message": "Product updated"}
@@ -333,9 +345,13 @@ class ProductService:
             new_value=None,
             audit_context=audit_context,
         )
-
-        asyncio.create_task(
-            manager.broadcast({"event": "PRODUCT_DELETED", "data": {"id": product_id}})
+        await EventBusService.publish(
+            topic_key="products.events",
+            event_type="product.deleted",
+            aggregate_type="product",
+            aggregate_id=product_id,
+            payload={"id": product_id, "name": existing.get("name")},
+            user=user,
         )
 
         return {"message": "Product deleted successfully"}

@@ -6,6 +6,7 @@ from fastapi import HTTPException
 
 from app.models.audit_log_model import audit_log_model
 from app.repositories.audit_repository import AuditRepository
+from app.services.event_bus_service import EventBusService
 
 
 class AuditService:
@@ -84,6 +85,18 @@ class AuditService:
             document["new_value"] = serialized_new_value
 
         await AuditRepository.create(document)
+        try:
+            await EventBusService.publish(
+                topic_key="audit.events",
+                event_type="audit.logged",
+                aggregate_type=entity_type,
+                aggregate_id=document.get("entity_id"),
+                payload=document,
+                metadata={"action": action},
+                user=user,
+            )
+        except Exception:
+            return None
 
     @staticmethod
     async def safe_log_action(**kwargs):
