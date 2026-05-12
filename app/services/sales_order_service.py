@@ -9,6 +9,9 @@ from app.services.notification_service import NotificationService
 from app.utils.notification_helper import notify_user, notify_admin
 from app.services.inventory_service import InventoryService
 from app.services.audit_service import AuditService
+from app.kafka.producer import send_event
+from uuid import uuid4
+from app.services.email_event_service import EmailEventService
 
 
 
@@ -178,10 +181,10 @@ class OrderService:
                         }
                     )
 
-                    await InventoryService.check_low_stock(
-                          item["product_id"],
-                          alloc["warehouse_id"]
-                    )
+                    # await InventoryService.check_low_stock(
+                    #       item["product_id"],
+                    #       alloc["warehouse_id"]
+                    # )
 
             # 🔁 LOG MOVEMENT
             for item in updated_items:
@@ -215,12 +218,12 @@ class OrderService:
             pdf_bytes = generate_invoice_pdf(order, order_id)
             html_content = generate_amazon_style_email(order, order_id)
 
-            await send_email_with_pdf(
-                order.get("email"),
-                "🧾 Your Order Invoice",
-                html_content,
-                pdf_bytes
-            )
+            # await send_email_with_pdf(
+            #     order.get("email"),
+            #     "🧾 Your Order Invoice",
+            #     html_content,
+            #     pdf_bytes
+            # )
 
         # ================= CANCEL ORDER =================
         elif new_status == "cancelled":
@@ -332,39 +335,47 @@ class OrderService:
             
 
         # ✅ NOTIFICATIONS
-        await notify_admin(title, message,notif_type)
+        # await notify_admin(title, message,notif_type)
 
-        await notify_user(
-            order["user_id"],
-            title,
-            message,
-            notif_type
-        )
+        # await notify_user(
+        #     order["user_id"],
+        #     title,
+        #     message,
+        #     notif_type
+        # )
         
         #✅ SEND STATUS EMAIL TO USER (MINIMAL ADD)
-        if order.get("email"):
+        # if order.get("email"):
 
-            subject_map = {
-               "confirmed": "🧾 Order Confirmed",
-               "packed": "📦 Order Packed",
-              "shipped": "🚚 Order Shipped",
-              "delivered": "✅ Order Delivered",
-              "cancelled": "❌ Order Cancelled",
-              "returned": "🔄 Order Returned"
-           }
+        #     subject_map = {
+        #        "confirmed": "🧾 Order Confirmed",
+        #        "packed": "📦 Order Packed",
+        #       "shipped": "🚚 Order Shipped",
+        #       "delivered": "✅ Order Delivered",
+        #       "cancelled": "❌ Order Cancelled",
+        #       "returned": "🔄 Order Returned"
+        #    }
 
-            subject = subject_map.get(new_status, "Order Update")
+        #     subject = subject_map.get(new_status, "Order Update")
 
-            html_content = generate_amazon_style_email(order, order_id)
+        #     html_content = generate_amazon_style_email(order, order_id)
 
-            try:
-               await send_email_with_pdf(
-                  order.get("email"),
-                  subject,
-                  html_content
-              )
-            except Exception as e:
-               print("Status email failed:", e)
+            # try:
+            #    await send_email_with_pdf(
+            #       order.get("email"),
+            #       subject,
+            #       html_content #   )
+            
+            #     send_event("email_notifications", {
+            #         "to": order.get("email"),
+            #         "subject": subject,
+            #         "html": html_content,
+            #         "type": f"ORDER_{new_status.upper()}",
+            #         "order_id": order_id,
+            #         "status": new_status})
+           
+            # except Exception as e:
+            #    print("Status email failed:", e)
 
         # ✅ FINAL STATUS UPDATE
         await self.repo.update(order_id, {
@@ -372,27 +383,56 @@ class OrderService:
             "updated_at": datetime.utcnow()
         })
         
-        old_status = order.get("status")
         
-        await AuditService.log(
-            user_id=order["user_id"],
-            action=f"ORDER_{new_status.upper()}",
-            entity_type="order",
-            entity_id=order_id,
-            value={
-                   "items": [
-                       {
-                            "product_name": item["product_name"],
-                            "product_id": item["product_id"],
-                            "warehouse_name": alloc["warehouse_name"],
-                            "quantity": item["quantity"]
-                        }
-                        for item in order["items"]
-                    ],
-                    "status": new_status
-                   }
-                )
+        
+        # old_status = order.get("status")
+        
+        # await AuditService.log(
+        #     user_id=order["user_id"],
+        #     action=f"ORDER_{new_status.upper()}",
+        #     entity_type="order",
+        #     entity_id=order_id,
+        #     value={
+        #            "items": [
+        #                {
+        #                     "product_name": item["product_name"],
+        #                     "product_id": item["product_id"],
+        #                     "warehouse_name": alloc["warehouse_name"],
+        #                     "quantity": item["quantity"]
+        #                 }
+        #                 for item in order["items"]
+        #             ],
+        #             "status": new_status
+        #            }
+        #         )
+        
+        event = {
+             "event_id": str(uuid4()),
+             "type": f"ORDER_{new_status.upper()}",
+             "order_id": order_id,
+             "user_id": order["user_id"],
+             "email": order.get("email"),
+             "status": new_status,
+             "items": order["items"],
+             "customer": order.get("customer_name"),
+             "total": order.get("total_amount"),
+             "timestamp": datetime.utcnow().isoformat()
+             }
+        
+        await EmailEventService.create({
+             "event_id": event["event_id"],
+             "order_id": order_id,
+             "type": event["type"],
+             "to": order.get("email"),
+             "status": "PENDING",
+             "retry_count": 0,
+             "error": None
+        })
+
+        send_event("order_events", event)
 
         return {"message": f"Order {new_status} successfully"}
+    
+       
 
     

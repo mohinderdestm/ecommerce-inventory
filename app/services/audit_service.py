@@ -1,6 +1,7 @@
 from datetime import datetime
 from app.core.database import db
 
+
 class AuditService:
 
     @staticmethod
@@ -29,3 +30,4 @@ class AuditService:
            log["new_value"] = new_value
 
         await db["audit_logs"].insert_one(log)
+        # send_event("audit_logs",log)

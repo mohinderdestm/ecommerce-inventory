@@ -5,6 +5,8 @@ from bson import ObjectId
 from app.services.notification_service import NotificationService
 from app.services.email_service import send_email_with_pdf
 from app.services.audit_service import AuditService
+from app.kafka.producer import send_event
+
 
 
 LOW_STOCK_LIMIT = 4
@@ -132,13 +134,13 @@ class InventoryService:
             # deduct from source
             await self.repo.update_stock(product_id, from_wh, -qty)
             await InventoryService.check_low_stock(product_id, from_wh)
-            await InventoryService.check_low_stock(product_id, from_wh)
+      
 
             # add to destination
             await self.repo.update_stock(product_id, to_wh, qty)
             await InventoryService.check_low_stock(product_id, to_wh)
             
-            await InventoryService.check_low_stock(product_id, to_wh)
+          
             
 
             #  OUT log
@@ -196,8 +198,8 @@ class InventoryService:
             "warehouse_id": str(warehouse_id)
         })
         
-        print("🔥 CHECKING STOCK FOR:", product_id, warehouse_id)
-        print("📦 STOCK FOUND:", stock)
+        # print("🔥 CHECKING STOCK FOR:", product_id, warehouse_id)
+        # print("📦 STOCK FOUND:", stock)
 
         if not stock:
             print("❌ Stock not found")
@@ -213,7 +215,7 @@ class InventoryService:
             warehouse_name = warehouse.get("name") if warehouse else "Unknown Warehouse"
             
 
-            # ❌ prevent duplicate alerts
+            # prevent duplicate alerts
             existing = await db["notifications"].find_one({
                 "type": "low_stock",
                 "product_id": product_id,
@@ -226,7 +228,8 @@ class InventoryService:
                 print("⚠️ Low stock already notified (but sending email again)")
                
 
-            await NotificationService.create({
+            # await NotificationService.create({
+            send_event("order_events", {
                 "role": "admin",
                 "type": "low_stock",
                 "title": "⚠️ Low Stock Alert",
@@ -255,14 +258,15 @@ class InventoryService:
             print("📧 EMAIL FUNCTION CALLED")
             
 
-            try:
-                 await send_email_with_pdf(
-                   ADMIN_EMAIL,
-                #    f"⚠️ Low Stock: {stock['product_name']}",
-                   f"⚠️ Low Stock: {product_name}",  
-                   html_content
-                 )
-            except Exception as e:
-                 print("Low stock email failed:", e)
+            # try:
+            #     #  await send_email_with_pdf(
+            #     send_email_event({ 
+            #       "to": ADMIN_EMAIL,
+            #       "subject": f"⚠️ Low Stock: {product_name}",
+            #       "html": html_content,
+            #       "type": "LOW_STOCK"
+            #      })
+            # except Exception as e:
+            #      print("Low stock email failed:", e)
 
 

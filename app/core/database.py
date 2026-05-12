@@ -26,6 +26,10 @@ inventory_collection = db["inventory"]
 inventory_movements_collection = db["inventory_logs"]
 sales_orders_collection = db["sales_orders"]
 audit_logs_collection= db["audit_logs"]
+email_events_collection=db["email_events"]
+
+
+
 
 
 # Dependency function

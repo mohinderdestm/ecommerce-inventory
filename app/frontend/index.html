@@ -2411,29 +2411,42 @@ function renderAuditTable(logs) {
 
 
 function formatAuditRow(log) {
-  // ✅ BOTH OLD + NEW → show comparison
-  if (log.old_value && log.new_value) {
-    return `
-      <div style="color:#b91c1c;">
-        <b>Old:</b> ${formatAuditDetails(log.old_value)}
-      </div>
-      <div style="color:#065f46; margin-top:5px;">
-        <b>New:</b> ${formatAuditDetails(log.new_value)}
-      </div>
-    `;
+
+  let html = "";
+
+  // ✅ Show main fields (same as before)
+  html += `<div><b>Id:</b> ${log._id || "-"}</div>`;
+  html += `<div><b>User Id:</b> ${log.user_id || "-"}</div>`;
+  html += `<div><b>Action:</b> ${log.action || "-"}</div>`;
+  html += `<div><b>Entity Type:</b> ${log.entity_type || "-"}</div>`;
+  html += `<div><b>Entity Id:</b> ${log.entity_id || "-"}</div>`;
+  html += `<div><b>Timestamp:</b> ${formatDate(log.timestamp)}</div>`;
+
+  // ✅ VALUE (Kafka logs)
+  if (log.value) {
+    html += `<div><b>Value:</b></div>`;
+    html += `<div style="margin-left:10px;">${formatAuditDetails(log.value)}</div>`;
   }
 
-  // ✅ ONLY NEW → show clean info (NO "New:" label)
-  if (log.new_value) {
-    return `
-      <div>
-        ${formatAuditDetails(log.new_value)}
-      </div>
-    `;
+  // ✅ OLD/NEW (updates)
+  else if (log.old_value || log.new_value) {
+    if (log.old_value) {
+      html += `<div><b>Old:</b></div>`;
+      html += `<div style="margin-left:10px;">${formatAuditDetails(log.old_value)}</div>`;
+    }
+
+    if (log.new_value) {
+      html += `<div><b>New:</b></div>`;
+      html += `<div style="margin-left:10px;">${formatAuditDetails(log.new_value)}</div>`;
+    }
   }
 
-  // ✅ NOTHING → fallback based on action
-  return `<div>${getSimpleMessage(log)}</div>`;
+  // ✅ User Name
+  if (log.user_name) {
+    html += `<div><b>User Name:</b> ${log.user_name}</div>`;
+  }
+
+  return html;
 }
 
 function getSimpleMessage(log) {

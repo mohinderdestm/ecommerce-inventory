@@ -51,4 +51,5 @@ async def send_email_with_pdf(to_email, subject, html_content, pdf_bytes=None):
 
     except Exception as e:
         print("Email failed:", e)
+        raise e
 
